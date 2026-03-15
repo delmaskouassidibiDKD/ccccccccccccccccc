@@ -33,9 +33,10 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "PORT=8099 pnpm --filter @workspace/dkd-market run dev"
+waitForPort = 8099
 
 [workflows.workflow.metadata]
-outputType = "console"
+outputType = "webview"
 
 [agent]
 stack = "PNPM_WORKSPACE"
