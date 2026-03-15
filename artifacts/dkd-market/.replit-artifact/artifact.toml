@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "DKD-MARKET"
+version = "1.0.0"
+id = "artifacts/dkd-market"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+localPort = 26192
+name = "expo"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/dkd-market run dev"
+
+[services.env]
+PORT = "26192"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/dkd-market", "run", "build"]
+run = ["pnpm", "--filter", "@workspace/dkd-market", "run", "serve"]
