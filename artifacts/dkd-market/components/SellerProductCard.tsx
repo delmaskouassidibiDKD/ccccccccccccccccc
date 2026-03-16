@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 
 export type SellerProduct = {
   id: string;
@@ -15,6 +17,7 @@ export type SellerProduct = {
   color: string;
   minQty?: string;
   origine?: string;
+  videoUrl?: string;
 };
 
 type Props = {
@@ -52,12 +55,38 @@ const sr = StyleSheet.create({
 });
 
 export function SellerProductCard({ item, isDark, isEngros = false, accentColor, onEdit, onVideo }: Props) {
+  const router  = useRouter();
   const dCARD   = isDark ? "#161B25" : "#FFFFFF";
   const dBORDER = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)";
   const dTEXT   = isDark ? "#F0F0F0" : "#111827";
   const dSUB    = isDark ? "#8B9AB0" : "#6B7280";
   const dMOD    = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
   const active  = item.status === "active";
+
+  function handleVideo() {
+    Haptics.selectionAsync();
+    if (onVideo) onVideo();
+    router.push({
+      pathname: "/product-video" as any,
+      params: {
+        videoUrl: item.videoUrl ?? "",
+        productTitle: item.title,
+      },
+    });
+  }
+
+  function handleEdit() {
+    Haptics.selectionAsync();
+    if (onEdit) onEdit();
+    router.push({
+      pathname: "/edit-product/[id]" as any,
+      params: {
+        id: item.id,
+        productTitle: item.title,
+        accentColor,
+      },
+    });
+  }
 
   return (
     <View style={[c.card, { backgroundColor: dCARD, borderColor: dBORDER }]}>
@@ -95,15 +124,19 @@ export function SellerProductCard({ item, isDark, isEngros = false, accentColor,
           <Text style={c.price}>{item.price}</Text>
           <TouchableOpacity
             style={[c.videoBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }]}
-            onPress={onVideo}
+            onPress={handleVideo}
             activeOpacity={0.8}
           >
-            <Ionicons name="play-circle-outline" size={18} color={isDark ? "#CBD5E1" : "#475569"} />
+            <Ionicons
+              name={item.videoUrl ? "play-circle" : "play-circle-outline"}
+              size={18}
+              color={item.videoUrl ? "#FF6B00" : (isDark ? "#CBD5E1" : "#475569")}
+            />
           </TouchableOpacity>
         </View>
 
         {/* Modifier button */}
-        <TouchableOpacity style={[c.modifyBtn, { backgroundColor: dMOD }]} onPress={onEdit} activeOpacity={0.8}>
+        <TouchableOpacity style={[c.modifyBtn, { backgroundColor: dMOD }]} onPress={handleEdit} activeOpacity={0.8}>
           <Ionicons name="create-outline" size={13} color={accentColor} />
           <Text style={[c.modifyText, { color: accentColor }]}>Modifier</Text>
         </TouchableOpacity>
