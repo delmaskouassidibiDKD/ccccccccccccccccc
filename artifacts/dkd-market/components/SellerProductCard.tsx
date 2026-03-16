@@ -165,7 +165,8 @@ const c = StyleSheet.create({
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    gap: 10,
     marginTop: 5,
     marginRight: 4,
   },
@@ -199,7 +200,7 @@ const c = StyleSheet.create({
   },
 
   imageBox: {
-    width: 108,
+    width: 88,
     flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
