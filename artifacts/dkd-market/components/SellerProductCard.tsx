@@ -200,7 +200,7 @@ const c = StyleSheet.create({
   },
 
   imageBox: {
-    width: 88,
+    width: 135,
     flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
