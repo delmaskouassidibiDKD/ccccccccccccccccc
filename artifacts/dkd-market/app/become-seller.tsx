@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
+import ProfilePhotoAvatar from "@/components/ProfilePhotoAvatar";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -155,6 +156,7 @@ export default function BecomeSellerScreen() {
       <SellerDashboard
         initials={initials}
         profilePhoto={profilePhoto}
+        onPhotoChanged={setProfilePhoto}
         shopName={shopName}
         stats={stats}
         pendingCount={pendingCount}
@@ -283,7 +285,7 @@ export default function BecomeSellerScreen() {
   );
 }
 
-function SellerDashboard({ initials, profilePhoto, shopName, stats, pendingCount, activeTab, setActiveTab, topPad, insets }: any) {
+function SellerDashboard({ initials, profilePhoto, onPhotoChanged, shopName, stats, pendingCount, activeTab, setActiveTab, topPad, insets }: any) {
   const [activeShopTypes, setActiveShopTypes] = useState<string[]>([]);
   const { isDark } = useTheme();
   const dBG      = isDark ? "#0D1117" : "#F0F4F8";
@@ -353,12 +355,17 @@ function SellerDashboard({ initials, profilePhoto, shopName, stats, pendingCount
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         <View style={[dashStyles.profileSection, { backgroundColor: dBG }]}>
-          <View style={[dashStyles.avatarCircle, { backgroundColor: dCARD }]}>
-            {profilePhoto
-              ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
-              : <Text style={[dashStyles.avatarText, { color: dTEXT }]}>{initials}</Text>
-            }
-          </View>
+          <ProfilePhotoAvatar
+            photoUri={profilePhoto}
+            initials={initials}
+            onPhotoChanged={onPhotoChanged}
+            size={90}
+            fontSize={34}
+            borderColor="rgba(255,107,0,0.5)"
+            bgColor={dCARD}
+            initialsColor={dTEXT}
+            style={{ marginBottom: 12 }}
+          />
           <Text style={[dashStyles.shopName, { color: dTEXT }]}>{shopName}</Text>
           <Text style={[dashStyles.shopRole, { color: dSUB }]}>Entrepreneur & Vendeur DKD</Text>
         </View>

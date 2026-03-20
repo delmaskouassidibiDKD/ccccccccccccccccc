@@ -14,6 +14,7 @@ import {
   Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
+import ProfilePhotoAvatar from "@/components/ProfilePhotoAvatar";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -216,7 +217,7 @@ export default function ImportePage() {
 
       {/* ── MAIN CONTENT ── */}
       <View style={{ flex: 1 }}>
-        {activeSection === "accueil"            && <AccueilView displayName={displayName} initial={initial} profilePhoto={profilePhoto} isDark={isDark} dynCARD={dynCARD} dynText={dynText} dynSub={dynSub} dynBG={dynBG} dynBorder={dynBorder}
+        {activeSection === "accueil"            && <AccueilView displayName={displayName} initial={initial} profilePhoto={profilePhoto} onPhotoChanged={setProfilePhoto} isDark={isDark} dynCARD={dynCARD} dynText={dynText} dynSub={dynSub} dynBG={dynBG} dynBorder={dynBorder}
           originCountries={originCountries} setOriginCountries={setOriginCountries}
           expoCountries={expoCountries}     setExpoCountries={setExpoCountries} />}
         {activeSection === "commandes_en_cours" && <CommandesEnCoursView isDark={isDark} dynCARD={dynCARD} dynText={dynText} dynSub={dynSub} dynBG={dynBG} dynBorder={dynBorder} checkedMap={checkedMap} userRoutes={userRoutes} />}
@@ -242,12 +243,16 @@ export default function ImportePage() {
       >
         {/* Drawer header */}
         <View style={[styles.drawerHeader, { paddingTop: insets.top + 12 }]}>
-          <View style={styles.drawerAvatar}>
-            {profilePhoto
-              ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
-              : <Text style={styles.drawerAvatarText}>{initial}</Text>
-            }
-          </View>
+          <ProfilePhotoAvatar
+            photoUri={profilePhoto}
+            initials={initial}
+            onPhotoChanged={setProfilePhoto}
+            size={56}
+            fontSize={22}
+            borderColor={ACCENT + "88"}
+            bgColor={ACCENT + "33"}
+            initialsColor={ACCENT}
+          />
           <Text style={[styles.drawerName, { color: dynText }]}>{displayName}</Text>
           <View style={styles.drawerBadge}>
             <Ionicons name="airplane-outline" size={10} color="#fff" />
@@ -424,9 +429,9 @@ const SOURCE_COUNTRIES = [
 ];
 
 /* ─────── Accueil View ─────── */
-function AccueilView({ displayName, initial, profilePhoto, isDark, dynCARD, dynText, dynSub, dynBG, dynBorder,
+function AccueilView({ displayName, initial, profilePhoto, onPhotoChanged, isDark, dynCARD, dynText, dynSub, dynBG, dynBorder,
   originCountries, setOriginCountries, expoCountries, setExpoCountries }: {
-  displayName: string; initial: string; profilePhoto: string | null;
+  displayName: string; initial: string; profilePhoto: string | null; onPhotoChanged: (uri: string) => void;
   isDark: boolean; dynCARD: string; dynText: string; dynSub: string; dynBG: string; dynBorder: string;
   originCountries: string[]; setOriginCountries: (fn: (p:string[])=>string[]) => void;
   expoCountries:   string[]; setExpoCountries:   (fn: (p:string[])=>string[]) => void;
@@ -463,12 +468,16 @@ function AccueilView({ displayName, initial, profilePhoto, isDark, dynCARD, dynT
     >
       {/* Welcome card */}
       <View style={[styles.welcomeCard, { backgroundColor: dynCARD, borderColor: dynBorder }]}>
-        <View style={styles.welcomeAvatar}>
-          {profilePhoto
-            ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
-            : <Text style={styles.welcomeAvatarText}>{initial}</Text>
-          }
-        </View>
+        <ProfilePhotoAvatar
+          photoUri={profilePhoto}
+          initials={initial}
+          onPhotoChanged={onPhotoChanged}
+          size={64}
+          fontSize={26}
+          borderColor={ACCENT + "88"}
+          bgColor={ACCENT + "33"}
+          initialsColor={ACCENT}
+        />
         <Text style={[styles.welcomeTitle, { color: dynText }]}>
           Bienvenue,{"\n"}
           <Text style={styles.welcomeName}>{displayName}</Text>

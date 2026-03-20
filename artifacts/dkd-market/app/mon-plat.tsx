@@ -4,6 +4,7 @@ import {
   ScrollView, Modal, FlatList, Image,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import ProfilePhotoAvatar from "@/components/ProfilePhotoAvatar";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -112,12 +113,17 @@ export default function MonPlatPage() {
           <View style={[s.sellerGlow, { backgroundColor: ACCENT + "18" }]} />
 
           {/* Avatar centré en haut */}
-          <View style={[s.sellerAvatar, { backgroundColor: ACCENT + "33", borderColor: ACCENT + "88" }]}>
-            {profilePhoto
-              ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
-              : <Text style={[s.sellerAvatarText, { color: ACCENT }]}>{initial}</Text>
-            }
-          </View>
+          <ProfilePhotoAvatar
+            photoUri={profilePhoto}
+            initials={initial}
+            onPhotoChanged={setProfilePhoto}
+            size={68}
+            fontSize={28}
+            borderColor={ACCENT + "88"}
+            bgColor={ACCENT + "33"}
+            initialsColor={ACCENT}
+            style={{ alignSelf: "center", marginTop: 24 }}
+          />
 
           {/* Nom + badge Gastronomia */}
           <View style={s.sellerInfo}>

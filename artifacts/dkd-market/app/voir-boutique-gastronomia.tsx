@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import ProfilePhotoAvatar from "@/components/ProfilePhotoAvatar";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -65,12 +66,16 @@ export default function VoirBoutiqueGastronomiaPage() {
         {/* BANNER */}
         <View style={[s.banner, { backgroundColor: ACCENT + "18", borderColor: ACCENT + "33" }]}>
           <View style={[s.bannerGlow, { backgroundColor: ACCENT + "22" }]} />
-          <View style={[s.bannerAvatar, { backgroundColor: ACCENT + "33", borderColor: ACCENT + "88" }]}>
-            {profilePhoto
-              ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
-              : <Text style={[s.bannerAvatarText, { color: ACCENT }]}>{initial}</Text>
-            }
-          </View>
+          <ProfilePhotoAvatar
+            photoUri={profilePhoto}
+            initials={initial}
+            onPhotoChanged={setProfilePhoto}
+            size={72}
+            fontSize={30}
+            borderColor={ACCENT + "88"}
+            bgColor={ACCENT + "33"}
+            initialsColor={ACCENT}
+          />
           <Text style={[s.bannerName, { color: dynText }]}>{displayName}</Text>
           <View style={[s.bannerBadge, { backgroundColor: ACCENT + "22" }]}>
             <Ionicons name="restaurant-outline" size={12} color={ACCENT} />

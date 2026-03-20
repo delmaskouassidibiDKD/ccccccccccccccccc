@@ -13,6 +13,7 @@ import {
   Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
+import ProfilePhotoAvatar from "@/components/ProfilePhotoAvatar";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/contexts/AuthContext";
@@ -135,6 +136,7 @@ export default function GrossistePage() {
             displayName={displayName}
             initial={initial}
             profilePhoto={profilePhoto}
+            onPhotoChanged={setProfilePhoto}
             isDark={isDark}
             dynBG={dynBG}
             dynCARD={dynCARD}
@@ -159,12 +161,16 @@ export default function GrossistePage() {
       >
         {/* Drawer header */}
         <View style={[s.drawerHeader, { paddingTop: insets.top + 12, borderBottomColor: dynBorder, backgroundColor: ACCENT2 + (isDark ? "18" : "10") }]}>
-          <View style={s.drawerAvatar}>
-            {profilePhoto
-              ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
-              : <Text style={s.drawerAvatarText}>{initial}</Text>
-            }
-          </View>
+          <ProfilePhotoAvatar
+            photoUri={profilePhoto}
+            initials={initial}
+            onPhotoChanged={setProfilePhoto}
+            size={56}
+            fontSize={22}
+            borderColor={ACCENT + "88"}
+            bgColor={ACCENT + "33"}
+            initialsColor={ACCENT}
+          />
           <Text style={[s.drawerName, { color: dynText }]}>{displayName}</Text>
           <View style={s.drawerBadge}>
             <Ionicons name="cube-outline" size={10} color="#fff" />
@@ -300,6 +306,7 @@ type AccueilProps = {
   displayName: string;
   initial: string;
   profilePhoto: string | null;
+  onPhotoChanged: (uri: string) => void;
   isDark: boolean;
   dynBG: string;
   dynCARD: string;
@@ -326,7 +333,7 @@ const PAYS_LIST = [
   { code: "tg", label: "Togo",          flag: "🇹🇬" },
 ];
 
-function AccueilView({ displayName, initial, profilePhoto, isDark, dynCARD, dynText, dynSub, dynBorder }: AccueilProps) {
+function AccueilView({ displayName, initial, profilePhoto, onPhotoChanged, isDark, dynCARD, dynText, dynSub, dynBorder }: AccueilProps) {
   const router = useRouter();
   const [paysExpanded, setPaysExpanded] = useState(false);
   const [selectedPays, setSelectedPays] = useState<Set<string>>(new Set());
@@ -372,12 +379,16 @@ function AccueilView({ displayName, initial, profilePhoto, isDark, dynCARD, dynT
       {/* Welcome banner */}
       <View style={[s.welcomeCard, { backgroundColor: dynCARD, borderColor: ACCENT + "33" }]}>
         <View style={s.welcomeGlow} />
-        <View style={s.welcomeAvatar}>
-          {profilePhoto
-            ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
-            : <Text style={s.welcomeAvatarText}>{initial}</Text>
-          }
-        </View>
+        <ProfilePhotoAvatar
+          photoUri={profilePhoto}
+          initials={initial}
+          onPhotoChanged={onPhotoChanged}
+          size={64}
+          fontSize={26}
+          borderColor={ACCENT + "88"}
+          bgColor={ACCENT + "33"}
+          initialsColor={ACCENT}
+        />
         <Text style={[s.welcomeTitle, { color: dynText }]}>
           Bienvenue,{"\n"}
           <Text style={s.welcomeName}>{displayName}</Text>
