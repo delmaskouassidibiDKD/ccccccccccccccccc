@@ -491,27 +491,14 @@ export default function GestionLivraisonPage() {
         </Pressable>
       </Modal>
 
-      {/* ── MODAL AVATAR AGRANDI ── */}
+      {/* ── MODAL AVATAR PLEIN ÉCRAN ── */}
       <Modal visible={!!showAvatar} animationType="fade" transparent statusBarTranslucent onRequestClose={() => setShowAvatar(null)}>
-        <Pressable style={m.overlay} onPress={() => setShowAvatar(null)}>
-          <Pressable style={[m.avatarCard, { backgroundColor: isDark ? "#1C2230" : "#FFFFFF" }]} onPress={(e) => e.stopPropagation()}>
-            {showAvatar && (
-              <>
-                <View style={[m.avatarBig, { backgroundColor: showAvatar.colorHex + "28" }]}>
-                  <Text style={[m.avatarBigText, { color: showAvatar.colorHex }]}>{showAvatar.initials}</Text>
-                </View>
-                <Text style={[m.avatarName, { color: dTEXT }]}>{showAvatar.name}</Text>
-                <View style={[m.avatarCompany, { backgroundColor: showAvatar.colorHex + "18" }]}>
-                  <Ionicons name="business-outline" size={13} color={showAvatar.colorHex} />
-                  <Text style={[m.avatarCompanyText, { color: showAvatar.colorHex }]}>{showAvatar.company}</Text>
-                </View>
-                <StarRow stars={showAvatar.stars} numColor="#F59E0B" />
-              </>
-            )}
-            <TouchableOpacity style={[m.closeBtn, { backgroundColor: isDark ? "#0D1117" : "#F3F4F6", marginTop: 8 }]} onPress={() => setShowAvatar(null)} activeOpacity={0.85}>
-              <Text style={[m.closeBtnText, { color: dTEXT }]}>Fermer</Text>
-            </TouchableOpacity>
-          </Pressable>
+        <Pressable style={m.avatarFullOverlay} onPress={() => setShowAvatar(null)}>
+          {showAvatar && (
+            <View style={[m.avatarFullCircle, { backgroundColor: showAvatar.colorHex + "30" }]}>
+              <Text style={[m.avatarFullText, { color: showAvatar.colorHex }]}>{showAvatar.initials}</Text>
+            </View>
+          )}
         </Pressable>
       </Modal>
 
@@ -575,12 +562,9 @@ const m = StyleSheet.create({
   statusText: { color: "#22C55E", fontFamily: "Poppins_600SemiBold", fontSize: 13 },
   closeBtn: { borderRadius: 14, paddingVertical: 14, alignItems: "center" },
   closeBtnText: { fontFamily: "Poppins_700Bold", fontSize: 14 },
-  avatarCard: { borderRadius: 24, padding: 28, width: "82%", alignItems: "center", gap: 14, marginBottom: 200 },
-  avatarBig: { width: 110, height: 110, borderRadius: 55, alignItems: "center", justifyContent: "center" },
-  avatarBigText: { fontFamily: "Poppins_700Bold", fontSize: 44 },
-  avatarName: { fontFamily: "Poppins_700Bold", fontSize: 18 },
-  avatarCompany: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
-  avatarCompanyText: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
+  avatarFullOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.88)", alignItems: "center", justifyContent: "center" },
+  avatarFullCircle: { width: 220, height: 220, borderRadius: 110, alignItems: "center", justifyContent: "center" },
+  avatarFullText: { fontFamily: "Poppins_700Bold", fontSize: 88 },
   livreurBand: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 14, padding: 12, borderWidth: 1 },
   avatarSmall: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   avatarSmallText: { fontFamily: "Poppins_700Bold", fontSize: 16 },
