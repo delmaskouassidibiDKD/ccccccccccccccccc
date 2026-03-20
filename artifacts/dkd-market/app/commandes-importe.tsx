@@ -378,7 +378,7 @@ export default function CommandesImportePage() {
                 {/* Bouton "Envoyer le devis" */}
                 {devisApplied && (!devisSent || devisNeedsResendIds.has(item.id)) && !confirmed && (
                   <TouchableOpacity
-                    style={[s.confirmClientBtn, { backgroundColor: "#F59E0B14", borderColor: "#F59E0B44" }]}
+                    style={[s.confirmClientBtn, { backgroundColor: "#F59E0B", borderColor: "#F59E0B" }]}
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                       setDevisedIds((prev) => new Set([...prev, item.id]));
@@ -392,11 +392,11 @@ export default function CommandesImportePage() {
                     }}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="send-outline" size={14} color="#F59E0B" />
-                    <Text style={[s.confirmClientText, { color: "#F59E0B" }]}>
+                    <Ionicons name="send-outline" size={14} color="#fff" />
+                    <Text style={[s.confirmClientText, { color: "#fff" }]}>
                       Envoyer le devis au client
                     </Text>
-                    <Ionicons name="chevron-forward" size={13} color="#F59E0B" style={{ marginLeft: "auto" }} />
+                    <Ionicons name="chevron-forward" size={13} color="#fff" style={{ marginLeft: "auto" }} />
                   </TouchableOpacity>
                 )}
 
