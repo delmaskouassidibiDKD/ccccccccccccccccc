@@ -154,6 +154,7 @@ export default function ProfileScreen() {
                 source={{ uri: avatarUri }}
                 style={[styles.avatarImage, { borderColor: colors.primary }]}
                 resizeMode="cover"
+                onError={() => setAvatarUri(null)}
               />
             ) : (
               <View style={[styles.avatarPlaceholder, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}>

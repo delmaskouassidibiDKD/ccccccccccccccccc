@@ -108,6 +108,8 @@ export default function ImportePage() {
     });
   }, []);
 
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+
   const [phone,         setPhone]         = useState("");
   const [whatsapp,      setWhatsapp]      = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -186,7 +188,6 @@ export default function ImportePage() {
   const currentMenu = MENU_ITEMS.find((m) => m.id === activeSection);
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Boss";
   const initial = displayName.charAt(0).toUpperCase();
-  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top, backgroundColor: dynBG }]}>
