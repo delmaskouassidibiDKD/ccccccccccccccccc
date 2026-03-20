@@ -110,6 +110,23 @@ export default function MesCommandesPage() {
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "annulee" as const } : o));
   }, []);
 
+  const promptCancelConfirmed = useCallback((order: Order) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert(
+      "Annuler la commande ?",
+      `Vous êtes sur le point d'annuler définitivement la commande de ${order.clientName}.\n\nCette action est irréversible. Le client sera notifié que sa commande a été annulée par le vendeur.`,
+      [
+        { text: "Retour", style: "cancel" },
+        {
+          text: "Confirmer l'annulation",
+          style: "destructive",
+          onPress: () => cancelOrder(order.id),
+        },
+      ],
+      { cancelable: true }
+    );
+  }, [cancelOrder]);
+
   const openDetail = useCallback((order: Order) => {
     Haptics.selectionAsync();
     setDetailOrder(order);
@@ -267,6 +284,17 @@ export default function MesCommandesPage() {
                     </TouchableOpacity>
                   </>
                 )}
+                {tab === "confirmed" && (
+                  <TouchableOpacity
+                    style={[s.cancelConfirmedBtn]}
+                    onPress={() => promptCancelConfirmed(order)}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons name="close-circle-outline" size={15} color="#EF4444" />
+                    <Text style={s.cancelConfirmedText}>Annuler la commande</Text>
+                    <Ionicons name="chevron-forward" size={13} color="#EF4444" style={{ marginLeft: "auto" }} />
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           );
@@ -324,4 +352,6 @@ const s = StyleSheet.create({
   actionBtnGhostText: { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
   actionBtnColor:     { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1 },
   actionBtnColorText: { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
+  cancelConfirmedBtn: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 12, borderWidth: 1.5, backgroundColor: "#EF444412", borderColor: "#EF444445" },
+  cancelConfirmedText:{ fontFamily: "Poppins_600SemiBold", fontSize: 13, color: "#EF4444", flex: 1 },
 });
