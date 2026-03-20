@@ -289,14 +289,9 @@ export default function MesPublications() {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Mes publications</Text>
-        <View style={s.headerRight}>
-          <TouchableOpacity style={s.headerIcon} onPress={toggleSearch}>
-            <Ionicons name={searchOpen ? "close" : "search"} size={20} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity style={s.headerIcon} onPress={() => router.push("/add-product" as any)}>
-            <Ionicons name="add" size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={s.headerIcon} onPress={toggleSearch}>
+          <Ionicons name={searchOpen ? "close" : "search"} size={20} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {/* Barre de recherche */}
