@@ -52,24 +52,38 @@ export default function CommandesImportePage() {
   const [search,         setSearch]         = useState("");
   const [processingIds,  setProcessingIds]  = useState<Set<string>>(new Set());
   const [cancelledIds,   setCancelledIds]   = useState<Set<string>>(new Set());
+  const [devisedIds,     setDevisedIds]     = useState<Set<string>>(new Set());
+  const [confirmedIds,   setConfirmedIds]   = useState<Set<string>>(new Set());
 
   const [detailOpen,     setDetailOpen]     = useState(false);
   const [detailOrder,    setDetailOrder]    = useState<Order | null>(null);
 
   const [devisOpen,      setDevisOpen]      = useState(false);
   const [devisOrder,     setDevisOrder]     = useState<Order | null>(null);
-  const [devisedIds,     setDevisedIds]     = useState<Set<string>>(new Set());
 
   const activeOrders = ORDERS.filter((o) => !cancelledIds.has(o.id));
 
+  const getOrderTab = (o: Order): Tab => {
+    if (confirmedIds.has(o.id)) return "confirmee";
+    if (devisedIds.has(o.id))   return "en_attente";
+    return "toutes";
+  };
+
   const filtered = activeOrders.filter((o) => {
-    const matchTab    = tab === "toutes" || o.status === tab;
+    const orderState = getOrderTab(o);
+    const matchTab   = tab === "toutes" ? orderState === "toutes" : orderState === tab;
     const matchSearch = !search || o.name.toLowerCase().includes(search.toLowerCase());
     return matchTab && matchSearch;
   });
 
-  const pendingCount = activeOrders.filter((o) => o.status === "en_attente").length;
-  const orderTotal   = (o: Order) => o.items.reduce((acc, i) => acc + i.total, 0);
+  const countTab = (t: Tab) =>
+    t === "toutes"
+      ? activeOrders.filter((o) => getOrderTab(o) === "toutes").length
+      : activeOrders.filter((o) => getOrderTab(o) === t).length;
+
+  const pendingCount = countTab("en_attente");
+
+  const orderTotal = (o: Order) => o.items.reduce((acc, i) => acc + i.total, 0);
 
   const toggleProcessing = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -78,6 +92,21 @@ export default function CommandesImportePage() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  };
+
+  const confirmByClient = (id: string) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert(
+      "Confirmation client",
+      "Marquer cette commande comme confirmée par le client ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Confirmer",
+          onPress: () => setConfirmedIds((prev) => new Set([...prev, id])),
+        },
+      ]
+    );
   };
 
   const openDetail = (order: Order) => {
@@ -92,6 +121,7 @@ export default function CommandesImportePage() {
   };
 
   const openDevisBuilder = (order: Order) => {
+    if (!processingIds.has(order.id)) return;
     Haptics.selectionAsync();
     setDevisOrder(order);
     setDevisOpen(true);
@@ -116,7 +146,6 @@ export default function CommandesImportePage() {
     } catch {}
     router.push(`/dm-importe?id=${encodeURIComponent(dmId)}&name=${encodeURIComponent(item.name)}&initials=${encodeURIComponent(item.initials)}&color=${encodeURIComponent(item.color)}` as any);
   };
-
 
   return (
     <View style={[s.root, { backgroundColor: dynBG }]}>
@@ -159,7 +188,7 @@ export default function CommandesImportePage() {
       <View style={[s.tabsWrap, { backgroundColor: dynHeader, borderBottomColor: dynBorder }]}>
         {TABS.map((t) => {
           const active = tab === t.key;
-          const count  = t.key === "toutes" ? activeOrders.length : activeOrders.filter((o) => o.status === t.key).length;
+          const count  = countTab(t.key);
           return (
             <TouchableOpacity
               key={t.key}
@@ -192,28 +221,45 @@ export default function CommandesImportePage() {
           renderItem={({ item }) => {
             const total      = orderTotal(item);
             const processing = processingIds.has(item.id);
+            const devisDone  = devisedIds.has(item.id);
+            const confirmed  = confirmedIds.has(item.id);
             const src        = item.source ? SOURCE_CONFIG[item.source] : null;
-            const isConfirmed = item.status === "confirmee";
             const hasGros    = item.items.some((i) => i.isGros);
-            return (
-              <View style={[s.card, { backgroundColor: dynCARD, borderColor: processing ? "#F59E0B44" : dynBorder }]}>
+            const devisEnabled = processing;
 
-                {(src || hasGros) && (
-                  <View style={s.badgesRow}>
-                    {src && (
-                      <View style={[s.sourceBadge, { backgroundColor: src.color + "16", borderColor: src.color + "35" }]}>
-                        <Ionicons name={src.icon as any} size={11} color={src.color} />
-                        <Text style={[s.sourceBadgeText, { color: src.color }]}>{src.label}</Text>
-                      </View>
-                    )}
-                    {hasGros && (
-                      <View style={[s.sourceBadge, { backgroundColor: "#EF444416", borderColor: "#EF444435" }]}>
-                        <Ionicons name="people-outline" size={11} color="#EF4444" />
-                        <Text style={[s.sourceBadgeText, { color: "#EF4444" }]}>Achats groupés</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
+            return (
+              <View style={[
+                s.card,
+                { backgroundColor: dynCARD, borderColor: confirmed ? "#22C55E44" : processing ? "#F59E0B44" : dynBorder },
+              ]}>
+
+                {/* Badges source + gros + statut */}
+                <View style={s.badgesRow}>
+                  {src && (
+                    <View style={[s.sourceBadge, { backgroundColor: src.color + "16", borderColor: src.color + "35" }]}>
+                      <Ionicons name={src.icon as any} size={11} color={src.color} />
+                      <Text style={[s.sourceBadgeText, { color: src.color }]}>{src.label}</Text>
+                    </View>
+                  )}
+                  {hasGros && (
+                    <View style={[s.sourceBadge, { backgroundColor: "#EF444416", borderColor: "#EF444435" }]}>
+                      <Ionicons name="people-outline" size={11} color="#EF4444" />
+                      <Text style={[s.sourceBadgeText, { color: "#EF4444" }]}>Achats groupés</Text>
+                    </View>
+                  )}
+                  {confirmed && (
+                    <View style={[s.sourceBadge, { backgroundColor: "#22C55E16", borderColor: "#22C55E35" }]}>
+                      <Ionicons name="checkmark-circle-outline" size={11} color="#22C55E" />
+                      <Text style={[s.sourceBadgeText, { color: "#22C55E" }]}>Confirmé</Text>
+                    </View>
+                  )}
+                  {!confirmed && devisDone && (
+                    <View style={[s.sourceBadge, { backgroundColor: "#F59E0B16", borderColor: "#F59E0B35" }]}>
+                      <Ionicons name="time-outline" size={11} color="#F59E0B" />
+                      <Text style={[s.sourceBadgeText, { color: "#F59E0B" }]}>En attente de validation</Text>
+                    </View>
+                  )}
+                </View>
 
                 <View style={s.cardRow}>
                   <View style={[s.avatar, { backgroundColor: item.color + "22" }]}>
@@ -233,7 +279,7 @@ export default function CommandesImportePage() {
                 <View style={[s.totalRow, { borderColor: dynBorder }]}>
                   <Text style={[s.totalLabel, { color: dynSub }]}>Total commande</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    {processing && (
+                    {processing && !devisDone && (
                       <View style={[s.processingBadge, { backgroundColor: "#F59E0B18", borderColor: "#F59E0B44" }]}>
                         <View style={s.processingDot} />
                         <Text style={[s.processingBadgeText, { color: "#F59E0B" }]}>En cours</Text>
@@ -262,41 +308,66 @@ export default function CommandesImportePage() {
                     <Text style={[s.btnChatText, { color: "#34D399" }]}>Discuter</Text>
                   </TouchableOpacity>
 
-                  {(() => {
-                    const done = devisedIds.has(item.id);
-                    return (
-                      <TouchableOpacity
-                        style={done
-                          ? [s.btnDevis, { backgroundColor: ACCENT }]
-                          : [s.btnDevis, { backgroundColor: "transparent", borderWidth: 1.5, borderColor: ACCENT }]
-                        }
-                        onPress={() => openDevisBuilder(item)}
-                        activeOpacity={0.8}
-                      >
-                        <Ionicons name="document-text-outline" size={13} color={done ? "#fff" : ACCENT} />
-                        <Text style={[s.btnDevisText, { color: done ? "#fff" : ACCENT }]}>Devis</Text>
-                      </TouchableOpacity>
-                    );
-                  })()}
+                  {/* Bouton Devis — désactivé si pas en cours de traitement */}
+                  <TouchableOpacity
+                    style={[
+                      s.btnDevis,
+                      devisDone
+                        ? { backgroundColor: ACCENT }
+                        : devisEnabled
+                          ? { backgroundColor: "transparent", borderWidth: 1.5, borderColor: ACCENT }
+                          : { backgroundColor: "transparent", borderWidth: 1.5, borderColor: dynBorder, opacity: 0.4 },
+                    ]}
+                    onPress={() => openDevisBuilder(item)}
+                    disabled={!devisEnabled}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="document-text-outline"
+                      size={13}
+                      color={devisDone ? "#fff" : devisEnabled ? ACCENT : dynSub}
+                    />
+                    <Text style={[s.btnDevisText, { color: devisDone ? "#fff" : devisEnabled ? ACCENT : dynSub }]}>
+                      Devis
+                    </Text>
+                  </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity
-                  style={[
-                    s.processingToggle,
-                    {
-                      backgroundColor: processing ? "#F59E0B14" : (isDark ? "#1E293B" : "#F4F6FB"),
-                      borderColor:     processing ? "#F59E0B55" : dynBorder,
-                    },
-                  ]}
-                  onPress={() => toggleProcessing(item.id)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name={processing ? "sync-circle" : "sync-circle-outline"} size={14} color={processing ? "#F59E0B" : dynSub} />
-                  <Text style={[s.processingToggleText, { color: processing ? "#F59E0B" : dynSub }]}>
-                    {processing ? "En cours de traitement" : "Marquer comme en cours de traitement"}
-                  </Text>
-                  {processing && <Ionicons name="checkmark-circle" size={14} color="#F59E0B" style={{ marginLeft: "auto" }} />}
-                </TouchableOpacity>
+                {/* Bouton "En cours de traitement" — seulement si pas encore devisé */}
+                {!devisDone && !confirmed && (
+                  <TouchableOpacity
+                    style={[
+                      s.processingToggle,
+                      {
+                        backgroundColor: processing ? "#F59E0B14" : (isDark ? "#1E293B" : "#F4F6FB"),
+                        borderColor:     processing ? "#F59E0B55" : dynBorder,
+                      },
+                    ]}
+                    onPress={() => toggleProcessing(item.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name={processing ? "sync-circle" : "sync-circle-outline"} size={14} color={processing ? "#F59E0B" : dynSub} />
+                    <Text style={[s.processingToggleText, { color: processing ? "#F59E0B" : dynSub }]}>
+                      {processing ? "En cours de traitement" : "Marquer comme en cours de traitement"}
+                    </Text>
+                    {processing && <Ionicons name="checkmark-circle" size={14} color="#F59E0B" style={{ marginLeft: "auto" }} />}
+                  </TouchableOpacity>
+                )}
+
+                {/* Bouton "Client a confirmé" — seulement dans En attente */}
+                {devisDone && !confirmed && (
+                  <TouchableOpacity
+                    style={[s.confirmClientBtn, { backgroundColor: "#22C55E14", borderColor: "#22C55E44" }]}
+                    onPress={() => confirmByClient(item.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="checkmark-done-circle-outline" size={14} color="#22C55E" />
+                    <Text style={[s.confirmClientText, { color: "#22C55E" }]}>
+                      Le client a confirmé
+                    </Text>
+                    <Ionicons name="chevron-forward" size={13} color="#22C55E" style={{ marginLeft: "auto" }} />
+                  </TouchableOpacity>
+                )}
               </View>
             );
           }}
@@ -308,7 +379,7 @@ export default function CommandesImportePage() {
           visible={detailOpen}
           onClose={() => { setDetailOpen(false); setDetailOrder(null); }}
           products={orderToSlides(detailOrder)}
-          isConfirmed={detailOrder.status === "confirmee" && !cancelledIds.has(detailOrder.id)}
+          isConfirmed={confirmedIds.has(detailOrder.id)}
           onCancel={() => cancelOrder(detailOrder.id)}
           isDark={isDark}
         />
@@ -372,9 +443,11 @@ const s = StyleSheet.create({
   btnChat:         { flex: 0.9, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderWidth: 1.5, borderRadius: 10, paddingVertical: 8 },
   btnChatText:     { fontFamily: "Poppins_600SemiBold", fontSize: 11 },
   btnDevis:        { flex: 0.8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 10, paddingVertical: 8 },
-  btnDevisText:        { fontFamily: "Poppins_600SemiBold", fontSize: 11 },
+  btnDevisText:    { fontFamily: "Poppins_600SemiBold", fontSize: 11 },
   processingToggle:     { flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8 },
   processingToggleText: { fontFamily: "Poppins_500Medium", fontSize: 11, flex: 1 },
+  confirmClientBtn:  { flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 10 },
+  confirmClientText: { fontFamily: "Poppins_600SemiBold", fontSize: 12, flex: 1, color: "#22C55E" },
   empty:        { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   emptyText:    { fontFamily: "Poppins_500Medium", fontSize: 14 },
 });
