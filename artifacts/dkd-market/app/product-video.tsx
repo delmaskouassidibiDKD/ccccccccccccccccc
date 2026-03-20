@@ -88,14 +88,6 @@ export default function ProductVideoScreen() {
           <Text style={s.noVideoSub}>
             Aucune vidéo n'est associée à ce produit.
           </Text>
-          <TouchableOpacity
-            style={s.addVideoBtn}
-            onPress={() => router.back()}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add-circle-outline" size={18} color="#FF6B00" />
-            <Text style={s.addVideoBtnText}>Ajouter une vidéo</Text>
-          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -166,22 +158,5 @@ const s = StyleSheet.create({
     fontSize: 14,
     color: "#64748B",
     textAlign: "center",
-  },
-  addVideoBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 12,
-    backgroundColor: "rgba(255,107,0,0.12)",
-    borderWidth: 1,
-    borderColor: "rgba(255,107,0,0.35)",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  addVideoBtnText: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
-    color: "#FF6B00",
   },
 });
