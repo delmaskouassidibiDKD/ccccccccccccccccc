@@ -28,6 +28,7 @@ type Props = {
   onEdit?: () => void;
   onVideo?: () => void;
   onDelete?: () => void;
+  onAddToCart?: () => void;
 };
 
 function StarRow({ rating, reviewCount, isDark }: { rating: number; reviewCount: number; isDark: boolean }) {
@@ -55,7 +56,7 @@ const sr = StyleSheet.create({
   count:  { fontFamily: "Poppins_400Regular", fontSize: 10 },
 });
 
-export function SellerProductCard({ item, isDark, isEngros = false, accentColor, onEdit, onVideo, onDelete }: Props) {
+export function SellerProductCard({ item, isDark, isEngros = false, accentColor, onEdit, onVideo, onDelete, onAddToCart }: Props) {
   const router  = useRouter();
   const dCARD   = isDark ? "#161B25" : "#FFFFFF";
   const dBORDER = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)";
@@ -131,12 +132,24 @@ export function SellerProductCard({ item, isDark, isEngros = false, accentColor,
           </TouchableOpacity>
         </View>
 
-        {/* Actions row : Modifier + Supprimer */}
-        <View style={{ flexDirection: "row", gap: 6, marginBottom: 12 }}>
-          <TouchableOpacity style={[c.modifyBtn, { backgroundColor: dMOD, marginBottom: 0, marginTop: 4 }]} onPress={handleEdit} activeOpacity={0.8}>
-            <Ionicons name="create-outline" size={13} color={accentColor} />
-            <Text style={[c.modifyText, { color: accentColor }]}>Modifier</Text>
-          </TouchableOpacity>
+        {/* Actions row */}
+        <View style={{ flexDirection: "row", gap: 6, marginBottom: 12, alignItems: "center" }}>
+          {onAddToCart ? (
+            /* Bouton panier rond — mode aperçu public */
+            <TouchableOpacity
+              style={[c.cartBtn, { backgroundColor: accentColor }]}
+              onPress={() => { Haptics.selectionAsync(); onAddToCart(); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="cart-outline" size={16} color="#fff" />
+            </TouchableOpacity>
+          ) : (
+            /* Bouton Modifier — mode gestion */
+            <TouchableOpacity style={[c.modifyBtn, { backgroundColor: dMOD, marginBottom: 0, marginTop: 4 }]} onPress={handleEdit} activeOpacity={0.8}>
+              <Ionicons name="create-outline" size={13} color={accentColor} />
+              <Text style={[c.modifyText, { color: accentColor }]}>Modifier</Text>
+            </TouchableOpacity>
+          )}
           {onDelete && (
             <TouchableOpacity
               style={[c.modifyBtn, { backgroundColor: "#EF444418", marginBottom: 0, marginTop: 4 }]}
@@ -238,6 +251,19 @@ const c = StyleSheet.create({
   modifyText: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 11,
+  },
+  cartBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
   },
 
   imageBox: {

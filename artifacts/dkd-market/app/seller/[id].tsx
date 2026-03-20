@@ -475,7 +475,7 @@ export default function SellerScreen() {
                   isDark={false}
                   isEngros={false}
                   accentColor={Colors.primary}
-                  onEdit={() => {}}
+                  onAddToCart={() => {}}
                   onVideo={() => {}}
                 />
               ))
@@ -499,7 +499,7 @@ export default function SellerScreen() {
                   isDark={false}
                   isEngros={true}
                   accentColor={Colors.primary}
-                  onEdit={() => {}}
+                  onAddToCart={() => {}}
                   onVideo={() => {}}
                 />
               ))
