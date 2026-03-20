@@ -21,19 +21,28 @@ function fmtNum(n: number): string {
 }
 
 const CURRENCIES = [
-  { code: "FCFA", symbol: "FCFA", flag: "🇨🇮" },
-  { code: "USD",  symbol: "$",    flag: "🇺🇸" },
-  { code: "EUR",  symbol: "€",    flag: "🇪🇺" },
-  { code: "GBP",  symbol: "£",    flag: "🇬🇧" },
-  { code: "CNY",  symbol: "¥",    flag: "🇨🇳" },
-  { code: "MAD",  symbol: "DH",   flag: "🇲🇦" },
-  { code: "NGN",  symbol: "₦",    flag: "🇳🇬" },
-  { code: "GHS",  symbol: "₵",    flag: "🇬🇭" },
-  { code: "KES",  symbol: "KSh",  flag: "🇰🇪" },
-  { code: "ZAR",  symbol: "R",    flag: "🇿🇦" },
-  { code: "TND",  symbol: "DT",   flag: "🇹🇳" },
-  { code: "EGP",  symbol: "E£",   flag: "🇪🇬" },
-  { code: "XOF",  symbol: "XOF",  flag: "🌍" },
+  { code: "FCFA",   label: "Franc CFA (FCFA)",         symbol: "FCFA" },
+  { code: "XOF",    label: "Franc CFA BCEAO (XOF)",    symbol: "XOF"  },
+  { code: "USD",    label: "Dollar américain ($)",      symbol: "$"    },
+  { code: "EUR",    label: "Euro (€)",                  symbol: "€"    },
+  { code: "GBP",    label: "Livre sterling (£)",        symbol: "£"    },
+  { code: "CHF",    label: "Franc suisse (CHF)",        symbol: "CHF"  },
+  { code: "CAD",    label: "Dollar canadien (CAD)",     symbol: "CAD"  },
+  { code: "CNY",    label: "Yuan chinois (¥)",          symbol: "¥"    },
+  { code: "JPY",    label: "Yen japonais (¥)",          symbol: "¥"    },
+  { code: "MAD",    label: "Dirham marocain (DH)",      symbol: "DH"   },
+  { code: "DZD",    label: "Dinar algérien (DA)",       symbol: "DA"   },
+  { code: "TND",    label: "Dinar tunisien (DT)",       symbol: "DT"   },
+  { code: "EGP",    label: "Livre égyptienne (E£)",     symbol: "E£"   },
+  { code: "NGN",    label: "Naira nigérian (₦)",        symbol: "₦"    },
+  { code: "GHS",    label: "Cedi ghanéen (₵)",          symbol: "₵"    },
+  { code: "KES",    label: "Shilling kényan (KSh)",     symbol: "KSh"  },
+  { code: "ZAR",    label: "Rand sud-africain (R)",     symbol: "R"    },
+  { code: "SAR",    label: "Riyal saoudien (﷼)",        symbol: "﷼"    },
+  { code: "AED",    label: "Dirham des EAU (AED)",      symbol: "AED"  },
+  { code: "INR",    label: "Roupie indienne (₹)",       symbol: "₹"    },
+  { code: "BRL",    label: "Réal brésilien (R$)",       symbol: "R$"   },
+  { code: "RUB",    label: "Rouble russe (₽)",          symbol: "₽"    },
 ];
 
 type Props = {
@@ -45,10 +54,11 @@ type Props = {
 };
 
 export default function DevisBuilderModal({ visible, onClose, clientName, isDark, onConfirm }: Props) {
-  const [rows,         setRows]         = useState<Row[]>([makeRow()]);
-  const [totalManuel,  setTotalManuel]  = useState("");
-  const [autoCalc,     setAutoCalc]     = useState(true);
-  const [currency,     setCurrency]     = useState(CURRENCIES[0]);
+  const [rows,          setRows]          = useState<Row[]>([makeRow()]);
+  const [totalManuel,   setTotalManuel]   = useState("");
+  const [autoCalc,      setAutoCalc]      = useState(true);
+  const [currency,      setCurrency]      = useState(CURRENCIES[0]);
+  const [currencyOpen,  setCurrencyOpen]  = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   const dynSheet  = isDark ? "#111827" : "#F8FAFC";
@@ -58,10 +68,10 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
   const dynBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
   const dynInput  = isDark ? "#0D1117" : "#F1F5F9";
   const dynHandle = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
-  const dynCurrBG = isDark ? "#1E293B" : "#F0F4FA";
 
   const totalAuto = rows.reduce((acc, r) => acc + parseNum(r.prix), 0);
   const hasTotal  = autoCalc ? totalAuto > 0 : totalManuel.trim().length > 0;
+  const sym       = currency.symbol;
 
   const updateRow = useCallback((id: string, field: keyof Row, value: string) => {
     setRows((prev) => prev.map((r) => r.id === id ? { ...r, [field]: value } : r));
@@ -88,6 +98,7 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
   const handleSelectCurrency = (c: typeof CURRENCIES[0]) => {
     Haptics.selectionAsync();
     setCurrency(c);
+    setCurrencyOpen(false);
   };
 
   const handleConfirm = () => {
@@ -106,10 +117,9 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
     setTotalManuel("");
     setAutoCalc(true);
     setCurrency(CURRENCIES[0]);
+    setCurrencyOpen(false);
     onClose();
   }, [onClose]);
-
-  const sym = currency.symbol;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
@@ -123,7 +133,20 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
             <View style={m.header}>
               <Text style={[m.title, { color: dynText }]}>Devis personnalisé</Text>
               <View style={m.headerRight}>
-                <View style={[m.toggleRow, { backgroundColor: dynCurrBG, borderColor: dynBorder }]}>
+
+                {/* Bouton monnaie */}
+                <TouchableOpacity
+                  style={[m.currencyBtn, { backgroundColor: dynInput, borderColor: dynBorder }]}
+                  onPress={() => { Haptics.selectionAsync(); setCurrencyOpen((v) => !v); }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="cash-outline" size={13} color="#FF6B00" />
+                  <Text style={[m.currencyBtnText, { color: dynText }]}>{currency.code}</Text>
+                  <Ionicons name={currencyOpen ? "chevron-up" : "chevron-down"} size={12} color={dynSub} />
+                </TouchableOpacity>
+
+                {/* Toggle Auto */}
+                <View style={[m.toggleRow, { backgroundColor: dynInput, borderColor: dynBorder }]}>
                   <Text style={[m.toggleLabel, { color: autoCalc ? "#FF6B00" : dynSub }]}>Auto</Text>
                   <Switch
                     value={autoCalc}
@@ -133,6 +156,8 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
                     style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                   />
                 </View>
+
+                {/* Bouton + */}
                 <TouchableOpacity
                   style={[m.addBtn, { backgroundColor: "#3B82F618", borderColor: "#3B82F640" }]}
                   onPress={addRow}
@@ -143,38 +168,43 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
               </View>
             </View>
 
-            {/* ── Sélecteur de monnaie ── */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={m.currencyRow}
-              style={[m.currencyScroll, { borderColor: dynBorder }]}
-            >
-              {CURRENCIES.map((c) => {
-                const active = c.code === currency.code;
-                return (
-                  <TouchableOpacity
-                    key={c.code}
-                    style={[
-                      m.currencyChip,
-                      active
-                        ? { backgroundColor: "#FF6B00", borderColor: "#FF6B00" }
-                        : { backgroundColor: dynCurrBG, borderColor: dynBorder },
-                    ]}
-                    onPress={() => handleSelectCurrency(c)}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={m.currencyFlag}>{c.flag}</Text>
-                    <Text style={[m.currencyCode, { color: active ? "#fff" : dynSub }]}>{c.code}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+            {/* ── Liste de monnaies (dropdown vertical) ── */}
+            {currencyOpen && (
+              <View style={[m.dropdown, { backgroundColor: dynCARD, borderColor: dynBorder }]}>
+                <ScrollView
+                  style={{ maxHeight: 220 }}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {CURRENCIES.map((c, i) => {
+                    const active = c.code === currency.code;
+                    return (
+                      <TouchableOpacity
+                        key={c.code}
+                        style={[
+                          m.dropdownItem,
+                          { borderBottomColor: dynBorder },
+                          i === CURRENCIES.length - 1 && { borderBottomWidth: 0 },
+                          active && { backgroundColor: "#FF6B0012" },
+                        ]}
+                        onPress={() => handleSelectCurrency(c)}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[m.dropdownLabel, { color: active ? "#FF6B00" : dynText }]}>
+                          {c.label}
+                        </Text>
+                        {active && <Ionicons name="checkmark" size={14} color="#FF6B00" />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
 
             {/* ── Lignes ── */}
             <ScrollView
               ref={scrollRef}
-              style={{ maxHeight: 240 }}
+              style={{ maxHeight: 230 }}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ padding: 14, gap: 8 }}
               keyboardShouldPersistTaps="handled"
@@ -201,8 +231,8 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
                           value={row.prix}
                           onChangeText={(v) => updateRow(row.id, "prix", v)}
                         />
-                        <View style={[m.symPill, { backgroundColor: dynBorder }]}>
-                          <Text style={[m.symText, { color: dynSub }]} numberOfLines={1}>{sym}</Text>
+                        <View style={[m.symPill, { backgroundColor: "#FF6B0018" }]}>
+                          <Text style={[m.symText, { color: "#FF6B00" }]} numberOfLines={1}>{sym}</Text>
                         </View>
                       </View>
                     )}
@@ -239,8 +269,8 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
                     value={totalManuel}
                     onChangeText={setTotalManuel}
                   />
-                  <View style={[m.symPill, { backgroundColor: dynBorder }]}>
-                    <Text style={[m.symText, { color: dynSub }]} numberOfLines={1}>{sym}</Text>
+                  <View style={[m.symPill, { backgroundColor: "#FF6B0018" }]}>
+                    <Text style={[m.symText, { color: "#FF6B00" }]} numberOfLines={1}>{sym}</Text>
                   </View>
                 </View>
               )}
@@ -290,7 +320,20 @@ const m = StyleSheet.create({
   headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 7,
+  },
+  currencyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+  },
+  currencyBtnText: {
+    fontFamily: "Poppins_700Bold",
+    fontSize: 12,
   },
   toggleRow: {
     flexDirection: "row",
@@ -310,31 +353,25 @@ const m = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     borderWidth: 1,
   },
-  currencyScroll: {
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
+  dropdown: {
+    marginHorizontal: 14,
+    marginBottom: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: "hidden",
   },
-  currencyRow: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 7,
-    flexDirection: "row",
-  },
-  currencyChip: {
+  dropdownItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
   },
-  currencyFlag: {
+  dropdownLabel: {
+    fontFamily: "Poppins_500Medium",
     fontSize: 13,
-  },
-  currencyCode: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 11,
+    flex: 1,
   },
   rowWrap: {
     flexDirection: "row",
@@ -382,8 +419,9 @@ const m = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    maxWidth: 52,
+    maxWidth: 54,
     alignItems: "center",
+    flexShrink: 0,
   },
   symText: {
     fontFamily: "Poppins_600SemiBold",
@@ -397,7 +435,7 @@ const m = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginHorizontal: 14,
-    marginTop: 8,
+    marginTop: 6,
     borderRadius: 14,
     borderWidth: 1,
     paddingHorizontal: 14,
