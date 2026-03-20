@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   FlatList,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  TextInput,
+  Animated,
   Platform,
   Dimensions,
   ActivityIndicator,
@@ -75,6 +77,23 @@ export default function SellerScreen() {
   const [currentPlayerIdx, setCurrentPlayerIdx] = useState(0);
   const [pubArticles,   setPubArticles]   = useState(ALL_ARTICLES);
   const [pubEngros,     setPubEngros]     = useState(ALL_ENGROS);
+
+  /* ── Recherche Articles / En gros ── */
+  const [tabSearchOpen,  setTabSearchOpen]  = useState(false);
+  const [tabSearchQuery, setTabSearchQuery] = useState("");
+  const tabSearchAnim = useRef(new Animated.Value(0)).current;
+
+  const toggleTabSearch = () => {
+    Haptics.selectionAsync();
+    const opening = !tabSearchOpen;
+    setTabSearchOpen(opening);
+    if (!opening) setTabSearchQuery("");
+    Animated.timing(tabSearchAnim, {
+      toValue: opening ? 1 : 0,
+      duration: 220,
+      useNativeDriver: false,
+    }).start();
+  };
   const [logoError,     setLogoError]     = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const { user } = useAuth();
@@ -416,20 +435,71 @@ export default function SellerScreen() {
           </View>
         )}
 
-        {/* Tabs */}
-        <View style={styles.tabsRow}>
+        {/* Tabs + loupe */}
+        <View style={[styles.tabsRow, { alignItems: "center" }]}>
           {SELLER_TABS.map((tab, i) => (
             <TouchableOpacity
               key={tab}
               style={[styles.tab, activeTab === i && styles.tabActive]}
-              onPress={() => { setActiveTab(i); Haptics.selectionAsync(); }}
+              onPress={() => {
+                setActiveTab(i);
+                Haptics.selectionAsync();
+                if (i === 0 && tabSearchOpen) {
+                  setTabSearchOpen(false);
+                  setTabSearchQuery("");
+                  Animated.timing(tabSearchAnim, { toValue: 0, duration: 180, useNativeDriver: false }).start();
+                }
+              }}
             >
               <Text style={[styles.tabText, activeTab === i && styles.tabTextActive]}>
                 {tab}
               </Text>
             </TouchableOpacity>
           ))}
+
+          {/* Loupe — visible sur Articles (1) et En gros (2) uniquement */}
+          {activeTab !== 0 && (
+            <TouchableOpacity style={styles.tabLoupeBtn} onPress={toggleTabSearch} activeOpacity={0.8}>
+              <Ionicons
+                name={tabSearchOpen ? "close" : "search"}
+                size={18}
+                color={tabSearchOpen ? Colors.primary : Colors.textMuted}
+              />
+            </TouchableOpacity>
+          )}
         </View>
+
+        {/* Barre de recherche animée Articles / En gros */}
+        {activeTab !== 0 && (
+          <Animated.View style={{
+            maxHeight: tabSearchAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 54] }),
+            opacity: tabSearchAnim,
+            overflow: "hidden",
+            backgroundColor: "#F1F5F9",
+            borderBottomWidth: 1,
+            borderBottomColor: "rgba(0,0,0,0.07)",
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+          }}>
+            <View style={styles.tabSearchInner}>
+              <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
+              <TextInput
+                style={styles.tabSearchInput}
+                placeholder={`Rechercher ${activeTab === 2 ? "en gros" : "articles"}…`}
+                placeholderTextColor={Colors.textMuted}
+                value={tabSearchQuery}
+                onChangeText={setTabSearchQuery}
+                autoFocus={tabSearchOpen}
+                returnKeyType="search"
+              />
+              {tabSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setTabSearchQuery("")}>
+                  <Ionicons name="close-circle" size={15} color={Colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </Animated.View>
+        )}
 
         {/* Vidéos — grille 3 colonnes lecture seule */}
         {activeTab === 0 && (
@@ -468,15 +538,18 @@ export default function SellerScreen() {
         )}
 
         {/* Articles */}
-        {activeTab === 1 && (
+        {activeTab === 1 && (() => {
+          const tabQ = tabSearchQuery.toLowerCase().trim();
+          const displayed = tabQ ? pubArticles.filter(a => a.title.toLowerCase().includes(tabQ)) : pubArticles;
+          return (
           <View style={{ paddingHorizontal: 8, paddingTop: 8 }}>
-            {pubArticles.length === 0 ? (
+            {displayed.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="bag-outline" size={40} color={Colors.textMuted} />
-                <Text style={styles.emptyText}>Aucun article pour le moment</Text>
+                <Text style={styles.emptyText}>{tabQ ? "Aucun résultat" : "Aucun article pour le moment"}</Text>
               </View>
             ) : (
-              pubArticles.map((item) => (
+              displayed.map((item) => (
                 <SellerProductCard
                   key={item.id}
                   item={item}
@@ -489,18 +562,22 @@ export default function SellerScreen() {
               ))
             )}
           </View>
-        )}
+          );
+        })()}
 
         {/* En gros */}
-        {activeTab === 2 && (
+        {activeTab === 2 && (() => {
+          const tabQ = tabSearchQuery.toLowerCase().trim();
+          const displayed = tabQ ? pubEngros.filter(e => e.title.toLowerCase().includes(tabQ)) : pubEngros;
+          return (
           <View style={{ paddingHorizontal: 8, paddingTop: 8 }}>
-            {pubEngros.length === 0 ? (
+            {displayed.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="cube-outline" size={40} color={Colors.textMuted} />
-                <Text style={styles.emptyText}>Aucun article En Gros pour le moment</Text>
+                <Text style={styles.emptyText}>{tabQ ? "Aucun résultat" : "Aucun article En Gros pour le moment"}</Text>
               </View>
             ) : (
-              pubEngros.map((item) => (
+              displayed.map((item) => (
                 <SellerProductCard
                   key={item.id}
                   item={item}
@@ -513,7 +590,8 @@ export default function SellerScreen() {
               ))
             )}
           </View>
-        )}
+          );
+        })()}
       </ScrollView>
 
       {/* ── Modal TikTok player lecture seule ── */}
@@ -821,6 +899,31 @@ const styles = StyleSheet.create({
   tabActive: { borderBottomColor: Colors.primary },
   tabText: { color: Colors.textMuted, fontFamily: "Poppins_600SemiBold", fontSize: 13 },
   tabTextActive: { color: Colors.primary },
+  tabLoupeBtn: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  tabSearchInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  tabSearchInput: {
+    flex: 1,
+    fontFamily: "Poppins_400Regular",
+    fontSize: 13,
+    color: "#111827",
+    padding: 0,
+  },
 
   /* Products grid */
   productsGrid: {
