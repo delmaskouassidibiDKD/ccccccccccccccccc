@@ -34,11 +34,11 @@ export default function ProfileScreen() {
 
   useFocusEffect(useCallback(() => {
     AsyncStorage.getItem("@dkd:seller_profile_photo").then((uri) => {
-      setAvatarUri(uri || user?.avatar_url || null);
+      setAvatarUri(uri || null);
     }).catch(() => {
-      setAvatarUri(user?.avatar_url || null);
+      setAvatarUri(null);
     });
-  }, [user?.avatar_url]));
+  }, []));
 
   const webTopInset = Platform.OS === "web" ? 0 : 0;
 
