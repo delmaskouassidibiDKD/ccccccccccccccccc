@@ -14,7 +14,7 @@ import DevisBuilderModal from "@/components/DevisBuilderModal";
 import type { Order } from "@/lib/orders-data";
 
 const TABS = [
-  { key: "toutes",     label: "Toutes"     },
+  { key: "toutes",     label: "Commandes"  },
   { key: "en_attente", label: "En attente" },
   { key: "confirmee",  label: "Confirmées" },
 ] as const;
@@ -122,7 +122,7 @@ export default function CommandesImportePage() {
   };
 
   const openDevisBuilder = (order: Order) => {
-    if (!processingIds.has(order.id)) return;
+    if (!processingIds.has(order.id) && !devisAppliedIds.has(order.id)) return;
     Haptics.selectionAsync();
     setDevisOrder(order);
     setDevisOpen(true);
@@ -226,7 +226,7 @@ export default function CommandesImportePage() {
             const devisSent     = devisedIds.has(item.id);
             const confirmed     = confirmedIds.has(item.id);
             const hasGros       = item.items.some((i) => i.isGros);
-            const devisEnabled  = processing && !devisApplied;
+            const devisEnabled  = processing || devisApplied;
 
             return (
               <View style={[
@@ -373,20 +373,6 @@ export default function CommandesImportePage() {
                   </TouchableOpacity>
                 )}
 
-                {/* Bouton "Client a confirmé" — seulement dans En attente */}
-                {devisSent && !confirmed && (
-                  <TouchableOpacity
-                    style={[s.confirmClientBtn, { backgroundColor: "#22C55E14", borderColor: "#22C55E44" }]}
-                    onPress={() => confirmByClient(item.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="checkmark-done-circle-outline" size={14} color="#22C55E" />
-                    <Text style={[s.confirmClientText, { color: "#22C55E" }]}>
-                      Le client a confirmé
-                    </Text>
-                    <Ionicons name="chevron-forward" size={13} color="#22C55E" style={{ marginLeft: "auto" }} />
-                  </TouchableOpacity>
-                )}
               </View>
             );
           }}
@@ -412,7 +398,13 @@ export default function CommandesImportePage() {
           isDark={isDark}
           onConfirm={() => {
             if (devisOrder) {
-              setDevisAppliedIds((prev) => new Set([...prev, devisOrder.id]));
+              const id = devisOrder.id;
+              setDevisAppliedIds((prev) => new Set([...prev, id]));
+              setDevisedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
             }
           }}
         />
