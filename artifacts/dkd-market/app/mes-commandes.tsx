@@ -206,13 +206,24 @@ export default function MesCommandesPage() {
         )}
         {filtered.map((order) => {
           const src = order.source ? SOURCE_CONFIG[order.source] : null;
+          const hasGros = order.products.some((p) => p.isGros);
           return (
             <View key={order.id} style={[s.card, { backgroundColor: dCARD, borderColor: dBORDER }]}>
 
-              {src && (
-                <View style={[s.sourceBadge, { backgroundColor: src.color + "16", borderColor: src.color + "35" }]}>
-                  <Ionicons name={src.icon as any} size={11} color={src.color} />
-                  <Text style={[s.sourceBadgeText, { color: src.color }]}>{src.label}</Text>
+              {(src || hasGros) && (
+                <View style={s.badgesRow}>
+                  {src && (
+                    <View style={[s.sourceBadge, { backgroundColor: src.color + "16", borderColor: src.color + "35" }]}>
+                      <Ionicons name={src.icon as any} size={11} color={src.color} />
+                      <Text style={[s.sourceBadgeText, { color: src.color }]}>{src.label}</Text>
+                    </View>
+                  )}
+                  {hasGros && (
+                    <View style={[s.sourceBadge, { backgroundColor: "#EF444416", borderColor: "#EF444435" }]}>
+                      <Ionicons name="people-outline" size={11} color="#EF4444" />
+                      <Text style={[s.sourceBadgeText, { color: "#EF4444" }]}>Achats groupés</Text>
+                    </View>
+                  )}
                 </View>
               )}
 
@@ -304,6 +315,7 @@ const s = StyleSheet.create({
   emptyState:         { alignItems: "center", paddingTop: 80, gap: 14 },
   emptyText:          { fontFamily: "Poppins_400Regular", fontSize: 14 },
   card:               { borderRadius: 16, padding: 14, marginBottom: 12, borderWidth: 1, gap: 10 },
+  badgesRow:          { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   sourceBadge:        { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", borderRadius: 8, paddingHorizontal: 9, paddingVertical: 4, borderWidth: 1 },
   sourceBadgeText:    { fontFamily: "Poppins_600SemiBold", fontSize: 10 },
   cardTop:            { flexDirection: "row", alignItems: "center", gap: 12 },

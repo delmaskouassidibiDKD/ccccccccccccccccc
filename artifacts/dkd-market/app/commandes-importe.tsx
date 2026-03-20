@@ -187,13 +187,24 @@ export default function CommandesImportePage() {
             const processing = processingIds.has(item.id);
             const src        = item.source ? SOURCE_CONFIG[item.source] : null;
             const isConfirmed = item.status === "confirmee";
+            const hasGros    = item.items.some((i) => i.isGros);
             return (
               <View style={[s.card, { backgroundColor: dynCARD, borderColor: processing ? "#F59E0B44" : dynBorder }]}>
 
-                {src && (
-                  <View style={[s.sourceBadge, { backgroundColor: src.color + "16", borderColor: src.color + "35" }]}>
-                    <Ionicons name={src.icon as any} size={11} color={src.color} />
-                    <Text style={[s.sourceBadgeText, { color: src.color }]}>{src.label}</Text>
+                {(src || hasGros) && (
+                  <View style={s.badgesRow}>
+                    {src && (
+                      <View style={[s.sourceBadge, { backgroundColor: src.color + "16", borderColor: src.color + "35" }]}>
+                        <Ionicons name={src.icon as any} size={11} color={src.color} />
+                        <Text style={[s.sourceBadgeText, { color: src.color }]}>{src.label}</Text>
+                      </View>
+                    )}
+                    {hasGros && (
+                      <View style={[s.sourceBadge, { backgroundColor: "#EF444416", borderColor: "#EF444435" }]}>
+                        <Ionicons name="people-outline" size={11} color="#EF4444" />
+                        <Text style={[s.sourceBadgeText, { color: "#EF4444" }]}>Achats groupés</Text>
+                      </View>
+                    )}
                   </View>
                 )}
 
@@ -310,6 +321,7 @@ const s = StyleSheet.create({
   tabCount:     { borderRadius: 9, paddingHorizontal: 6, paddingVertical: 1 },
   tabCountText: { fontFamily: "Poppins_700Bold", fontSize: 10 },
   card:         { marginHorizontal: 14, marginTop: 12, borderRadius: 14, borderWidth: 1, padding: 13, gap: 10 },
+  badgesRow:    { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   sourceBadge:  { flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", borderRadius: 8, paddingHorizontal: 9, paddingVertical: 4, borderWidth: 1 },
   sourceBadgeText: { fontFamily: "Poppins_600SemiBold", fontSize: 10 },
   cardRow:      { flexDirection: "row", alignItems: "center", gap: 10 },

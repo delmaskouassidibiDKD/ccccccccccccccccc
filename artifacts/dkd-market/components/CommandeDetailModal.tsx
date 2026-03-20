@@ -1,31 +1,28 @@
 import React, { useState, useRef, useCallback } from "react";
 import {
   View, Text, StyleSheet, Modal, Pressable, FlatList,
-  TouchableOpacity, Dimensions, Alert, Animated,
+  TouchableOpacity, Dimensions, Alert, ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import type { Source } from "@/lib/orders-data";
 
 const { width: SW } = Dimensions.get("window");
+const CARD_W   = Math.round((SW - 52) / 2);
+const CARD_GAP = 10;
+const SNAP     = CARD_W + CARD_GAP;
 
 export const SOURCE_CONFIG: Record<Source, { label: string; color: string; icon: string }> = {
-  gastronomie:     { label: "Gastronomia",      color: "#F59E0B", icon: "restaurant-outline" },
-  marche:          { label: "Marché",            color: "#22C55E", icon: "storefront-outline" },
-  supermarche:     { label: "Super Marché",      color: "#3B82F6", icon: "cart-outline" },
-  grossiste:       { label: "Grossiste",         color: "#8B5CF6", icon: "cube-outline" },
-  personnalisation:{ label: "Personnalisation",  color: "#EC4899", icon: "color-palette-outline" },
+  gastronomie:      { label: "Gastronomia",      color: "#F59E0B", icon: "restaurant-outline"    },
+  marche:           { label: "Marché",            color: "#22C55E", icon: "storefront-outline"    },
+  supermarche:      { label: "Super Marché",      color: "#3B82F6", icon: "cart-outline"          },
+  grossiste:        { label: "Grossiste",         color: "#8B5CF6", icon: "cube-outline"          },
+  personnalisation: { label: "Personnalisation",  color: "#EC4899", icon: "color-palette-outline" },
 };
 
-const PHOTO_COLORS = [
-  ["#FF6B00", "#FF9B4E"],
-  ["#3B82F6", "#60A5FA"],
-  ["#8B5CF6", "#A78BFA"],
-  ["#22C55E", "#4ADE80"],
-  ["#EC4899", "#F472B6"],
-  ["#F59E0B", "#FCD34D"],
-  ["#06B6D4", "#22D3EE"],
-  ["#EF4444", "#F87171"],
+const PALETTE = [
+  "#FF6B00", "#3B82F6", "#8B5CF6", "#22C55E",
+  "#EC4899", "#F59E0B", "#06B6D4", "#EF4444",
 ];
 
 export type ProductSlide = {
@@ -47,24 +44,36 @@ type Props = {
   isDark: boolean;
 };
 
-function ProductCard({
-  item, index, isDark, isConfirmed, onCancel, onClose,
-}: {
-  item: ProductSlide;
-  index: number;
-  isDark: boolean;
-  isConfirmed?: boolean;
-  onCancel?: () => void;
-  onClose: () => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const colors = PHOTO_COLORS[index % PHOTO_COLORS.length];
+export default function CommandeDetailModal({
+  visible, onClose, products, isConfirmed, onCancel, isDark,
+}: Props) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const flatRef = useRef<FlatList>(null);
 
-  const dynCARD   = isDark ? "#161B25" : "#FFFFFF";
+  const dynSheet  = isDark ? "#111827" : "#F8FAFC";
+  const dynCARD   = isDark ? "#1C2333" : "#FFFFFF";
   const dynText   = isDark ? "#F0F6FF" : "#111827";
-  const dynSub    = isDark ? "#94A3B8" : "#6B7280";
-  const dynBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.09)";
-  const dynDetailBG = isDark ? "#0D1117" : "#F8FAFC";
+  const dynSub    = isDark ? "#64748B" : "#9CA3AF";
+  const dynBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+  const dynHandle = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
+  const dynDetailBG = isDark ? "#0D1117" : "#F1F5F9";
+
+  const current = products[activeIndex];
+
+  const onViewRef = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setActiveIndex(viewableItems[0].index ?? 0);
+      setDetailsOpen(false);
+    }
+  });
+  const viewCfg = useRef({ viewAreaCoveragePercentThreshold: 51 });
+
+  const handleClose = useCallback(() => {
+    setActiveIndex(0);
+    setDetailsOpen(false);
+    onClose();
+  }, [onClose]);
 
   const handleCancel = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -73,112 +82,13 @@ function ProductCard({
       "Voulez-vous vraiment annuler cette commande ? Cette action est irréversible.",
       [
         { text: "Non, garder", style: "cancel" },
-        {
-          text: "Oui, annuler",
-          style: "destructive",
-          onPress: () => {
-            onClose();
-            onCancel?.();
-          },
-        },
+        { text: "Oui, annuler", style: "destructive", onPress: () => { handleClose(); onCancel?.(); } },
       ]
     );
   };
 
   return (
-    <View style={[pc.slide, { width: SW - 32, backgroundColor: dynCARD }]}>
-
-      <View style={[pc.photoBox, { backgroundColor: colors[0] + "22", borderColor: colors[0] + "33" }]}>
-        <View style={[pc.photoInner, { backgroundColor: colors[0] + "18" }]}>
-          <Ionicons name="image-outline" size={40} color={colors[0]} />
-        </View>
-        <View style={[pc.photoLabel, { backgroundColor: colors[0] + "dd" }]}>
-          <Text style={pc.photoLabelText} numberOfLines={1}>{item.name}</Text>
-        </View>
-      </View>
-
-      <View style={pc.infoSection}>
-        <View style={pc.badgesRow}>
-          {item.isGros && (
-            <View style={[pc.grosBadge]}>
-              <Ionicons name="cube-outline" size={10} color="#8B5CF6" />
-              <Text style={pc.grosBadgeText}>EN GROS</Text>
-            </View>
-          )}
-        </View>
-
-        <Text style={[pc.productName, { color: dynText }]} numberOfLines={2}>{item.name}</Text>
-
-        <View style={pc.priceQtyRow}>
-          <Text style={pc.price}>{item.price}</Text>
-          <View style={[pc.qtyPill, { backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)" }]}>
-            <Ionicons name="layers-outline" size={12} color={dynSub} />
-            <Text style={[pc.qtyText, { color: dynSub }]}>
-              × {item.qty}{item.unit ? ` ${item.unit}` : ""}
-            </Text>
-          </View>
-        </View>
-
-        {item.details && (
-          <View style={[pc.detailsBox, { backgroundColor: dynDetailBG, borderColor: dynBorder }]}>
-            <TouchableOpacity
-              style={pc.detailsHeader}
-              onPress={() => { Haptics.selectionAsync(); setExpanded((e) => !e); }}
-              activeOpacity={0.7}
-            >
-              <View style={pc.detailsHeaderLeft}>
-                <Ionicons name="list-outline" size={13} color="#FF6B00" />
-                <Text style={[pc.detailsLabel, { color: isDark ? "#CBD5E1" : "#374151" }]}>Détails</Text>
-              </View>
-              <Ionicons
-                name={expanded ? "chevron-up" : "chevron-down"}
-                size={14}
-                color={dynSub}
-              />
-            </TouchableOpacity>
-            {expanded && (
-              <Text style={[pc.detailsContent, { color: dynSub }]}>{item.details}</Text>
-            )}
-          </View>
-        )}
-      </View>
-
-      {isConfirmed && onCancel && (
-        <TouchableOpacity style={pc.cancelBtn} onPress={handleCancel} activeOpacity={0.8}>
-          <Ionicons name="close-circle-outline" size={15} color="#EF4444" />
-          <Text style={pc.cancelBtnText}>Annuler la commande</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
-export default function CommandeDetailModal({ visible, onClose, products, isConfirmed, onCancel, isDark }: Props) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const flatRef = useRef<FlatList>(null);
-
-  const dynSheet  = isDark ? "#111827" : "#F8FAFC";
-  const dynText   = isDark ? "#F0F6FF" : "#111827";
-  const dynSub    = isDark ? "#64748B" : "#9CA3AF";
-  const dynHandle = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
-
-  const onViewRef = useRef(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index ?? 0);
-  });
-  const viewCfg  = useRef({ viewAreaCoveragePercentThreshold: 50 });
-
-  const handleClose = useCallback(() => {
-    setActiveIndex(0);
-    onClose();
-  }, [onClose]);
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <Pressable style={m.overlay} onPress={handleClose}>
         <Pressable style={[m.sheet, { backgroundColor: dynSheet }]} onPress={(e) => e.stopPropagation()}>
 
@@ -186,12 +96,10 @@ export default function CommandeDetailModal({ visible, onClose, products, isConf
 
           <View style={m.sheetHeader}>
             <Text style={[m.sheetTitle, { color: dynText }]}>
-              {products.length > 1
-                ? `Article ${activeIndex + 1} / ${products.length}`
-                : "Détail de l'article"}
+              {products.length > 1 ? `${products.length} articles` : "Article commandé"}
             </Text>
             <TouchableOpacity style={m.closeBtn} onPress={handleClose} activeOpacity={0.7}>
-              <Ionicons name="close" size={20} color={dynSub} />
+              <Ionicons name="close" size={18} color={dynSub} />
             </TouchableOpacity>
           </View>
 
@@ -200,35 +108,88 @@ export default function CommandeDetailModal({ visible, onClose, products, isConf
             data={products}
             keyExtractor={(p) => p.id}
             horizontal
-            pagingEnabled
             showsHorizontalScrollIndicator={false}
-            bounces={false}
+            snapToInterval={SNAP}
+            decelerationRate="fast"
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, gap: CARD_GAP }}
             onViewableItemsChanged={onViewRef.current}
             viewabilityConfig={viewCfg.current}
-            renderItem={({ item, index }) => (
-              <ProductCard
-                item={item}
-                index={index}
-                isDark={isDark}
-                isConfirmed={isConfirmed}
-                onCancel={onCancel}
-                onClose={handleClose}
-              />
-            )}
+            renderItem={({ item, index }) => {
+              const accent = PALETTE[index % PALETTE.length];
+              const isActive = index === activeIndex;
+              return (
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    flatRef.current?.scrollToIndex({ index, animated: true });
+                    setActiveIndex(index);
+                    setDetailsOpen(false);
+                  }}
+                  style={[
+                    pc.card,
+                    { width: CARD_W, backgroundColor: dynCARD, borderColor: isActive ? accent + "88" : dynBorder, borderWidth: isActive ? 1.5 : 1 },
+                  ]}
+                >
+                  <View style={[pc.photo, { backgroundColor: accent + "1A" }]}>
+                    <View style={[pc.photoCircle, { backgroundColor: accent + "22" }]}>
+                      <Ionicons name="image-outline" size={26} color={accent} />
+                    </View>
+                    {item.isGros && (
+                      <View style={pc.grosTag}>
+                        <Text style={pc.grosTagText}>GROS</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={pc.cardBottom}>
+                    <Text style={[pc.cardName, { color: dynText }]} numberOfLines={2}>{item.name}</Text>
+                    <Text style={[pc.cardPrice, { color: accent }]}>{item.price}</Text>
+                    <Text style={[pc.cardQty, { color: dynSub }]}>× {item.qty}{item.unit ? ` ${item.unit}` : ""}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
           />
 
           {products.length > 1 && (
             <View style={m.dots}>
               {products.map((_, i) => (
-                <TouchableOpacity
+                <View
                   key={i}
-                  onPress={() => flatRef.current?.scrollToIndex({ index: i, animated: true })}
-                  activeOpacity={0.7}
-                >
-                  <View style={[m.dot, i === activeIndex && m.dotActive, { backgroundColor: i === activeIndex ? "#FF6B00" : dynHandle }]} />
-                </TouchableOpacity>
+                  style={[
+                    m.dot,
+                    { backgroundColor: i === activeIndex ? "#FF6B00" : dynHandle },
+                    i === activeIndex && m.dotActive,
+                  ]}
+                />
               ))}
             </View>
+          )}
+
+          {current?.details && (
+            <View style={[m.detailsBox, { backgroundColor: dynDetailBG, borderColor: dynBorder }]}>
+              <TouchableOpacity
+                style={m.detailsRow}
+                onPress={() => { Haptics.selectionAsync(); setDetailsOpen((v) => !v); }}
+                activeOpacity={0.7}
+              >
+                <View style={m.detailsLeft}>
+                  <Ionicons name="list-outline" size={14} color="#FF6B00" />
+                  <Text style={[m.detailsLabel, { color: isDark ? "#CBD5E1" : "#374151" }]}>Détails</Text>
+                </View>
+                <Ionicons name={detailsOpen ? "chevron-up" : "chevron-down"} size={14} color={dynSub} />
+              </TouchableOpacity>
+              {detailsOpen && (
+                <Text style={[m.detailsText, { color: dynSub }]}>{current.details}</Text>
+              )}
+            </View>
+          )}
+
+          {isConfirmed && onCancel && (
+            <TouchableOpacity style={m.cancelBtn} onPress={handleCancel} activeOpacity={0.8}>
+              <Ionicons name="close-circle-outline" size={15} color="#EF4444" />
+              <Text style={m.cancelBtnText}>Annuler la commande</Text>
+            </TouchableOpacity>
           )}
         </Pressable>
       </Pressable>
@@ -237,135 +198,54 @@ export default function CommandeDetailModal({ visible, onClose, products, isConf
 }
 
 const pc = StyleSheet.create({
-  slide: {
+  card: {
     borderRadius: 16,
     overflow: "hidden",
-    marginHorizontal: 0,
   },
-  photoBox: {
-    height: 170,
-    borderBottomWidth: 1,
+  photo: {
+    height: 120,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
-  photoInner: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  photoCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
   },
-  photoLabel: {
+  grosTag: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    top: 8,
+    left: 8,
+    backgroundColor: "#EF4444",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  photoLabelText: {
+  grosTagText: {
     color: "#fff",
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 13,
-  },
-  infoSection: {
-    padding: 14,
-    gap: 10,
-  },
-  badgesRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  grosBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#8B5CF622",
-    borderRadius: 8,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: "#8B5CF644",
-  },
-  grosBadgeText: {
-    color: "#8B5CF6",
     fontFamily: "Poppins_700Bold",
-    fontSize: 9,
-    letterSpacing: 0.8,
+    fontSize: 8,
+    letterSpacing: 0.5,
   },
-  productName: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 16,
-    lineHeight: 22,
+  cardBottom: {
+    padding: 10,
+    gap: 3,
   },
-  priceQtyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  price: {
-    color: "#FF6B00",
-    fontFamily: "Poppins_700Bold",
-    fontSize: 20,
-  },
-  qtyPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  qtyText: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 13,
-  },
-  detailsBox: {
-    borderRadius: 12,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  detailsHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  detailsHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  detailsLabel: {
+  cardName: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 12,
+    lineHeight: 17,
   },
-  detailsContent: {
+  cardPrice: {
+    fontFamily: "Poppins_700Bold",
+    fontSize: 13,
+  },
+  cardQty: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
-    lineHeight: 20,
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-  },
-  cancelBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    marginHorizontal: 14,
-    marginBottom: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: "#EF444414",
-    borderWidth: 1,
-    borderColor: "#EF444430",
-  },
-  cancelBtnText: {
-    color: "#EF4444",
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 13,
+    fontSize: 11,
   },
 });
 
@@ -378,8 +258,7 @@ const m = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingBottom: 24,
-    maxHeight: "88%",
+    paddingBottom: 28,
   },
   handle: {
     width: 40,
@@ -398,28 +277,76 @@ const m = StyleSheet.create({
   },
   sheetTitle: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 15,
+    fontSize: 14,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
   },
   dots: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: 6,
-    marginTop: 12,
+    gap: 5,
+    marginTop: 10,
   },
   dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   dotActive: {
-    width: 20,
-    borderRadius: 4,
+    width: 18,
+    borderRadius: 3,
+  },
+  detailsBox: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  detailsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  detailsLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  detailsLabel: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 12,
+  },
+  detailsText: {
+    fontFamily: "Poppins_400Regular",
+    fontSize: 12,
+    lineHeight: 19,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+  },
+  cancelBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "#EF444414",
+    borderWidth: 1,
+    borderColor: "#EF444430",
+  },
+  cancelBtnText: {
+    color: "#EF4444",
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 13,
   },
 });
