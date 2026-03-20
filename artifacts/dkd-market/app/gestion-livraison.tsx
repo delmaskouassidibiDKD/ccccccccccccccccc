@@ -16,6 +16,7 @@ type Delivery = {
   stars: number;
   code: string; price: string; status: DeliveryStatus;
   pickupDate: string; pickupTime: string; pickupLocation: string;
+  products: string[];
 };
 
 const INIT_DELIVERIES: Delivery[] = [
@@ -25,6 +26,7 @@ const INIT_DELIVERIES: Delivery[] = [
     vehicle: "Moto", vehicleColor: "Rouge",
     stars: 4.8, code: "", price: "12 500 FCFA", status: "en_cours",
     pickupDate: "20 mars 2026", pickupTime: "10h30", pickupLocation: "Cocody Angré, Rue des Jardins, Abidjan",
+    products: ["Sac Louis Vuitton × 2", "Ceinture en cuir noir", "Portefeuille marron"],
   },
   {
     id: "d2", name: "Seydou Bamba", initials: "SB", colorHex: "#22C55E",
@@ -32,6 +34,7 @@ const INIT_DELIVERIES: Delivery[] = [
     vehicle: "Voiture", vehicleColor: "Blanc", vehiclePlate: "AB 1234 CI",
     stars: 4.5, code: "", price: "8 200 FCFA", status: "en_cours",
     pickupDate: "20 mars 2026", pickupTime: "14h00", pickupLocation: "Plateau Centre, Avenue Delafosse, Abidjan",
+    products: ["Chaussures Nike Air × 1", "T-shirt Lacoste blanc × 3"],
   },
   {
     id: "d3", name: "Fatoumata Sy", initials: "FS", colorHex: "#EC4899",
@@ -39,6 +42,7 @@ const INIT_DELIVERIES: Delivery[] = [
     vehicle: "Moto", vehicleColor: "Noir",
     stars: 4.9, code: "LIV-2841", price: "25 000 FCFA", status: "livre",
     pickupDate: "19 mars 2026", pickupTime: "09h00", pickupLocation: "Yopougon Marché, Avenue 18, Abidjan",
+    products: ["Veste en cuir marron × 3", "Écharpe soie beige × 2", "Lunettes de soleil Gucci"],
   },
 ];
 
@@ -80,6 +84,7 @@ export default function GestionLivraisonPage() {
   const [showVehicle, setShowVehicle] = useState<Delivery | null>(null);
   const [showAvatar,  setShowAvatar]  = useState<Delivery | null>(null);
   const [showDetail,  setShowDetail]  = useState<Delivery | null>(null);
+  const [confirmedPickup, setConfirmedPickup] = useState<Set<string>>(new Set());
 
   const enCoursCount = deliveries.filter((d) => d.status === "en_cours").length;
   const livreCount   = deliveries.filter((d) => d.status === "livre").length;
@@ -177,16 +182,24 @@ export default function GestionLivraisonPage() {
 
             {/* CODE */}
             {tab === "en_cours" && (
-              <View style={[s.codeRow, { backgroundColor: isDark ? "#0D1117" : "#F9FAFB" }]}>
-                <Ionicons name="key-outline" size={15} color="#F59E0B" />
-                <TextInput
-                  style={[s.codeInput, { color: dTEXT }]}
-                  placeholder="Code de livraison du livreur..."
-                  placeholderTextColor={dMUTED}
-                  value={codes[dl.id] ?? dl.code}
-                  onChangeText={(v) => setCodes((prev) => ({ ...prev, [dl.id]: v }))}
-                />
-              </View>
+              confirmedPickup.has(dl.id) ? (
+                <View style={[s.codeRow, { backgroundColor: isDark ? "#FF6B0012" : "#FFF4EC", borderColor: "#FF6B0030" }]}>
+                  <Ionicons name="checkmark-circle" size={17} color="#FF6B00" />
+                  <Text style={{ color: "#FF6B00", fontFamily: "Poppins_700Bold", fontSize: 13 }}>Colis récupéré</Text>
+                </View>
+              ) : (
+                <View style={[s.codeRow, { backgroundColor: isDark ? "#0D1117" : "#F9FAFB" }]}>
+                  <Ionicons name="key-outline" size={15} color="#F59E0B" />
+                  <TextInput
+                    style={[s.codeInput, { color: dTEXT }]}
+                    placeholder="Code de livraison du livreur..."
+                    placeholderTextColor={dMUTED}
+                    value={codes[dl.id] ?? dl.code}
+                    onChangeText={(v) => setCodes((prev) => ({ ...prev, [dl.id]: v }))}
+                    maxLength={12}
+                  />
+                </View>
+              )
             )}
             {tab === "livre" && dl.code !== "" && (
               <View style={s.codeUsedRow}>
@@ -217,7 +230,7 @@ export default function GestionLivraisonPage() {
                     <Text style={[s.actionColorText, { color: "#3B82F6" }]}>Suivre</Text>
                   </TouchableOpacity>
 
-                  {/* Bouton Date → remplace Livré */}
+                  {/* Bouton Date */}
                   <TouchableOpacity
                     style={[s.actionColor, { backgroundColor: "#8B5CF618", borderColor: "#8B5CF640" }]}
                     onPress={() => { Haptics.selectionAsync(); setShowDate(dl); }}
@@ -226,6 +239,29 @@ export default function GestionLivraisonPage() {
                     <Ionicons name="calendar-outline" size={15} color="#8B5CF6" />
                     <Text style={[s.actionColorText, { color: "#8B5CF6" }]}>Date</Text>
                   </TouchableOpacity>
+
+                  {/* Bouton Confirmer — actif dès 8 caractères dans le code */}
+                  {!confirmedPickup.has(dl.id) && (() => {
+                    const codeVal = codes[dl.id] ?? dl.code;
+                    const isActive = codeVal.length >= 8;
+                    return (
+                      <TouchableOpacity
+                        style={[s.actionColor, isActive
+                          ? { backgroundColor: "#FF6B00", borderColor: "#FF6B00" }
+                          : { backgroundColor: isDark ? "rgba(255,107,0,0.08)" : "rgba(255,107,0,0.06)", borderColor: "rgba(255,107,0,0.2)" }
+                        ]}
+                        onPress={() => {
+                          if (!isActive) return;
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                          setConfirmedPickup((prev) => new Set([...prev, dl.id]));
+                        }}
+                        activeOpacity={isActive ? 0.8 : 1}
+                      >
+                        <Ionicons name="checkmark-circle-outline" size={15} color={isActive ? "#fff" : "rgba(255,107,0,0.35)"} />
+                        <Text style={[s.actionColorText, { color: isActive ? "#fff" : "rgba(255,107,0,0.35)" }]}>Confirmer</Text>
+                      </TouchableOpacity>
+                    );
+                  })()}
                 </>
               )}
 
@@ -409,7 +445,7 @@ export default function GestionLivraisonPage() {
         </Pressable>
       </Modal>
 
-      {/* ── MODAL VOIR DÉTAILS DU COLIS ── */}
+      {/* ── MODAL VOIR — LISTE DES PRODUITS ── */}
       <Modal visible={!!showDetail} animationType="slide" transparent statusBarTranslucent onRequestClose={() => setShowDetail(null)}>
         <Pressable style={m.overlay} onPress={() => setShowDetail(null)}>
           <Pressable style={[m.sheet, { backgroundColor: isDark ? "#161B22" : "#FFFFFF" }]} onPress={(e) => e.stopPropagation()}>
@@ -417,91 +453,42 @@ export default function GestionLivraisonPage() {
 
             {showDetail && (
               <>
+                {/* En-tête */}
                 <View style={m.mHeader}>
                   <View style={[m.iconCircle, { backgroundColor: showDetail.colorHex + "22" }]}>
-                    <Ionicons name="cube-outline" size={22} color={showDetail.colorHex} />
+                    <Ionicons name="bag-handle-outline" size={22} color={showDetail.colorHex} />
                   </View>
-                  <Text style={[m.mTitle, { color: dTEXT }]}>Détails du colis</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[m.mTitle, { color: dTEXT }]}>Produits à récupérer</Text>
+                    <Text style={[m.subtitle, { color: dMUTED, marginTop: 0 }]}>Livreur : {showDetail.name}</Text>
+                  </View>
                   <TouchableOpacity onPress={() => setShowDetail(null)} activeOpacity={0.7}>
                     <Ionicons name="close" size={20} color={dMUTED} />
                   </TouchableOpacity>
                 </View>
 
-                {/* Bandeau livreur */}
-                <View style={[m.livreurBand, { backgroundColor: showDetail.colorHex + "14", borderColor: showDetail.colorHex + "33" }]}>
-                  <View style={[m.avatarSmall, { backgroundColor: showDetail.colorHex + "28" }]}>
-                    <Text style={[m.avatarSmallText, { color: showDetail.colorHex }]}>{showDetail.initials}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[m.infoValue, { color: dTEXT }]}>{showDetail.name}</Text>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                      <Ionicons name="business-outline" size={11} color={showDetail.colorHex} />
-                      <Text style={{ color: showDetail.colorHex, fontFamily: "Poppins_600SemiBold", fontSize: 11 }}>{showDetail.company}</Text>
-                    </View>
-                  </View>
-                  <StarRow stars={showDetail.stars} numColor="#F59E0B" />
+                {/* Compteur */}
+                <View style={[m.productCountBadge, { backgroundColor: showDetail.colorHex + "18", borderColor: showDetail.colorHex + "33" }]}>
+                  <Ionicons name="cube-outline" size={14} color={showDetail.colorHex} />
+                  <Text style={[m.productCountText, { color: showDetail.colorHex }]}>
+                    {showDetail.products.length} article{showDetail.products.length > 1 ? "s" : ""} dans ce colis
+                  </Text>
                 </View>
 
-                <View style={{ gap: 10 }}>
-                  {/* Véhicule */}
-                  <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
-                    <View style={[m.infoIcon, { backgroundColor: showDetail.colorHex + "22" }]}>
-                      <Ionicons name={vehicleIcon(showDetail.vehicle) as any} size={16} color={showDetail.colorHex} />
+                {/* Liste des produits */}
+                <View style={{ gap: 8 }}>
+                  {showDetail.products.map((prod, idx) => (
+                    <View key={idx} style={[m.productRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                      <View style={[m.productNumCircle, { backgroundColor: showDetail.colorHex + "22" }]}>
+                        <Text style={[m.productNum, { color: showDetail.colorHex }]}>{idx + 1}</Text>
+                      </View>
+                      <Text style={[m.productName, { color: dTEXT }]}>{prod}</Text>
+                      <Ionicons name="checkmark-circle-outline" size={18} color={showDetail.colorHex + "80"} />
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[m.infoLabel, { color: dMUTED }]}>Véhicule</Text>
-                      <Text style={[m.infoValue, { color: dTEXT }]}>{showDetail.vehicle} · {showDetail.vehicleColor}{showDetail.vehiclePlate ? ` · ${showDetail.vehiclePlate}` : ""}</Text>
-                    </View>
-                  </View>
-
-                  {/* Prix */}
-                  <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
-                    <View style={[m.infoIcon, { backgroundColor: "#FF6B0022" }]}>
-                      <Ionicons name="cash-outline" size={16} color="#FF6B00" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[m.infoLabel, { color: dMUTED }]}>Montant de la livraison</Text>
-                      <Text style={[m.infoValue, { color: "#FF6B00", fontFamily: "Poppins_700Bold" }]}>{showDetail.price}</Text>
-                    </View>
-                  </View>
-
-                  {/* Date récupération */}
-                  <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
-                    <View style={[m.infoIcon, { backgroundColor: "#3B82F622" }]}>
-                      <Ionicons name="calendar-outline" size={16} color="#3B82F6" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[m.infoLabel, { color: dMUTED }]}>Date de récupération</Text>
-                      <Text style={[m.infoValue, { color: dTEXT }]}>{showDetail.pickupDate} à {showDetail.pickupTime}</Text>
-                    </View>
-                  </View>
-
-                  {/* Lieu */}
-                  <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
-                    <View style={[m.infoIcon, { backgroundColor: "#22C55E22" }]}>
-                      <Ionicons name="location-outline" size={16} color="#22C55E" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[m.infoLabel, { color: dMUTED }]}>Lieu de récupération</Text>
-                      <Text style={[m.infoValue, { color: dTEXT }]}>{showDetail.pickupLocation}</Text>
-                    </View>
-                  </View>
-
-                  {/* Statut */}
-                  <View style={[m.infoRow, { backgroundColor: showDetail.status === "livre" ? "#22C55E12" : "#F59E0B12" }]}>
-                    <View style={[m.infoIcon, { backgroundColor: showDetail.status === "livre" ? "#22C55E22" : "#F59E0B22" }]}>
-                      <Ionicons name={showDetail.status === "livre" ? "checkmark-circle-outline" : "time-outline"} size={16} color={showDetail.status === "livre" ? "#22C55E" : "#F59E0B"} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[m.infoLabel, { color: dMUTED }]}>Statut</Text>
-                      <Text style={[m.infoValue, { color: showDetail.status === "livre" ? "#22C55E" : "#F59E0B" }]}>
-                        {showDetail.status === "livre" ? "Livraison effectuée" : "En cours de livraison"}
-                      </Text>
-                    </View>
-                  </View>
+                  ))}
                 </View>
 
-                <TouchableOpacity style={[m.closeBtn, { backgroundColor: showDetail.colorHex, marginTop: 4 }]} onPress={() => setShowDetail(null)} activeOpacity={0.85}>
+                <TouchableOpacity style={[m.closeBtn, { backgroundColor: showDetail.colorHex, marginTop: 8 }]} onPress={() => setShowDetail(null)} activeOpacity={0.85}>
                   <Text style={[m.closeBtnText, { color: "#fff" }]}>Fermer</Text>
                 </TouchableOpacity>
               </>
@@ -603,4 +590,10 @@ const m = StyleSheet.create({
   livreurBand: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 14, padding: 12, borderWidth: 1 },
   avatarSmall: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   avatarSmallText: { fontFamily: "Poppins_700Bold", fontSize: 16 },
+  productCountBadge: { flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1 },
+  productCountText: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
+  productRow: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 12, padding: 14 },
+  productNumCircle: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  productNum: { fontFamily: "Poppins_700Bold", fontSize: 12 },
+  productName: { flex: 1, fontFamily: "Poppins_500Medium", fontSize: 14 },
 });
