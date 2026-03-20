@@ -62,7 +62,12 @@ export default function ProfilePhotoAvatar({
         ]}
       >
         {photoUri ? (
-          <Image source={{ uri: photoUri }} style={{ width: "100%", height: "100%", borderRadius }} />
+          <Image
+            key={photoUri}
+            source={{ uri: photoUri }}
+            style={{ width: size, height: size }}
+            resizeMode="cover"
+          />
         ) : (
           <Text style={{ fontFamily: "Poppins_700Bold", fontSize, color: initialsColor }}>
             {initials}

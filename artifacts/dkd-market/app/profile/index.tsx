@@ -152,7 +152,12 @@ export default function ProfileScreen() {
         <View style={styles.avatarSection}>
           <TouchableOpacity style={styles.avatarContainer} onPress={handlePickAvatar} activeOpacity={0.8}>
             {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={[styles.avatarImage, { borderColor: colors.primary }]} />
+              <Image
+                key={avatarUri}
+                source={{ uri: avatarUri }}
+                style={[styles.avatarImage, { borderColor: colors.primary }]}
+                resizeMode="cover"
+              />
             ) : (
               <View style={[styles.avatarPlaceholder, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}>
                 <Text style={[styles.avatarInitials, { color: colors.primary }]}>{initials}</Text>

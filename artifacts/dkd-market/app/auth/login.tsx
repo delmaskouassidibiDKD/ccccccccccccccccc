@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Svg, { Path, Line, G, Defs, LinearGradient, Stop } from "react-native-svg";
 import {
   View,
   Text,
@@ -71,9 +72,27 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoArea}>
-          <View style={[styles.logoCircle, { backgroundColor: colors.primary }]}>
-            <Text style={styles.logoText}>DKD</Text>
+          <View style={[styles.logoBadge, { backgroundColor: colors.primary }]}>
+            <Svg width={44} height={44} viewBox="0 0 24 24" fill="none">
+              <Defs>
+                <LinearGradient id="dnaL" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor="white" />
+                  <Stop offset="0.5" stopColor="#F38020" />
+                  <Stop offset="1" stopColor="white" />
+                </LinearGradient>
+              </Defs>
+              <G>
+                <Path d="M8 3C8 3 8 10 12 12C16 14 16 21 16 21" strokeWidth="2.5" strokeLinecap="round" stroke="url(#dnaL)" fill="none" />
+                <Path d="M16 3C16 3 16 10 12 12C8 14 8 21 8 21" strokeWidth="2.5" strokeLinecap="round" stroke="url(#dnaL)" fill="none" />
+                <Line x1="10" y1="6" x2="14" y2="6" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity={0.8} />
+                <Line x1="10.5" y1="9" x2="13.5" y2="9" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity={0.9} />
+                <Line x1="11" y1="12" x2="13" y2="12" stroke="#F38020" strokeWidth="3" strokeLinecap="round" />
+                <Line x1="10.5" y1="15" x2="13.5" y2="15" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity={0.9} />
+                <Line x1="10" y1="18" x2="14" y2="18" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity={0.8} />
+              </G>
+            </Svg>
           </View>
+          <Text style={[styles.appName, { color: colors.primary }]}>DKD-MARKET</Text>
           <Text style={[styles.title, { color: colors.text }]}>{t.auth.welcomeBack}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t.auth.loginSubtitle}</Text>
         </View>
@@ -161,18 +180,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 36,
   },
-  logoCircle: {
+  logoBadge: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 14,
+    shadowColor: "#FF6B00",
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  logoText: {
-    fontSize: 24,
+  appName: {
     fontFamily: "Poppins_800ExtraBold",
-    color: "#fff",
+    fontSize: 22,
+    fontStyle: "italic",
+    letterSpacing: 1,
+    marginBottom: 10,
   },
   title: {
     fontSize: 26,
