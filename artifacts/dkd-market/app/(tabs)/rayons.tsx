@@ -308,6 +308,15 @@ export default function RayonsScreen() {
             <Text style={[styles.filterPillText, { color: "#6366F1" }]}>Achats groupés</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={[styles.filterPill, { backgroundColor: "#EF4444" + "18", borderColor: "#EF4444" + "55" }]}
+            onPress={() => { Haptics.selectionAsync(); router.push("/promos" as any); }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="pricetag-outline" size={13} color="#EF4444" />
+            <Text style={[styles.filterPillText, { color: "#EF4444" }]}>Promos</Text>
+          </TouchableOpacity>
+
           {(["marche", "grossiste", "supermarche", "importe"] as MarketKey[]).map((key) => {
             const cfg = MARKET_CONFIG[key];
             const routes: Record<MarketKey, string> = {
