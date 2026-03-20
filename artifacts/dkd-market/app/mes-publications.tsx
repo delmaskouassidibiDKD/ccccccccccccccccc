@@ -220,9 +220,14 @@ export default function MesPublications() {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Mes publications</Text>
-        <TouchableOpacity style={s.headerIcon} onPress={toggleSearch}>
-          <Ionicons name={searchOpen ? "close" : "search"} size={20} color="#fff" />
-        </TouchableOpacity>
+        {/* Loupe header — uniquement sur l'onglet Vidéo */}
+        {activeTab === "video" ? (
+          <TouchableOpacity style={s.headerIcon} onPress={toggleSearch}>
+            <Ionicons name={searchOpen ? "close" : "search"} size={20} color="#fff" />
+          </TouchableOpacity>
+        ) : (
+          <View style={s.headerIcon} />
+        )}
       </View>
 
       {/* Barre de recherche */}
@@ -275,6 +280,11 @@ export default function MesPublications() {
                   setTabSearchOpen(false);
                   setTabSearchQuery("");
                   Animated.timing(tabSearchAnim, { toValue: 0, duration: 180, useNativeDriver: false }).start();
+                }
+                if (tab.key !== "video" && searchOpen) {
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                  Animated.timing(searchAnim, { toValue: 0, duration: 180, useNativeDriver: false }).start();
                 }
               }}
               activeOpacity={0.8}
