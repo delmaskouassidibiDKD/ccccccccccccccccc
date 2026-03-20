@@ -9,6 +9,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { ms, fs } from "@/lib/responsive";
 
+let _dnaIdCounter = 0;
+
 function countryCodeToFlag(code: string): string {
   if (!code || code.length < 2) return "";
   const offset = 0x1F1E6 - 65;
@@ -20,10 +22,11 @@ function countryCodeToFlag(code: string): string {
 }
 
 function DnaLogo({ size = 28 }: { size?: number }) {
+  const [gradId] = useState(() => `dg${++_dnaIdCounter}`);
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Defs>
-        <LinearGradient id="dnaGrad" x1="0" y1="0" x2="0" y2="1">
+        <LinearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor="white" />
           <Stop offset="0.5" stopColor="#F38020" />
           <Stop offset="1" stopColor="white" />
@@ -34,14 +37,14 @@ function DnaLogo({ size = 28 }: { size?: number }) {
           d="M8 3C8 3 8 10 12 12C16 14 16 21 16 21"
           strokeWidth="2.5"
           strokeLinecap="round"
-          stroke="url(#dnaGrad)"
+          stroke={`url(#${gradId})`}
           fill="none"
         />
         <Path
           d="M16 3C16 3 16 10 12 12C8 14 8 21 8 21"
           strokeWidth="2.5"
           strokeLinecap="round"
-          stroke="url(#dnaGrad)"
+          stroke={`url(#${gradId})`}
           fill="none"
         />
         <Line x1="10" y1="6" x2="14" y2="6" stroke="white" strokeWidth="1.5" strokeLinecap="round" opacity={0.8} />
@@ -87,7 +90,7 @@ export function AppHeader({ onMenuPress, showNotif = true, notifCount = 1, onGlo
           <TouchableOpacity style={styles.menuBtn} onPress={onMenuPress} activeOpacity={0.7}>
             <Ionicons name="menu" size={26} color="#fff" />
           </TouchableOpacity>
-          <DnaLogo key={user?.id ?? "guest"} size={30} />
+          <DnaLogo size={30} />
           <Text style={styles.logoText}>DKD-MARKET</Text>
         </View>
 
