@@ -20,6 +20,22 @@ function fmtNum(n: number): string {
   return n.toLocaleString("fr-FR");
 }
 
+const CURRENCIES = [
+  { code: "FCFA", symbol: "FCFA", flag: "🇨🇮" },
+  { code: "USD",  symbol: "$",    flag: "🇺🇸" },
+  { code: "EUR",  symbol: "€",    flag: "🇪🇺" },
+  { code: "GBP",  symbol: "£",    flag: "🇬🇧" },
+  { code: "CNY",  symbol: "¥",    flag: "🇨🇳" },
+  { code: "MAD",  symbol: "DH",   flag: "🇲🇦" },
+  { code: "NGN",  symbol: "₦",    flag: "🇳🇬" },
+  { code: "GHS",  symbol: "₵",    flag: "🇬🇭" },
+  { code: "KES",  symbol: "KSh",  flag: "🇰🇪" },
+  { code: "ZAR",  symbol: "R",    flag: "🇿🇦" },
+  { code: "TND",  symbol: "DT",   flag: "🇹🇳" },
+  { code: "EGP",  symbol: "E£",   flag: "🇪🇬" },
+  { code: "XOF",  symbol: "XOF",  flag: "🌍" },
+];
+
 type Props = {
   visible: boolean;
   onClose: () => void;
@@ -29,21 +45,22 @@ type Props = {
 };
 
 export default function DevisBuilderModal({ visible, onClose, clientName, isDark, onConfirm }: Props) {
-  const [rows,      setRows]      = useState<Row[]>([makeRow()]);
-  const [totalManuel, setTotalManuel] = useState("");
-  const [autoCalc,  setAutoCalc]  = useState(true);
+  const [rows,         setRows]         = useState<Row[]>([makeRow()]);
+  const [totalManuel,  setTotalManuel]  = useState("");
+  const [autoCalc,     setAutoCalc]     = useState(true);
+  const [currency,     setCurrency]     = useState(CURRENCIES[0]);
   const scrollRef = useRef<ScrollView>(null);
 
-  const dynSheet   = isDark ? "#111827" : "#F8FAFC";
-  const dynCARD    = isDark ? "#1C2333" : "#FFFFFF";
-  const dynText    = isDark ? "#F0F6FF" : "#111827";
-  const dynSub     = isDark ? "#94A3B8" : "#6B7280";
-  const dynBorder  = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
-  const dynInput   = isDark ? "#0D1117" : "#F1F5F9";
-  const dynHandle  = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
+  const dynSheet  = isDark ? "#111827" : "#F8FAFC";
+  const dynCARD   = isDark ? "#1C2333" : "#FFFFFF";
+  const dynText   = isDark ? "#F0F6FF" : "#111827";
+  const dynSub    = isDark ? "#94A3B8" : "#6B7280";
+  const dynBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)";
+  const dynInput  = isDark ? "#0D1117" : "#F1F5F9";
+  const dynHandle = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
+  const dynCurrBG = isDark ? "#1E293B" : "#F0F4FA";
 
   const totalAuto = rows.reduce((acc, r) => acc + parseNum(r.prix), 0);
-  const totalStr  = autoCalc ? (totalAuto > 0 ? fmtNum(totalAuto) : "") : totalManuel;
   const hasTotal  = autoCalc ? totalAuto > 0 : totalManuel.trim().length > 0;
 
   const updateRow = useCallback((id: string, field: keyof Row, value: string) => {
@@ -68,13 +85,19 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
     if (val) setTotalManuel("");
   };
 
+  const handleSelectCurrency = (c: typeof CURRENCIES[0]) => {
+    Haptics.selectionAsync();
+    setCurrency(c);
+  };
+
   const handleConfirm = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const total = autoCalc ? `${fmtNum(totalAuto)} FCFA` : `${totalManuel} FCFA`;
+    const totalVal  = autoCalc ? fmtNum(totalAuto) : totalManuel;
+    const totalFull = `${totalVal} ${currency.code}`;
     Alert.alert(
       "Devis appliqué",
-      `Le devis de ${total} a été appliqué pour ${clientName}.`,
-      [{ text: "OK", onPress: () => { handleClose(); onConfirm({ rows, total, autoCalc }); } }]
+      `Le devis de ${totalFull} a été appliqué pour ${clientName}.`,
+      [{ text: "OK", onPress: () => { handleClose(); onConfirm({ rows, total: totalFull, autoCalc }); } }]
     );
   };
 
@@ -82,15 +105,15 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
     setRows([makeRow()]);
     setTotalManuel("");
     setAutoCalc(true);
+    setCurrency(CURRENCIES[0]);
     onClose();
   }, [onClose]);
 
+  const sym = currency.symbol;
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <Pressable style={m.overlay} onPress={handleClose}>
           <Pressable style={[m.sheet, { backgroundColor: dynSheet }]} onPress={(e) => e.stopPropagation()}>
 
@@ -100,8 +123,7 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
             <View style={m.header}>
               <Text style={[m.title, { color: dynText }]}>Devis personnalisé</Text>
               <View style={m.headerRight}>
-
-                <View style={[m.toggleRow, { backgroundColor: isDark ? "#1E293B" : "#E5E7EB", borderColor: dynBorder }]}>
+                <View style={[m.toggleRow, { backgroundColor: dynCurrBG, borderColor: dynBorder }]}>
                   <Text style={[m.toggleLabel, { color: autoCalc ? "#FF6B00" : dynSub }]}>Auto</Text>
                   <Switch
                     value={autoCalc}
@@ -111,30 +133,60 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
                     style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                   />
                 </View>
-
-                <TouchableOpacity style={[m.addBtn, { backgroundColor: "#3B82F618", borderColor: "#3B82F640" }]} onPress={addRow} activeOpacity={0.8}>
+                <TouchableOpacity
+                  style={[m.addBtn, { backgroundColor: "#3B82F618", borderColor: "#3B82F640" }]}
+                  onPress={addRow}
+                  activeOpacity={0.8}
+                >
                   <Ionicons name="add" size={18} color="#3B82F6" />
                 </TouchableOpacity>
               </View>
             </View>
 
+            {/* ── Sélecteur de monnaie ── */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={m.currencyRow}
+              style={[m.currencyScroll, { borderColor: dynBorder }]}
+            >
+              {CURRENCIES.map((c) => {
+                const active = c.code === currency.code;
+                return (
+                  <TouchableOpacity
+                    key={c.code}
+                    style={[
+                      m.currencyChip,
+                      active
+                        ? { backgroundColor: "#FF6B00", borderColor: "#FF6B00" }
+                        : { backgroundColor: dynCurrBG, borderColor: dynBorder },
+                    ]}
+                    onPress={() => handleSelectCurrency(c)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={m.currencyFlag}>{c.flag}</Text>
+                    <Text style={[m.currencyCode, { color: active ? "#fff" : dynSub }]}>{c.code}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* ── Lignes ── */}
             <ScrollView
               ref={scrollRef}
-              style={{ maxHeight: 300 }}
+              style={{ maxHeight: 240 }}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ padding: 14, gap: 8 }}
               keyboardShouldPersistTaps="handled"
             >
               {rows.map((row, idx) => (
                 <View key={row.id} style={[m.rowWrap, { backgroundColor: dynCARD, borderColor: dynBorder }]}>
-                  <View style={m.rowLeft}>
-                    <Text style={[m.rowNum, { color: dynSub }]}>{idx + 1}</Text>
-                  </View>
+                  <Text style={[m.rowNum, { color: dynSub }]}>{idx + 1}</Text>
 
                   <View style={m.rowFields}>
                     <TextInput
                       style={[m.descInput, { backgroundColor: dynInput, color: dynText, borderColor: dynBorder }]}
-                      placeholder="Description de l'article..."
+                      placeholder="Description..."
                       placeholderTextColor={dynSub}
                       value={row.description}
                       onChangeText={(v) => updateRow(row.id, "description", v)}
@@ -149,7 +201,9 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
                           value={row.prix}
                           onChangeText={(v) => updateRow(row.id, "prix", v)}
                         />
-                        <Text style={[m.prixUnit, { color: dynSub }]}>FCFA</Text>
+                        <View style={[m.symPill, { backgroundColor: dynBorder }]}>
+                          <Text style={[m.symText, { color: dynSub }]} numberOfLines={1}>{sym}</Text>
+                        </View>
                       </View>
                     )}
                   </View>
@@ -164,10 +218,11 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
             {/* ── Total ── */}
             <View style={[m.totalSection, { borderColor: dynBorder, backgroundColor: dynCARD }]}>
               <Text style={[m.totalLabel, { color: dynSub }]}>Total</Text>
+
               {autoCalc ? (
                 <View style={m.totalAutoVal}>
-                  <Text style={[m.totalAutoText, { color: totalAuto > 0 ? "#FF6B00" : dynSub }]}>
-                    {totalAuto > 0 ? `${fmtNum(totalAuto)} FCFA` : "—"}
+                  <Text style={[m.totalAutoText, { color: totalAuto > 0 ? "#FF6B00" : dynSub }]} numberOfLines={1}>
+                    {totalAuto > 0 ? `${fmtNum(totalAuto)} ${sym}` : "—"}
                   </Text>
                   <View style={[m.autoPill, { backgroundColor: "#FF6B0018" }]}>
                     <Ionicons name="flash" size={10} color="#FF6B00" />
@@ -178,13 +233,15 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
                 <View style={[m.manualTotalWrap, { backgroundColor: dynInput, borderColor: dynBorder }]}>
                   <TextInput
                     style={[m.manualTotalInput, { color: dynText }]}
-                    placeholder="Saisir le total..."
+                    placeholder="0"
                     placeholderTextColor={dynSub}
                     keyboardType="numeric"
                     value={totalManuel}
                     onChangeText={setTotalManuel}
                   />
-                  <Text style={[m.prixUnit, { color: dynSub }]}>FCFA</Text>
+                  <View style={[m.symPill, { backgroundColor: dynBorder }]}>
+                    <Text style={[m.symText, { color: dynSub }]} numberOfLines={1}>{sym}</Text>
+                  </View>
                 </View>
               )}
             </View>
@@ -197,7 +254,7 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
               </TouchableOpacity>
             )}
 
-            <View style={{ height: 8 }} />
+            <View style={{ height: 10 }} />
           </Pressable>
         </Pressable>
       </KeyboardAvoidingView>
@@ -217,7 +274,7 @@ const m = StyleSheet.create({
   },
   handle: {
     width: 40, height: 4, borderRadius: 2,
-    alignSelf: "center", marginTop: 10, marginBottom: 6,
+    alignSelf: "center", marginTop: 10, marginBottom: 4,
   },
   header: {
     flexDirection: "row",
@@ -253,6 +310,32 @@ const m = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     borderWidth: 1,
   },
+  currencyScroll: {
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+  },
+  currencyRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 7,
+    flexDirection: "row",
+  },
+  currencyChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  currencyFlag: {
+    fontSize: 13,
+  },
+  currencyCode: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 11,
+  },
   rowWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -261,13 +344,11 @@ const m = StyleSheet.create({
     borderWidth: 1,
     padding: 10,
   },
-  rowLeft: {
-    width: 20,
-    alignItems: "center",
-  },
   rowNum: {
     fontFamily: "Poppins_700Bold",
     fontSize: 11,
+    width: 16,
+    textAlign: "center",
   },
   rowFields: {
     flex: 1,
@@ -295,10 +376,18 @@ const m = StyleSheet.create({
     fontFamily: "Poppins_600SemiBold",
     fontSize: 12,
     padding: 0,
+    minWidth: 0,
   },
-  prixUnit: {
-    fontFamily: "Poppins_500Medium",
-    fontSize: 11,
+  symPill: {
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    maxWidth: 52,
+    alignItems: "center",
+  },
+  symText: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 10,
   },
   removeBtn: {
     width: 28, height: 28, borderRadius: 14,
@@ -307,9 +396,8 @@ const m = StyleSheet.create({
   totalSection: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     marginHorizontal: 14,
-    marginTop: 4,
+    marginTop: 8,
     borderRadius: 14,
     borderWidth: 1,
     paddingHorizontal: 14,
@@ -319,15 +407,19 @@ const m = StyleSheet.create({
   totalLabel: {
     fontFamily: "Poppins_600SemiBold",
     fontSize: 13,
+    flexShrink: 0,
   },
   totalAutoVal: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-end",
     gap: 8,
   },
   totalAutoText: {
     fontFamily: "Poppins_700Bold",
     fontSize: 16,
+    flexShrink: 1,
   },
   autoPill: {
     flexDirection: "row",
@@ -336,6 +428,7 @@ const m = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 3,
+    flexShrink: 0,
   },
   autoPillText: {
     color: "#FF6B00",
@@ -343,6 +436,7 @@ const m = StyleSheet.create({
     fontSize: 9,
   },
   manualTotalWrap: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 10,
@@ -350,13 +444,13 @@ const m = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 6,
-    flex: 1,
   },
   manualTotalInput: {
     flex: 1,
     fontFamily: "Poppins_600SemiBold",
     fontSize: 14,
     padding: 0,
+    minWidth: 0,
   },
   confirmBtn: {
     flexDirection: "row",
@@ -364,7 +458,7 @@ const m = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     marginHorizontal: 14,
-    marginTop: 12,
+    marginTop: 10,
     paddingVertical: 14,
     borderRadius: 14,
     backgroundColor: "#22C55E",
