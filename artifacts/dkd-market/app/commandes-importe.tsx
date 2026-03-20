@@ -10,6 +10,7 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ORDERS } from "@/lib/orders-data";
 import CommandeDetailModal, { SOURCE_CONFIG, type ProductSlide } from "@/components/CommandeDetailModal";
+import DevisBuilderModal from "@/components/DevisBuilderModal";
 import type { Order } from "@/lib/orders-data";
 
 const TABS = [
@@ -55,6 +56,9 @@ export default function CommandesImportePage() {
   const [detailOpen,     setDetailOpen]     = useState(false);
   const [detailOrder,    setDetailOrder]    = useState<Order | null>(null);
 
+  const [devisOpen,      setDevisOpen]      = useState(false);
+  const [devisOrder,     setDevisOrder]     = useState<Order | null>(null);
+
   const activeOrders = ORDERS.filter((o) => !cancelledIds.has(o.id));
 
   const filtered = activeOrders.filter((o) => {
@@ -84,6 +88,12 @@ export default function CommandesImportePage() {
   const cancelOrder = (id: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     setCancelledIds((prev) => new Set([...prev, id]));
+  };
+
+  const openDevisBuilder = (order: Order) => {
+    Haptics.selectionAsync();
+    setDevisOrder(order);
+    setDevisOpen(true);
   };
 
   const openChat = async (item: Order) => {
@@ -266,6 +276,15 @@ export default function CommandesImportePage() {
                 </View>
 
                 <TouchableOpacity
+                  style={[s.btnDevisCustom, { backgroundColor: isDark ? "#1E293B" : "#F0F4FA", borderColor: "#8B5CF640" }]}
+                  onPress={() => openDevisBuilder(item)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="create-outline" size={14} color="#8B5CF6" />
+                  <Text style={[s.btnDevisCustomText, { color: "#8B5CF6" }]}>Devis personnalisé</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   style={[
                     s.processingToggle,
                     {
@@ -296,6 +315,16 @@ export default function CommandesImportePage() {
           isConfirmed={detailOrder.status === "confirmee" && !cancelledIds.has(detailOrder.id)}
           onCancel={() => cancelOrder(detailOrder.id)}
           isDark={isDark}
+        />
+      )}
+
+      {devisOrder && (
+        <DevisBuilderModal
+          visible={devisOpen}
+          onClose={() => { setDevisOpen(false); setDevisOrder(null); }}
+          clientName={devisOrder.name}
+          isDark={isDark}
+          onConfirm={() => {}}
         />
       )}
     </View>
@@ -343,7 +372,9 @@ const s = StyleSheet.create({
   btnChat:         { flex: 0.9, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderWidth: 1.5, borderRadius: 10, paddingVertical: 8 },
   btnChatText:     { fontFamily: "Poppins_600SemiBold", fontSize: 11 },
   btnDevis:        { flex: 0.8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 10, paddingVertical: 8 },
-  btnDevisText:    { fontFamily: "Poppins_600SemiBold", fontSize: 11, color: "#fff" },
+  btnDevisText:        { fontFamily: "Poppins_600SemiBold", fontSize: 11, color: "#fff" },
+  btnDevisCustom:      { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderRadius: 10, paddingVertical: 9 },
+  btnDevisCustomText:  { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
   processingToggle:     { flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8 },
   processingToggleText: { fontFamily: "Poppins_500Medium", fontSize: 11, flex: 1 },
   empty:        { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
