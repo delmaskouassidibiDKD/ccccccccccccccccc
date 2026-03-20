@@ -62,6 +62,7 @@ export default function SellerScreen() {
   const [activeTab, setActiveTab] = useState(0);
   const [subscribed, setSubscribed] = useState(false);
   const [shopTypes, setShopTypes] = useState<string[]>([]);
+  const [logoError, setLogoError] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -214,8 +215,12 @@ export default function SellerScreen() {
             {/* Avatar */}
             <View style={styles.avatarWrap}>
               <View style={styles.avatar}>
-                {logoUrl ? (
-                  <Image source={{ uri: logoUrl }} style={styles.avatarImage} />
+                {logoUrl && !logoError ? (
+                  <Image
+                    source={{ uri: logoUrl }}
+                    style={styles.avatarImage}
+                    onError={() => setLogoError(true)}
+                  />
                 ) : (
                   <Text style={styles.avatarInitials}>{initials}</Text>
                 )}

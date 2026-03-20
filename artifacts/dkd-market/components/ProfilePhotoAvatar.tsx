@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -37,15 +37,21 @@ export default function ProfilePhotoAvatar({
 }: Props) {
   const { isDark } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const borderRadius = size / 2;
 
+  useEffect(() => {
+    setImageError(false);
+  }, [photoUri]);
+
   const cardW = Math.min(SW - 48, 320);
+  const showImage = !!photoUri && !imageError;
 
   return (
     <>
       <TouchableOpacity
-        activeOpacity={photoUri ? 0.75 : 1}
-        onPress={() => { if (photoUri) setModalVisible(true); }}
+        activeOpacity={showImage ? 0.75 : 1}
+        onPress={() => { if (showImage) setModalVisible(true); }}
         style={[
           {
             width: size,
@@ -61,12 +67,13 @@ export default function ProfilePhotoAvatar({
           style,
         ]}
       >
-        {photoUri ? (
+        {showImage ? (
           <Image
             key={photoUri}
-            source={{ uri: photoUri }}
+            source={{ uri: photoUri! }}
             style={{ width: size, height: size }}
             resizeMode="cover"
+            onError={() => setImageError(true)}
           />
         ) : (
           <Text style={{ fontFamily: "Poppins_700Bold", fontSize, color: initialsColor }}>
@@ -75,7 +82,7 @@ export default function ProfilePhotoAvatar({
         )}
       </TouchableOpacity>
 
-      {photoUri && (
+      {showImage && (
         <Modal
           visible={modalVisible}
           transparent
@@ -88,7 +95,7 @@ export default function ProfilePhotoAvatar({
               onPress={(e) => e.stopPropagation()}
             >
               <Image
-                source={{ uri: photoUri }}
+                source={{ uri: photoUri! }}
                 style={[styles.photo, { width: cardW - 16, height: cardW - 16 }]}
                 resizeMode="cover"
               />
