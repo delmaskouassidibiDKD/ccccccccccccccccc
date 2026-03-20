@@ -61,8 +61,10 @@ export default function CommandesImportePage() {
 
   const [devisOpen,      setDevisOpen]      = useState(false);
   const [devisOrder,     setDevisOrder]     = useState<Order | null>(null);
-  const [devisDataMap,   setDevisDataMap]   = useState<Map<string, DevisData>>(new Map());
-  const [priorityIds,    setPriorityIds]    = useState<string[]>([]);
+  const [devisDataMap,        setDevisDataMap]        = useState<Map<string, DevisData>>(new Map());
+  const [priorityIds,         setPriorityIds]         = useState<string[]>([]);
+  const [devisNeedsResendIds, setDevisNeedsResendIds] = useState<Set<string>>(new Set());
+  const [successMsg,          setSuccessMsg]          = useState(false);
 
   const activeOrders = ORDERS.filter((o) => !cancelledIds.has(o.id));
 
@@ -161,6 +163,13 @@ export default function CommandesImportePage() {
 
   return (
     <View style={[s.root, { backgroundColor: dynBG }]}>
+
+      {successMsg && (
+        <View style={[s.toastBanner, { backgroundColor: "#22C55E" }]}>
+          <Ionicons name="checkmark-circle" size={16} color="#fff" />
+          <Text style={s.toastText}>Devis envoyé avec succès</Text>
+        </View>
+      )}
 
       <View style={[s.header, { paddingTop: insets.top + 10, backgroundColor: dynHeader, borderBottomColor: dynBorder }]}>
         <TouchableOpacity style={s.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
@@ -366,21 +375,28 @@ export default function CommandesImportePage() {
                   </TouchableOpacity>
                 )}
 
-                {/* Bouton "Envoyer le devis" — devis fait mais pas encore envoyé */}
-                {devisApplied && !devisSent && !confirmed && (
+                {/* Bouton "Envoyer le devis" */}
+                {devisApplied && (!devisSent || devisNeedsResendIds.has(item.id)) && !confirmed && (
                   <TouchableOpacity
-                    style={[s.confirmClientBtn, { backgroundColor: "#3B82F614", borderColor: "#3B82F644" }]}
+                    style={[s.confirmClientBtn, { backgroundColor: "#F59E0B14", borderColor: "#F59E0B44" }]}
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                       setDevisedIds((prev) => new Set([...prev, item.id]));
+                      setDevisNeedsResendIds((prev) => {
+                        const next = new Set(prev);
+                        next.delete(item.id);
+                        return next;
+                      });
+                      setSuccessMsg(true);
+                      setTimeout(() => setSuccessMsg(false), 3000);
                     }}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="send-outline" size={14} color="#3B82F6" />
-                    <Text style={[s.confirmClientText, { color: "#3B82F6" }]}>
+                    <Ionicons name="send-outline" size={14} color="#F59E0B" />
+                    <Text style={[s.confirmClientText, { color: "#F59E0B" }]}>
                       Envoyer le devis au client
                     </Text>
-                    <Ionicons name="chevron-forward" size={13} color="#3B82F6" style={{ marginLeft: "auto" }} />
+                    <Ionicons name="chevron-forward" size={13} color="#F59E0B" style={{ marginLeft: "auto" }} />
                   </TouchableOpacity>
                 )}
 
@@ -412,11 +428,9 @@ export default function CommandesImportePage() {
             if (devisOrder) {
               const id = devisOrder.id;
               setDevisAppliedIds((prev) => new Set([...prev, id]));
-              setDevisedIds((prev) => {
-                const next = new Set(prev);
-                next.delete(id);
-                return next;
-              });
+              if (devisedIds.has(id)) {
+                setDevisNeedsResendIds((prev) => new Set([...prev, id]));
+              }
               setDevisDataMap((prev) => {
                 const next = new Map(prev);
                 next.set(id, { rows: devis.rows, totalManuel: devis.totalManuel, autoCalc: devis.autoCalc, currencyCode: devis.currencyCode });
@@ -479,4 +493,6 @@ const s = StyleSheet.create({
   confirmClientText: { fontFamily: "Poppins_600SemiBold", fontSize: 12, flex: 1, color: "#22C55E" },
   empty:        { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   emptyText:    { fontFamily: "Poppins_500Medium", fontSize: 14 },
+  toastBanner:  { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 10, zIndex: 100 },
+  toastText:    { fontFamily: "Poppins_600SemiBold", fontSize: 13, color: "#fff", flex: 1 },
 });

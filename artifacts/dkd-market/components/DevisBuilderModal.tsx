@@ -67,6 +67,7 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
   const [autoCalc,      setAutoCalc]      = useState(true);
   const [currency,      setCurrency]      = useState(CURRENCIES[0]);
   const [currencyOpen,  setCurrencyOpen]  = useState(false);
+  const [isDirty,       setIsDirty]       = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   const dynSheet  = isDark ? "#111827" : "#F8FAFC";
@@ -82,35 +83,41 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
   const sym       = currency.symbol;
 
   const updateRow = useCallback((id: string, field: keyof Row, value: string) => {
+    setIsDirty(true);
     setRows((prev) => prev.map((r) => r.id === id ? { ...r, [field]: value } : r));
   }, []);
 
   const addRow = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsDirty(true);
     setRows((prev) => [...prev, makeRow()]);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
   };
 
   const removeRow = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsDirty(true);
     if (rows.length === 1) { setRows([makeRow()]); return; }
     setRows((prev) => prev.filter((r) => r.id !== id));
   };
 
   const handleToggle = (val: boolean) => {
     Haptics.selectionAsync();
+    setIsDirty(true);
     setAutoCalc(val);
     if (val) setTotalManuel("");
   };
 
   const handleSelectCurrency = (c: typeof CURRENCIES[0]) => {
     Haptics.selectionAsync();
+    setIsDirty(true);
     setCurrency(c);
     setCurrencyOpen(false);
   };
 
   useEffect(() => {
     if (!visible) return;
+    setIsDirty(false);
     if (initialData && initialData.rows.length > 0) {
       setRows(initialData.rows.map((r) => ({ ...r })));
       setTotalManuel(initialData.totalManuel);
@@ -285,7 +292,7 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
                     placeholderTextColor={dynSub}
                     keyboardType="numeric"
                     value={totalManuel}
-                    onChangeText={setTotalManuel}
+                    onChangeText={(v) => { setIsDirty(true); setTotalManuel(v); }}
                   />
                   <View style={[m.symPill, { backgroundColor: "#FF6B0018" }]}>
                     <Text style={[m.symText, { color: "#FF6B00" }]} numberOfLines={1}>{sym}</Text>
@@ -295,7 +302,7 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
             </View>
 
             {/* ── Confirmer ── */}
-            {hasTotal && (
+            {hasTotal && isDirty && (
               <TouchableOpacity style={m.confirmBtn} onPress={handleConfirm} activeOpacity={0.85}>
                 <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
                 <Text style={m.confirmBtnText}>Confirmer et appliquer</Text>
