@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,12 +12,15 @@ import {
   Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -25,9 +28,17 @@ export default function ProfileScreen() {
   const { colors } = useTheme();
   const { t } = useLanguage();
   const { user, isAuthenticated, logout, updateUser } = useAuth();
-  const [avatarUri, setAvatarUri] = useState<string | null>(user?.avatar_url || null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  useFocusEffect(useCallback(() => {
+    AsyncStorage.getItem("@dkd:seller_profile_photo").then((uri) => {
+      setAvatarUri(uri || user?.avatar_url || null);
+    }).catch(() => {
+      setAvatarUri(user?.avatar_url || null);
+    });
+  }, [user?.avatar_url]));
 
   const webTopInset = Platform.OS === "web" ? 0 : 0;
 
@@ -83,7 +94,9 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        setAvatarUri(result.assets[0].uri);
+        const uri = result.assets[0].uri;
+        setAvatarUri(uri);
+        await AsyncStorage.setItem("@dkd:seller_profile_photo", uri);
       }
     } catch (e) {
       console.error("Image picker error:", e);
