@@ -70,7 +70,9 @@ export default function ProfileScreen() {
 
   const initials = user?.full_name
     ? user.full_name.charAt(0).toUpperCase()
-    : "?";
+    : user?.email
+      ? user.email.charAt(0).toUpperCase()
+      : "U";
 
   const handlePickAvatar = async () => {
     try {
