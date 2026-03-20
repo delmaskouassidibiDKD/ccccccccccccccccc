@@ -383,7 +383,7 @@ export default function SellerScreen() {
               <TouchableOpacity
                 style={[styles.shopTypeBtn, { borderColor: "#FF6B0055", backgroundColor: "#FF6B0012" }]}
                 activeOpacity={0.75}
-                onPress={() => Haptics.selectionAsync()}
+                onPress={() => { Haptics.selectionAsync(); router.push("/paiements-vendeur" as any); }}
               >
                 <Ionicons name="cash-outline" size={16} color="#FF6B00" />
                 <Text style={[styles.shopTypeLabel, { color: "#FF6B00", fontSize: 10 }]} numberOfLines={1}>Paiements en cours</Text>
