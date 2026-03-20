@@ -18,6 +18,7 @@ type Product = {
 
 type Payment = {
   id: string;
+  clientName: string;
   amount: number;
   date: string;
   status: "attente" | "paye";
@@ -28,46 +29,46 @@ type Payment = {
 
 const PAYMENTS: Payment[] = [
   {
-    id: "v1", amount: 75000, date: "19 mars 2026", status: "attente", mode: "Marché", orderRef: "CMD-2026-0311",
+    id: "v1", clientName: "Kofi Mensah", amount: 75000, date: "19 mars 2026", status: "attente", mode: "Marché", orderRef: "CMD-2026-0311",
     products: [
       { name: "Pagne Wax Java 6 yards", qty: 2, unitPrice: 12500 },
       { name: "Pagne bazin riche", qty: 3, unitPrice: 16667 },
     ],
   },
   {
-    id: "v2", amount: 45000, date: "18 mars 2026", status: "attente", mode: "Grossiste", orderRef: "CMD-2026-0298",
+    id: "v2", clientName: "Aïssatou Ba", amount: 45000, date: "18 mars 2026", status: "attente", mode: "Grossiste", orderRef: "CMD-2026-0298",
     products: [
       { name: "Carton savon karité 100 pcs", qty: 1, unitPrice: 45000 },
     ],
   },
   {
-    id: "v3", amount: 120000, date: "17 mars 2026", status: "attente", mode: "Gastronomie", orderRef: "CMD-2026-0287",
+    id: "v3", clientName: "Ibrahim Traoré", amount: 120000, date: "17 mars 2026", status: "attente", mode: "Gastronomie", orderRef: "CMD-2026-0287",
     products: [
       { name: "Menu traiteur séminaire", qty: 20, unitPrice: 5000 },
       { name: "Boissons & desserts", qty: 20, unitPrice: 1000 },
     ],
   },
   {
-    id: "v4", amount: 55500, date: "16 mars 2026", status: "attente", mode: "Marché", orderRef: "CMD-2026-0274",
+    id: "v4", clientName: "Mariam Coulibaly", amount: 55500, date: "16 mars 2026", status: "attente", mode: "Marché", orderRef: "CMD-2026-0274",
     products: [
       { name: "Chaussures cuir homme", qty: 3, unitPrice: 18500 },
     ],
   },
   {
-    id: "v5", amount: 72000, date: "14 mars 2026", status: "paye", mode: "Grossiste", orderRef: "CMD-2026-0261",
+    id: "v5", clientName: "Mamadou Diallo", amount: 72000, date: "14 mars 2026", status: "paye", mode: "Grossiste", orderRef: "CMD-2026-0261",
     products: [
       { name: "Palette huile de palme", qty: 24, unitPrice: 3000 },
     ],
   },
   {
-    id: "v6", amount: 38000, date: "13 mars 2026", status: "paye", mode: "Gastronomie", orderRef: "CMD-2026-0249",
+    id: "v6", clientName: "Fatou Sow", amount: 38000, date: "13 mars 2026", status: "paye", mode: "Gastronomie", orderRef: "CMD-2026-0249",
     products: [
       { name: "Repas semaine 11 — midi", qty: 5, unitPrice: 4500 },
       { name: "Repas semaine 11 — soir", qty: 5, unitPrice: 3100 },
     ],
   },
   {
-    id: "v7", amount: 25000, date: "10 mars 2026", status: "paye", mode: "Marché", orderRef: "CMD-2026-0231",
+    id: "v7", clientName: "Oumar Keita", amount: 25000, date: "10 mars 2026", status: "paye", mode: "Marché", orderRef: "CMD-2026-0231",
     products: [
       { name: "Pagne wax java commande pro", qty: 2, unitPrice: 12500 },
     ],
@@ -312,6 +313,7 @@ export default function PaiementsVendeurPage() {
                   <DkdLogo size={42} />
                   <View style={{ flex: 1 }}>
                     <Text style={[s.cardName, { color: dynText }]}>DKD-MARKET</Text>
+                    <Text style={[s.cardClient, { color: dynSub }]} numberOfLines={1}>{item.clientName}</Text>
                   </View>
                   <View style={[s.statusPill, { backgroundColor: isPaidTab ? "#22C55E18" : ACCENT + "18" }]}>
                     <Ionicons name={isPaidTab ? "checkmark-circle" : "time-outline"} size={11} color={isPaidTab ? "#22C55E" : ACCENT} />
@@ -387,6 +389,7 @@ const s = StyleSheet.create({
   cardInner:  { flex: 1, padding: 12 },
   cardRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
   cardName:   { fontFamily: "Poppins_700Bold", fontSize: 14 },
+  cardClient: { fontFamily: "Poppins_400Regular", fontSize: 12, marginTop: 1 },
   cardService:{ fontFamily: "Poppins_400Regular", fontSize: 12 },
   statusPill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   statusText: { fontFamily: "Poppins_600SemiBold", fontSize: 10 },

@@ -503,6 +503,7 @@ function AccueilView({ displayName, initial, profilePhoto, onPhotoChanged, isDar
         <QuickAction icon="people-circle-outline" color="#F472B6" label="Groupe"               dynCARD={dynCARD} dynSub={dynSub} onPress={() => router.push("/groupe-importe" as any)} />
         <QuickAction icon="chatbubble-outline"    color="#60A5FA" label="Message privé"        dynCARD={dynCARD} dynSub={dynSub} onPress={() => router.push("/messages-importe" as any)} />
         <QuickAction icon="receipt-outline"       color="#FBBF24" label="Mes commandes"        dynCARD={dynCARD} dynSub={dynSub} onPress={() => router.push("/commandes-importe" as any)} />
+        <QuickAction icon="card-outline"          color="#34D399" label="Paiements en cours"   dynCARD={dynCARD} dynSub={dynSub} onPress={() => router.push("/paiements-vendeur" as any)} />
         <QuickAction icon="megaphone-outline"     color="#F97316" label="Campagnes de publicité" dynCARD={dynCARD} dynSub={dynSub} />
       </View>
 
