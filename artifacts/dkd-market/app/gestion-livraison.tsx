@@ -79,6 +79,7 @@ export default function GestionLivraisonPage() {
   const [showDate,   setShowDate]   = useState<Delivery | null>(null);
   const [showVehicle, setShowVehicle] = useState<Delivery | null>(null);
   const [showAvatar,  setShowAvatar]  = useState<Delivery | null>(null);
+  const [showDetail,  setShowDetail]  = useState<Delivery | null>(null);
 
   const enCoursCount = deliveries.filter((d) => d.status === "en_cours").length;
   const livreCount   = deliveries.filter((d) => d.status === "livre").length;
@@ -198,6 +199,7 @@ export default function GestionLivraisonPage() {
             <View style={s.actionsRow}>
               <TouchableOpacity
                 style={[s.actionGhost, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", borderColor: dBORDER }]}
+                onPress={() => { Haptics.selectionAsync(); setShowDetail(dl); }}
                 activeOpacity={0.75}
               >
                 <Ionicons name="eye-outline" size={15} color={dSUB} />
@@ -407,6 +409,107 @@ export default function GestionLivraisonPage() {
         </Pressable>
       </Modal>
 
+      {/* ── MODAL VOIR DÉTAILS DU COLIS ── */}
+      <Modal visible={!!showDetail} animationType="slide" transparent statusBarTranslucent onRequestClose={() => setShowDetail(null)}>
+        <Pressable style={m.overlay} onPress={() => setShowDetail(null)}>
+          <Pressable style={[m.sheet, { backgroundColor: isDark ? "#161B22" : "#FFFFFF" }]} onPress={(e) => e.stopPropagation()}>
+            <View style={m.handle} />
+
+            {showDetail && (
+              <>
+                <View style={m.mHeader}>
+                  <View style={[m.iconCircle, { backgroundColor: showDetail.colorHex + "22" }]}>
+                    <Ionicons name="cube-outline" size={22} color={showDetail.colorHex} />
+                  </View>
+                  <Text style={[m.mTitle, { color: dTEXT }]}>Détails du colis</Text>
+                  <TouchableOpacity onPress={() => setShowDetail(null)} activeOpacity={0.7}>
+                    <Ionicons name="close" size={20} color={dMUTED} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Bandeau livreur */}
+                <View style={[m.livreurBand, { backgroundColor: showDetail.colorHex + "14", borderColor: showDetail.colorHex + "33" }]}>
+                  <View style={[m.avatarSmall, { backgroundColor: showDetail.colorHex + "28" }]}>
+                    <Text style={[m.avatarSmallText, { color: showDetail.colorHex }]}>{showDetail.initials}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[m.infoValue, { color: dTEXT }]}>{showDetail.name}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Ionicons name="business-outline" size={11} color={showDetail.colorHex} />
+                      <Text style={{ color: showDetail.colorHex, fontFamily: "Poppins_600SemiBold", fontSize: 11 }}>{showDetail.company}</Text>
+                    </View>
+                  </View>
+                  <StarRow stars={showDetail.stars} numColor="#F59E0B" />
+                </View>
+
+                <View style={{ gap: 10 }}>
+                  {/* Véhicule */}
+                  <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                    <View style={[m.infoIcon, { backgroundColor: showDetail.colorHex + "22" }]}>
+                      <Ionicons name={vehicleIcon(showDetail.vehicle) as any} size={16} color={showDetail.colorHex} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[m.infoLabel, { color: dMUTED }]}>Véhicule</Text>
+                      <Text style={[m.infoValue, { color: dTEXT }]}>{showDetail.vehicle} · {showDetail.vehicleColor}{showDetail.vehiclePlate ? ` · ${showDetail.vehiclePlate}` : ""}</Text>
+                    </View>
+                  </View>
+
+                  {/* Prix */}
+                  <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                    <View style={[m.infoIcon, { backgroundColor: "#FF6B0022" }]}>
+                      <Ionicons name="cash-outline" size={16} color="#FF6B00" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[m.infoLabel, { color: dMUTED }]}>Montant de la livraison</Text>
+                      <Text style={[m.infoValue, { color: "#FF6B00", fontFamily: "Poppins_700Bold" }]}>{showDetail.price}</Text>
+                    </View>
+                  </View>
+
+                  {/* Date récupération */}
+                  <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                    <View style={[m.infoIcon, { backgroundColor: "#3B82F622" }]}>
+                      <Ionicons name="calendar-outline" size={16} color="#3B82F6" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[m.infoLabel, { color: dMUTED }]}>Date de récupération</Text>
+                      <Text style={[m.infoValue, { color: dTEXT }]}>{showDetail.pickupDate} à {showDetail.pickupTime}</Text>
+                    </View>
+                  </View>
+
+                  {/* Lieu */}
+                  <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                    <View style={[m.infoIcon, { backgroundColor: "#22C55E22" }]}>
+                      <Ionicons name="location-outline" size={16} color="#22C55E" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[m.infoLabel, { color: dMUTED }]}>Lieu de récupération</Text>
+                      <Text style={[m.infoValue, { color: dTEXT }]}>{showDetail.pickupLocation}</Text>
+                    </View>
+                  </View>
+
+                  {/* Statut */}
+                  <View style={[m.infoRow, { backgroundColor: showDetail.status === "livre" ? "#22C55E12" : "#F59E0B12" }]}>
+                    <View style={[m.infoIcon, { backgroundColor: showDetail.status === "livre" ? "#22C55E22" : "#F59E0B22" }]}>
+                      <Ionicons name={showDetail.status === "livre" ? "checkmark-circle-outline" : "time-outline"} size={16} color={showDetail.status === "livre" ? "#22C55E" : "#F59E0B"} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[m.infoLabel, { color: dMUTED }]}>Statut</Text>
+                      <Text style={[m.infoValue, { color: showDetail.status === "livre" ? "#22C55E" : "#F59E0B" }]}>
+                        {showDetail.status === "livre" ? "Livraison effectuée" : "En cours de livraison"}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={[m.closeBtn, { backgroundColor: showDetail.colorHex, marginTop: 4 }]} onPress={() => setShowDetail(null)} activeOpacity={0.85}>
+                  <Text style={[m.closeBtnText, { color: "#fff" }]}>Fermer</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* ── MODAL AVATAR AGRANDI ── */}
       <Modal visible={!!showAvatar} animationType="fade" transparent statusBarTranslucent onRequestClose={() => setShowAvatar(null)}>
         <Pressable style={m.overlay} onPress={() => setShowAvatar(null)}>
@@ -497,4 +600,7 @@ const m = StyleSheet.create({
   avatarName: { fontFamily: "Poppins_700Bold", fontSize: 18 },
   avatarCompany: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   avatarCompanyText: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
+  livreurBand: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 14, padding: 12, borderWidth: 1 },
+  avatarSmall: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
+  avatarSmallText: { fontFamily: "Poppins_700Bold", fontSize: 16 },
 });

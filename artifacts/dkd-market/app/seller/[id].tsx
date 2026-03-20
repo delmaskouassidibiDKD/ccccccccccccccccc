@@ -25,6 +25,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SELLER_TABS = ["Vidéos", "Articles", "En gros"];
 const SELLER_SHOP_TYPES_KEY = "@dkd:seller_shop_types";
+const PROFILE_PHOTO_KEY     = "@dkd:seller_profile_photo";
 
 const SHOP_TYPE_CFG: Record<string, { icon: string; label: string; color: string }> = {
   marche:           { icon: "basket-outline",        label: "Mon Marché",       color: "#22C55E" },
@@ -62,17 +63,19 @@ export default function SellerScreen() {
   const [activeTab, setActiveTab] = useState(0);
   const [subscribed, setSubscribed] = useState(false);
   const [shopTypes, setShopTypes] = useState<string[]>([]);
-  const [logoError, setLogoError] = useState(false);
+  const [logoError,    setLogoError]    = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
-    AsyncStorage.getItem(SELLER_SHOP_TYPES_KEY).then((raw) => {
-      const types: string[] = raw ? JSON.parse(raw) : [];
+    AsyncStorage.multiGet([SELLER_SHOP_TYPES_KEY, PROFILE_PHOTO_KEY]).then(([types, photo]) => {
+      const parsed: string[] = types[1] ? JSON.parse(types[1]) : [];
       if (__DEV__) {
-        setShopTypes([...new Set([...types, "importe", "grossiste"])]);
+        setShopTypes([...new Set([...parsed, "importe", "grossiste"])]);
       } else {
-        setShopTypes(types);
+        setShopTypes(parsed);
       }
+      if (photo[1]) setProfilePhoto(photo[1]);
     }).catch(() => {});
   }, []);
   const queryClient = useQueryClient();
@@ -161,6 +164,7 @@ export default function SellerScreen() {
   const totalSales = seller?.total_sales ?? 0;
   const isVerified = seller?.is_verified === 1 || isOwnProfile || isPreview;
   const logoUrl = seller?.logo_url;
+  const displayPhoto = isOwnProfile ? profilePhoto : (logoUrl ?? null);
   const bannerUrl = seller?.banner_url;
   const description = seller?.description;
   const followers = seller?.followers_count ?? 0;
@@ -215,9 +219,9 @@ export default function SellerScreen() {
             {/* Avatar */}
             <View style={styles.avatarWrap}>
               <View style={styles.avatar}>
-                {logoUrl && !logoError ? (
+                {displayPhoto && !logoError ? (
                   <Image
-                    source={{ uri: logoUrl }}
+                    source={{ uri: displayPhoto }}
                     style={styles.avatarImage}
                     onError={() => setLogoError(true)}
                   />
