@@ -376,8 +376,8 @@ export default function SellerScreen() {
           </View>
         )}
 
-        {/* ── Section Gestion — visible uniquement sur son propre profil ── */}
-        {isOwnProfile && (
+        {/* ── Section Gestion — visible sur son propre profil (own) ── */}
+        {id === "own" && (
           <View style={styles.gestionSection}>
             <View style={styles.shopTypesRow}>
               <TouchableOpacity
