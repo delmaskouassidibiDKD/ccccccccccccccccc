@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   FlatList,
   Platform,
+  TextInput,
+  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -96,9 +98,6 @@ function VideoCard({
 
       {/* Infos */}
       <View style={vc.info}>
-        <Text style={[vc.shopName, { color: dSUB }]} numberOfLines={1}>
-          {item.shopName} {item.shopFlag}
-        </Text>
         <Text style={[vc.title, { color: dTEXT }]} numberOfLines={2}>
           {item.title}
         </Text>
@@ -248,10 +247,30 @@ export default function MesPublications() {
   const dMUTED  = isDark ? "#6B7280" : "#9CA3AF";
   const dBORDER = isDark ? "#1E1E1E" : "rgba(0,0,0,0.08)";
 
-  const [activeTab, setActiveTab] = useState<Tab>("articles");
-  const [articles]  = useState(DEMO_ARTICLES);
-  const [engros]    = useState(DEMO_ENGROS);
-  const [videos]    = useState(DEMO_VIDEOS);
+  const [activeTab,    setActiveTab]    = useState<Tab>("articles");
+  const [articles]                      = useState(DEMO_ARTICLES);
+  const [engros]                        = useState(DEMO_ENGROS);
+  const [videos]                        = useState(DEMO_VIDEOS);
+  const [searchOpen,   setSearchOpen]   = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState("");
+  const searchAnim = useRef(new Animated.Value(0)).current;
+
+  const toggleSearch = () => {
+    Haptics.selectionAsync();
+    const opening = !searchOpen;
+    setSearchOpen(opening);
+    if (!opening) setSearchQuery("");
+    Animated.timing(searchAnim, {
+      toValue: opening ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const q = searchQuery.toLowerCase().trim();
+  const filteredArticles = q ? articles.filter((a) => a.title.toLowerCase().includes(q)) : articles;
+  const filteredEngros   = q ? engros.filter((a)   => a.title.toLowerCase().includes(q)) : engros;
+  const filteredVideos   = q ? videos.filter((v)   => v.title.toLowerCase().includes(q)) : videos;
 
   const TABS = [
     { key: "articles" as Tab, label: "Articles", count: articles.length, icon: "bag-handle-outline" },
@@ -259,7 +278,6 @@ export default function MesPublications() {
     { key: "video"    as Tab, label: "Vidéo",    count: videos.length,   icon: "videocam-outline"  },
   ];
 
-  const data     = activeTab === "articles" ? articles : activeTab === "engros" ? engros : [];
   const isEngros = activeTab === "engros";
 
   return (
@@ -271,10 +289,46 @@ export default function MesPublications() {
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Mes publications</Text>
-        <TouchableOpacity style={s.addBtn} onPress={() => router.push("/add-product" as any)}>
-          <Ionicons name="add" size={22} color="#fff" />
-        </TouchableOpacity>
+        <View style={s.headerRight}>
+          <TouchableOpacity style={s.headerIcon} onPress={toggleSearch}>
+            <Ionicons name={searchOpen ? "close" : "search"} size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.headerIcon} onPress={() => router.push("/add-product" as any)}>
+            <Ionicons name="add" size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Barre de recherche */}
+      <Animated.View style={[
+        s.searchBar,
+        {
+          backgroundColor: dHEAD,
+          maxHeight: searchAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 54] }),
+          opacity: searchAnim,
+          overflow: "hidden",
+          borderBottomColor: "rgba(255,255,255,0.08)",
+          borderBottomWidth: searchOpen ? 1 : 0,
+        },
+      ]}>
+        <View style={[s.searchInner, { backgroundColor: isDark ? "#1E2535" : "#2a3244" }]}>
+          <Ionicons name="search-outline" size={16} color={dMUTED} />
+          <TextInput
+            style={[s.searchInput, { color: "#fff" }]}
+            placeholder="Rechercher une publication…"
+            placeholderTextColor={dMUTED}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus={searchOpen}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={16} color={dMUTED} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </Animated.View>
 
       {/* Tabs */}
       <View style={[s.tabBar, { backgroundColor: isDark ? "#111" : "#F8F8F8", borderBottomColor: dBORDER }]}>
@@ -305,7 +359,7 @@ export default function MesPublications() {
       {activeTab === "video" ? (
         <FlatList
           key="video"
-          data={videos}
+          data={filteredVideos}
           keyExtractor={(i) => i.id}
           contentContainerStyle={[s.list, { paddingBottom: paddingBottom + 24 }]}
           showsVerticalScrollIndicator={false}
@@ -341,7 +395,7 @@ export default function MesPublications() {
         /* Contenu — onglets Articles / En gros */
         <FlatList
           key={activeTab}
-          data={data}
+          data={activeTab === "engros" ? filteredEngros : filteredArticles}
           keyExtractor={(i) => i.id}
           contentContainerStyle={[s.list, { paddingBottom: paddingBottom + 24 }]}
           showsVerticalScrollIndicator={false}
@@ -371,10 +425,15 @@ export default function MesPublications() {
 const s = StyleSheet.create({
   container: { flex: 1 },
 
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
-  backBtn: { padding: 4, width: 36 },
+  header:      { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
+  backBtn:     { padding: 4, width: 36 },
   headerTitle: { flex: 1, textAlign: "center", fontFamily: "Poppins_700Bold", fontSize: 17, color: "#fff" },
-  addBtn: { width: 36, alignItems: "flex-end" },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 4 },
+  headerIcon:  { padding: 6 },
+
+  searchBar:   { paddingHorizontal: 14, paddingVertical: 8 },
+  searchInner: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  searchInput: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 13, padding: 0 },
 
   tabBar: { flexDirection: "row", paddingHorizontal: 14, paddingVertical: 10, gap: 8, borderBottomWidth: 1 },
   tabItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 10, borderRadius: 12 },

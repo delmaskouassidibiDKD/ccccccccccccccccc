@@ -376,6 +376,30 @@ export default function SellerScreen() {
           </View>
         )}
 
+        {/* ── Section Gestion — visible uniquement sur son propre profil ── */}
+        {isOwnProfile && (
+          <View style={styles.gestionSection}>
+            <View style={styles.shopTypesRow}>
+              <TouchableOpacity
+                style={[styles.shopTypeBtn, { borderColor: "#FF6B0055", backgroundColor: "#FF6B0012" }]}
+                activeOpacity={0.75}
+                onPress={() => Haptics.selectionAsync()}
+              >
+                <Ionicons name="cash-outline" size={16} color="#FF6B00" />
+                <Text style={[styles.shopTypeLabel, { color: "#FF6B00", fontSize: 10 }]} numberOfLines={1}>Paiements en cours</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.shopTypeBtn, { borderColor: "#8B5CF655", backgroundColor: "#8B5CF612" }]}
+                activeOpacity={0.75}
+                onPress={() => { Haptics.selectionAsync(); router.push("/mes-publications" as any); }}
+              >
+                <Ionicons name="albums-outline" size={16} color="#8B5CF6" />
+                <Text style={[styles.shopTypeLabel, { color: "#8B5CF6", fontSize: 10 }]} numberOfLines={1}>Gérer mes publications</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Tabs */}
         <View style={styles.tabsRow}>
           {SELLER_TABS.map((tab, i) => (
@@ -657,6 +681,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   ownerActionBtnText: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: 12 },
+
+  /* Gestion section */
+  gestionSection: {
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    paddingBottom: 4,
+  },
 
   /* Shop type grid */
   shopTypesSection: {

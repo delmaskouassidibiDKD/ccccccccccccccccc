@@ -93,11 +93,6 @@ export function SellerProductCard({ item, isDark, isEngros = false, accentColor,
 
       {/* ── LEFT CONTENT ── */}
       <View style={c.content}>
-        {/* Shop name */}
-        <Text style={[c.shopName, { color: dSUB }]} numberOfLines={1}>
-          {item.shopName} {item.shopFlag}
-        </Text>
-
         {/* Title */}
         <Text style={[c.title, { color: dTEXT }]} numberOfLines={2}>
           {item.title}
