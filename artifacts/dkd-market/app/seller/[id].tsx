@@ -24,6 +24,9 @@ import { api, Seller, Product } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { VideoPublication, DEMO_VIDEOS } from "@/data/videos";
+import { DEMO_ARTICLES as ALL_ARTICLES, DELETED_ARTICLES_KEY } from "@/data/articles";
+import { DEMO_ENGROS as ALL_ENGROS, DELETED_ENGROS_KEY } from "@/data/engros";
+import { SellerProductCard } from "@/components/SellerProductCard";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const VIDEO_CELL = (SCREEN_WIDTH - 4) / 3;
@@ -67,13 +70,15 @@ export default function SellerScreen() {
   const [activeTab, setActiveTab] = useState(0);
   const [subscribed, setSubscribed] = useState(false);
   const [shopTypes, setShopTypes] = useState<string[]>([]);
-  const [playerVideo, setPlayerVideo] = useState<VideoPublication | null>(null);
-  const [logoError,    setLogoError]    = useState(false);
+  const [playerVideo,   setPlayerVideo]   = useState<VideoPublication | null>(null);
+  const [pubArticles,   setPubArticles]   = useState(ALL_ARTICLES);
+  const [pubEngros,     setPubEngros]     = useState(ALL_ENGROS);
+  const [logoError,     setLogoError]     = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
-    AsyncStorage.multiGet([SELLER_SHOP_TYPES_KEY, PROFILE_PHOTO_KEY]).then(([types, photo]) => {
+    AsyncStorage.multiGet([SELLER_SHOP_TYPES_KEY, PROFILE_PHOTO_KEY, DELETED_ARTICLES_KEY, DELETED_ENGROS_KEY]).then(([types, photo, delA, delE]) => {
       const parsed: string[] = types[1] ? JSON.parse(types[1]) : [];
       if (__DEV__) {
         setShopTypes([...new Set([...parsed, "importe", "grossiste"])]);
@@ -81,6 +86,10 @@ export default function SellerScreen() {
         setShopTypes(parsed);
       }
       if (photo[1]) setProfilePhoto(photo[1]);
+      const deletedA: string[] = delA[1] ? JSON.parse(delA[1]) : [];
+      const deletedE: string[] = delE[1] ? JSON.parse(delE[1]) : [];
+      if (deletedA.length) setPubArticles(ALL_ARTICLES.filter((a) => !deletedA.includes(a.id)));
+      if (deletedE.length) setPubEngros(ALL_ENGROS.filter((e) => !deletedE.includes(e.id)));
     }).catch(() => {});
   }, []);
   const queryClient = useQueryClient();
@@ -452,62 +461,49 @@ export default function SellerScreen() {
 
         {/* Articles */}
         {activeTab === 1 && (
-          <>
-            {productsQuery.isLoading ? (
-              <View style={styles.loadingSection}>
-                <ActivityIndicator size="small" color={Colors.primary} />
-              </View>
-            ) : products.length === 0 ? (
+          <View style={{ paddingHorizontal: 8, paddingTop: 8 }}>
+            {pubArticles.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="bag-outline" size={40} color={Colors.textMuted} />
                 <Text style={styles.emptyText}>Aucun article pour le moment</Text>
               </View>
             ) : (
-              <View style={styles.productsGrid}>
-                {products.map((product) => {
-                  const imageUri = getImageUri(product.images);
-                  return (
-                    <TouchableOpacity
-                      key={product.id}
-                      style={styles.productCard}
-                      onPress={() => router.push({ pathname: "/product/[id]", params: { id: product.id.toString() } })}
-                    >
-                      <View style={styles.productImage}>
-                        {imageUri ? (
-                          <Image source={{ uri: imageUri }} style={styles.productImageFill} resizeMode="cover" />
-                        ) : (
-                          <Ionicons name="bag-handle" size={32} color={Colors.primary} />
-                        )}
-                      </View>
-                      <View style={styles.productInfo}>
-                        <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-                        <View style={styles.productRating}>
-                          <Ionicons name="star" size={10} color="#F59E0B" />
-                          <Text style={styles.productRatingText}>{product.rating?.toFixed(1) ?? "0.0"}</Text>
-                        </View>
-                        <Text style={styles.productPrice}>{formatPrice(product.price, product.currency_code)}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              pubArticles.map((item) => (
+                <SellerProductCard
+                  key={item.id}
+                  item={item}
+                  isDark={false}
+                  isEngros={false}
+                  accentColor={Colors.primary}
+                  onEdit={() => {}}
+                  onVideo={() => {}}
+                />
+              ))
             )}
-          </>
+          </View>
         )}
 
         {/* En gros */}
         {activeTab === 2 && (
-          <View style={styles.wholesaleInfo}>
-            <View style={styles.wholesaleCard}>
-              <Ionicons name="cube-outline" size={32} color={Colors.primary} />
-              <Text style={styles.wholesaleTitle}>Vente en Gros disponible</Text>
-              <Text style={styles.wholesaleText}>
-                Ce vendeur propose des tarifs dégressifs pour les commandes en grande quantité.
-              </Text>
-              <TouchableOpacity style={styles.wholesaleBtn}>
-                <Text style={styles.wholesaleBtnText}>Voir les tarifs gros</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={{ paddingHorizontal: 8, paddingTop: 8 }}>
+            {pubEngros.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="cube-outline" size={40} color={Colors.textMuted} />
+                <Text style={styles.emptyText}>Aucun article En Gros pour le moment</Text>
+              </View>
+            ) : (
+              pubEngros.map((item) => (
+                <SellerProductCard
+                  key={item.id}
+                  item={item}
+                  isDark={false}
+                  isEngros={true}
+                  accentColor={Colors.primary}
+                  onEdit={() => {}}
+                  onVideo={() => {}}
+                />
+              ))
+            )}
           </View>
         )}
       </ScrollView>

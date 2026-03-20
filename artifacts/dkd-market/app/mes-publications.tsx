@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -20,26 +21,14 @@ import * as Haptics from "expo-haptics";
 import { useTheme } from "../contexts/ThemeContext";
 import { SellerProductCard, SellerProduct } from "@/components/SellerProductCard";
 import { VideoPublication, DEMO_VIDEOS } from "@/data/videos";
+import { DEMO_ARTICLES, DELETED_ARTICLES_KEY } from "@/data/articles";
+import { DEMO_ENGROS, DELETED_ENGROS_KEY } from "@/data/engros";
 
 const ORANGE = "#FF6B00";
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 const CELL_SIZE = (SCREEN_W - 4) / 3;
 
 type Tab = "articles" | "engros" | "video";
-
-/* ─── Données démo ─────────────────────────────────────────────── */
-
-const DEMO_ARTICLES: SellerProduct[] = [
-  { id: "1", shopName: "Savons Ouaga",  shopFlag: "🇧🇫", title: "Savon Karité Naturel",      price: "1 500 FCFA",  rating: 4.7, reviewCount: 430, status: "active",   icon: "sparkles-outline",  color: "#4A7C59" },
-  { id: "2", shopName: "Cuir Cotonou",  shopFlag: "🇧🇯", title: "Chaussures Cuir Homme",     price: "18 500 FCFA", rating: 4.4, reviewCount: 203, status: "active",   icon: "footsteps-outline", color: "#7B4226" },
-  { id: "3", shopName: "Mode Dakar",    shopFlag: "🇸🇳", title: "Pagne Wax Java 6 yards",    price: "12 500 FCFA", rating: 4.9, reviewCount: 178, status: "active",   icon: "shirt-outline",     color: "#1B4D9E" },
-];
-
-const DEMO_ENGROS: SellerProduct[] = [
-  { id: "1", shopName: "Grossiste ABJ",   shopFlag: "🇨🇮", title: "Carton pagnes wax 50 pièces",      price: "180 000 FCFA", rating: 4.6, reviewCount: 34, status: "active",   icon: "cube-outline",   color: "#3B5998", minQty: "50 pcs"   },
-  { id: "2", shopName: "Palm Conakry",    shopFlag: "🇬🇳", title: "Palette huile de palme 24 bidons", price: "72 000 FCFA",  rating: 4.3, reviewCount: 19, status: "active",   icon: "leaf-outline",   color: "#3B7A43", minQty: "24 bidons"},
-  { id: "3", shopName: "Beauté Pro Lomé", shopFlag: "🇹🇬", title: "Carton savon karité 100 pcs",      price: "45 000 FCFA",  rating: 4.1, reviewCount: 11, status: "inactive", icon: "flower-outline", color: "#9B2B6B", minQty: "100 pcs" },
-];
 
 /* ─── Miniature grille vidéo (style TikTok) ────────────────────── */
 
@@ -129,18 +118,46 @@ export default function MesPublications() {
   const dSUB    = isDark ? "#8B9AB0" : "#6B7280";
 
   const [activeTab,    setActiveTab]    = useState<Tab>("articles");
-  const [articles]                      = useState(DEMO_ARTICLES);
-  const [engros]                        = useState(DEMO_ENGROS);
+  const [articles,     setArticles]     = useState(DEMO_ARTICLES);
+  const [engros,       setEngros]       = useState(DEMO_ENGROS);
   const [videos,       setVideos]       = useState(DEMO_VIDEOS);
   const [searchOpen,   setSearchOpen]   = useState(false);
   const [searchQuery,  setSearchQuery]  = useState("");
   const searchAnim = useRef(new Animated.Value(0)).current;
 
-  /* ── Modales ── */
+  /* ── Modales vidéo ── */
   const [playerVideo,  setPlayerVideo]  = useState<VideoPublication | null>(null);
   const [statsVideo,   setStatsVideo]   = useState<VideoPublication | null>(null);
   const [confirmVideo, setConfirmVideo] = useState<VideoPublication | null>(null);
   const [confirmFrom,  setConfirmFrom]  = useState<"player" | "stats">("player");
+
+  /* ── Modales article/engros ── */
+  const [confirmItem,  setConfirmItem]  = useState<SellerProduct | null>(null);
+  const [confirmType,  setConfirmType]  = useState<"article" | "engros">("article");
+
+  /* ── Charge les IDs supprimés depuis AsyncStorage au démarrage ── */
+  useEffect(() => {
+    AsyncStorage.multiGet([DELETED_ARTICLES_KEY, DELETED_ENGROS_KEY]).then(([delA, delE]) => {
+      const deletedA: string[] = delA[1] ? JSON.parse(delA[1]) : [];
+      const deletedE: string[] = delE[1] ? JSON.parse(delE[1]) : [];
+      if (deletedA.length) setArticles(DEMO_ARTICLES.filter((a) => !deletedA.includes(a.id)));
+      if (deletedE.length) setEngros(DEMO_ENGROS.filter((e) => !deletedE.includes(e.id)));
+    });
+  }, []);
+
+  const handleDeleteItemConfirmed = async () => {
+    if (!confirmItem) return;
+    if (confirmType === "article") {
+      const next = articles.filter((a) => a.id !== confirmItem.id);
+      setArticles(next);
+      await AsyncStorage.setItem(DELETED_ARTICLES_KEY, JSON.stringify(DEMO_ARTICLES.filter((a) => !next.find((n) => n.id === a.id)).map((a) => a.id)));
+    } else {
+      const next = engros.filter((e) => e.id !== confirmItem.id);
+      setEngros(next);
+      await AsyncStorage.setItem(DELETED_ENGROS_KEY, JSON.stringify(DEMO_ENGROS.filter((e) => !next.find((n) => n.id === e.id)).map((e) => e.id)));
+    }
+    setConfirmItem(null);
+  };
 
   const toggleSearch = () => {
     Haptics.selectionAsync();
@@ -287,6 +304,11 @@ export default function MesPublications() {
               accentColor={ORANGE}
               onEdit={() => {}}
               onVideo={() => {}}
+              onDelete={() => {
+                Haptics.selectionAsync();
+                setConfirmType(activeTab === "engros" ? "engros" : "article");
+                setConfirmItem(item);
+              }}
             />
           )}
           ListEmptyComponent={
@@ -416,6 +438,41 @@ export default function MesPublications() {
                 <TouchableOpacity
                   style={[sm.confirmBtn, { backgroundColor: "#EF4444" }]}
                   onPress={handleDeleteConfirmed}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[sm.confirmBtnText, { color: "#fff" }]}>Supprimer</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        )}
+      </Modal>
+
+      {/* ── Modal confirmation suppression article/engros ── */}
+      <Modal visible={!!confirmItem} animationType="fade" transparent statusBarTranslucent>
+        {confirmItem && (
+          <Pressable style={sm.overlay} onPress={() => setConfirmItem(null)}>
+            <Pressable style={[sm.confirmCard, { backgroundColor: dCARD }]} onPress={() => {}}>
+              <View style={sm.confirmIconWrap}>
+                <Ionicons name="trash" size={32} color="#EF4444" />
+              </View>
+              <Text style={[sm.confirmTitle, { color: dTEXT }]}>
+                {confirmType === "engros" ? "Supprimer l'article En Gros ?" : "Supprimer l'article ?"}
+              </Text>
+              <Text style={[sm.confirmDesc, { color: dSUB }]} numberOfLines={2}>
+                « {confirmItem.title} » sera définitivement supprimé de vos publications.
+              </Text>
+              <View style={sm.confirmBtns}>
+                <TouchableOpacity
+                  style={[sm.confirmBtn, { backgroundColor: isDark ? "#1E2535" : "#F1F5F9", borderColor: isDark ? "#2A2A2A" : "#E2E8F0", borderWidth: 1 }]}
+                  onPress={() => setConfirmItem(null)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[sm.confirmBtnText, { color: dSUB }]}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[sm.confirmBtn, { backgroundColor: "#EF4444" }]}
+                  onPress={handleDeleteItemConfirmed}
                   activeOpacity={0.8}
                 >
                   <Text style={[sm.confirmBtnText, { color: "#fff" }]}>Supprimer</Text>

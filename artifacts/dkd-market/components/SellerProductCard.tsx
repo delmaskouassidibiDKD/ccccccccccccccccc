@@ -27,6 +27,7 @@ type Props = {
   accentColor: string;
   onEdit?: () => void;
   onVideo?: () => void;
+  onDelete?: () => void;
 };
 
 function StarRow({ rating, reviewCount, isDark }: { rating: number; reviewCount: number; isDark: boolean }) {
@@ -54,7 +55,7 @@ const sr = StyleSheet.create({
   count:  { fontFamily: "Poppins_400Regular", fontSize: 10 },
 });
 
-export function SellerProductCard({ item, isDark, isEngros = false, accentColor, onEdit, onVideo }: Props) {
+export function SellerProductCard({ item, isDark, isEngros = false, accentColor, onEdit, onVideo, onDelete }: Props) {
   const router  = useRouter();
   const dCARD   = isDark ? "#161B25" : "#FFFFFF";
   const dBORDER = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)";
@@ -130,11 +131,23 @@ export function SellerProductCard({ item, isDark, isEngros = false, accentColor,
           </TouchableOpacity>
         </View>
 
-        {/* Modifier button */}
-        <TouchableOpacity style={[c.modifyBtn, { backgroundColor: dMOD }]} onPress={handleEdit} activeOpacity={0.8}>
-          <Ionicons name="create-outline" size={13} color={accentColor} />
-          <Text style={[c.modifyText, { color: accentColor }]}>Modifier</Text>
-        </TouchableOpacity>
+        {/* Actions row : Modifier + Supprimer */}
+        <View style={{ flexDirection: "row", gap: 6, marginBottom: 12 }}>
+          <TouchableOpacity style={[c.modifyBtn, { backgroundColor: dMOD, marginBottom: 0, marginTop: 4 }]} onPress={handleEdit} activeOpacity={0.8}>
+            <Ionicons name="create-outline" size={13} color={accentColor} />
+            <Text style={[c.modifyText, { color: accentColor }]}>Modifier</Text>
+          </TouchableOpacity>
+          {onDelete && (
+            <TouchableOpacity
+              style={[c.modifyBtn, { backgroundColor: "#EF444418", marginBottom: 0, marginTop: 4 }]}
+              onPress={() => { Haptics.selectionAsync(); onDelete(); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="trash-outline" size={13} color="#EF4444" />
+              <Text style={[c.modifyText, { color: "#EF4444" }]}>Supprimer</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* ── RIGHT IMAGE BOX ── */}
