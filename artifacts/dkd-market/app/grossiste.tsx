@@ -229,60 +229,6 @@ export default function GrossistePage() {
 
           <View style={[s.drawerDivider, { backgroundColor: dynBorder }]} />
 
-          {/* Coordonnées */}
-          <View style={s.drawerFieldGroup}>
-            <Text style={[s.drawerFieldGroupLabel, { color: dynSub }]}>MES COORDONNÉES</Text>
-
-            <View style={[s.drawerFieldWrap, { backgroundColor: isDark ? "#0D1117" : "#F0F4FA", borderColor: dynBorder }]}>
-              <View style={[s.drawerFieldIcon, { backgroundColor: "#60A5FA22" }]}>
-                <Ionicons name="call-outline" size={15} color="#60A5FA" />
-              </View>
-              <TextInput
-                style={[s.drawerFieldInput, { color: dynText }]}
-                placeholder="Numéro de téléphone"
-                placeholderTextColor={dynSub}
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={(v) => { setPhone(v); saveField("@dkd:gros_phone", v); }}
-                returnKeyType="done"
-              />
-            </View>
-
-            <View style={[s.drawerFieldWrap, { backgroundColor: isDark ? "#0D1117" : "#F0F4FA", borderColor: dynBorder }]}>
-              <View style={[s.drawerFieldIcon, { backgroundColor: "#25D36622" }]}>
-                <Ionicons name="logo-whatsapp" size={15} color="#25D366" />
-              </View>
-              <TextInput
-                style={[s.drawerFieldInput, { color: dynText }]}
-                placeholder="Numéro WhatsApp"
-                placeholderTextColor={dynSub}
-                keyboardType="phone-pad"
-                value={whatsapp}
-                onChangeText={(v) => { setWhatsapp(v); saveField("@dkd:gros_whatsapp", v); }}
-                returnKeyType="done"
-              />
-            </View>
-
-            <Text style={[s.drawerFieldGroupLabel, { color: dynSub, marginTop: 8 }]}>MOYEN DE PAIEMENT</Text>
-            <View style={s.drawerPaymentChips}>
-              {PAYMENT_OPTIONS.map((opt) => {
-                const active = paymentMethod === opt;
-                return (
-                  <TouchableOpacity
-                    key={opt}
-                    style={[s.drawerPayChip, { borderColor: active ? ACCENT : dynBorder, backgroundColor: active ? ACCENT + "18" : (isDark ? "#0D1117" : "#F0F4FA") }]}
-                    onPress={() => { setPaymentMethod(opt); saveField("@dkd:gros_payment", opt); }}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={[s.drawerPayChipText, { color: active ? ACCENT : dynSub }]}>{opt}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={[s.drawerDivider, { backgroundColor: dynBorder }]} />
-
           <TouchableOpacity
             style={s.drawerItem}
             onPress={() => { closeDrawer(); setTimeout(() => router.back(), 300); }}

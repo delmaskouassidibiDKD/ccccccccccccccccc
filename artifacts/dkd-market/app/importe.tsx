@@ -312,63 +312,6 @@ export default function ImportePage() {
 
           <View style={styles.drawerDivider} />
 
-          {/* ── Coordonnées ── */}
-          <View style={styles.drawerFieldGroup}>
-            <Text style={[styles.drawerFieldGroupLabel, { color: dynSub }]}>MES COORDONNÉES</Text>
-
-            {/* Numéro de téléphone */}
-            <View style={[styles.drawerFieldWrap, { backgroundColor: isDark ? "#0D1117" : "#F0F4FA", borderColor: dynBorder }]}>
-              <View style={[styles.drawerFieldIcon, { backgroundColor: "#60A5FA22" }]}>
-                <Ionicons name="call-outline" size={15} color="#60A5FA" />
-              </View>
-              <TextInput
-                style={[styles.drawerFieldInput, { color: dynText }]}
-                placeholder="Numéro de téléphone"
-                placeholderTextColor={dynSub}
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={(v) => { setPhone(v); saveField("@dkd:imp_phone", v); }}
-                returnKeyType="done"
-              />
-            </View>
-
-            {/* Numéro WhatsApp */}
-            <View style={[styles.drawerFieldWrap, { backgroundColor: isDark ? "#0D1117" : "#F0F4FA", borderColor: dynBorder }]}>
-              <View style={[styles.drawerFieldIcon, { backgroundColor: "#25D36622" }]}>
-                <Ionicons name="logo-whatsapp" size={15} color="#25D366" />
-              </View>
-              <TextInput
-                style={[styles.drawerFieldInput, { color: dynText }]}
-                placeholder="Numéro WhatsApp"
-                placeholderTextColor={dynSub}
-                keyboardType="phone-pad"
-                value={whatsapp}
-                onChangeText={(v) => { setWhatsapp(v); saveField("@dkd:imp_whatsapp", v); }}
-                returnKeyType="done"
-              />
-            </View>
-
-            {/* Moyen de paiement */}
-            <Text style={[styles.drawerFieldGroupLabel, { color: dynSub, marginTop: 8 }]}>MOYEN DE PAIEMENT</Text>
-            <View style={styles.drawerPaymentChips}>
-              {PAYMENT_OPTIONS.map((opt) => {
-                const active = paymentMethod === opt;
-                return (
-                  <TouchableOpacity
-                    key={opt}
-                    style={[styles.drawerPayChip, { borderColor: active ? ACCENT : dynBorder, backgroundColor: active ? ACCENT + "18" : (isDark ? "#0D1117" : "#F0F4FA") }]}
-                    onPress={() => { setPaymentMethod(opt); saveField("@dkd:imp_payment", opt); }}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={[styles.drawerPayChipText, { color: active ? ACCENT : dynSub }]}>{opt}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={styles.drawerDivider} />
-
           <TouchableOpacity
             style={styles.drawerItem}
             onPress={() => { closeDrawer(); setTimeout(() => router.back(), 300); }}
