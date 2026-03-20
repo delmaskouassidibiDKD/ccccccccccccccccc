@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View, Text, StyleSheet, Modal, Pressable, TouchableOpacity,
   TextInput, ScrollView, KeyboardAvoidingView, Platform,
@@ -45,15 +45,23 @@ const CURRENCIES = [
   { code: "RUB",    label: "Rouble russe (₽)",          symbol: "₽"    },
 ];
 
+export type DevisData = {
+  rows: Row[];
+  totalManuel: string;
+  autoCalc: boolean;
+  currencyCode: string;
+};
+
 type Props = {
   visible: boolean;
   onClose: () => void;
   clientName: string;
   isDark: boolean;
-  onConfirm: (devis: { rows: Row[]; total: string; autoCalc: boolean }) => void;
+  initialData?: DevisData;
+  onConfirm: (devis: { rows: Row[]; total: string; autoCalc: boolean; totalManuel: string; currencyCode: string }) => void;
 };
 
-export default function DevisBuilderModal({ visible, onClose, clientName, isDark, onConfirm }: Props) {
+export default function DevisBuilderModal({ visible, onClose, clientName, isDark, initialData, onConfirm }: Props) {
   const [rows,          setRows]          = useState<Row[]>([makeRow()]);
   const [totalManuel,   setTotalManuel]   = useState("");
   const [autoCalc,      setAutoCalc]      = useState(true);
@@ -101,19 +109,32 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
     setCurrencyOpen(false);
   };
 
+  useEffect(() => {
+    if (!visible) return;
+    if (initialData && initialData.rows.length > 0) {
+      setRows(initialData.rows.map((r) => ({ ...r })));
+      setTotalManuel(initialData.totalManuel);
+      setAutoCalc(initialData.autoCalc);
+      const c = CURRENCIES.find((c) => c.code === initialData.currencyCode) ?? CURRENCIES[0];
+      setCurrency(c);
+    } else {
+      setRows([makeRow()]);
+      setTotalManuel("");
+      setAutoCalc(true);
+      setCurrency(CURRENCIES[0]);
+    }
+    setCurrencyOpen(false);
+  }, [visible]);
+
   const handleConfirm = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const totalVal  = autoCalc ? fmtNum(totalAuto) : totalManuel;
     const totalFull = `${totalVal} ${currency.code}`;
     handleClose();
-    onConfirm({ rows, total: totalFull, autoCalc });
+    onConfirm({ rows, total: totalFull, autoCalc, totalManuel, currencyCode: currency.code });
   };
 
   const handleClose = useCallback(() => {
-    setRows([makeRow()]);
-    setTotalManuel("");
-    setAutoCalc(true);
-    setCurrency(CURRENCIES[0]);
     setCurrencyOpen(false);
     onClose();
   }, [onClose]);

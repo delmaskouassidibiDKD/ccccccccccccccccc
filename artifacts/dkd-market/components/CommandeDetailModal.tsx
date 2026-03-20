@@ -8,9 +8,10 @@ import * as Haptics from "expo-haptics";
 import type { Source } from "@/lib/orders-data";
 
 const { width: SW } = Dimensions.get("window");
-const CARD_W   = Math.min(Math.round(SW * 0.62), 250);
-const CARD_GAP = 12;
-const SNAP     = CARD_W + CARD_GAP;
+const CARD_W   = SW - 32;
+const CARD_H   = Math.min(CARD_W, 260);
+const CARD_GAP = 0;
+const SNAP     = CARD_W;
 
 export const SOURCE_CONFIG: Record<Source, { label: string; color: string; icon: string }> = {
   gastronomie:      { label: "Gastronomia",      color: "#F59E0B", icon: "restaurant-outline"    },
@@ -111,7 +112,7 @@ export default function CommandeDetailModal({
             showsHorizontalScrollIndicator={false}
             snapToInterval={SNAP}
             decelerationRate="fast"
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, gap: CARD_GAP }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4 }}
             onViewableItemsChanged={onViewRef.current}
             viewabilityConfig={viewCfg.current}
             renderItem={({ item, index }) => {
@@ -202,7 +203,7 @@ const pc = StyleSheet.create({
     borderRadius: 16,
     overflow: "hidden",
     width: CARD_W,
-    height: CARD_W,
+    height: CARD_H,
   },
   photo: {
     flex: 1,

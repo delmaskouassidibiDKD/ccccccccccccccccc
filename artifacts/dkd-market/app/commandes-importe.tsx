@@ -10,7 +10,7 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ORDERS } from "@/lib/orders-data";
 import CommandeDetailModal, { type ProductSlide } from "@/components/CommandeDetailModal";
-import DevisBuilderModal from "@/components/DevisBuilderModal";
+import DevisBuilderModal, { type DevisData } from "@/components/DevisBuilderModal";
 import type { Order } from "@/lib/orders-data";
 
 const TABS = [
@@ -61,6 +61,8 @@ export default function CommandesImportePage() {
 
   const [devisOpen,      setDevisOpen]      = useState(false);
   const [devisOrder,     setDevisOrder]     = useState<Order | null>(null);
+  const [devisDataMap,   setDevisDataMap]   = useState<Map<string, DevisData>>(new Map());
+  const [priorityIds,    setPriorityIds]    = useState<string[]>([]);
 
   const activeOrders = ORDERS.filter((o) => !cancelledIds.has(o.id));
 
@@ -75,6 +77,15 @@ export default function CommandesImportePage() {
     const matchTab   = tab === "toutes" ? orderState === "toutes" : orderState === tab;
     const matchSearch = !search || o.name.toLowerCase().includes(search.toLowerCase());
     return matchTab && matchSearch;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    const ai = priorityIds.indexOf(a.id);
+    const bi = priorityIds.indexOf(b.id);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return 0;
   });
 
   const countTab = (t: Tab) =>
@@ -215,7 +226,7 @@ export default function CommandesImportePage() {
         </View>
       ) : (
         <FlatList
-          data={filtered}
+          data={sorted}
           keyExtractor={(o) => o.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
@@ -396,7 +407,8 @@ export default function CommandesImportePage() {
           onClose={() => { setDevisOpen(false); setDevisOrder(null); }}
           clientName={devisOrder.name}
           isDark={isDark}
-          onConfirm={() => {
+          initialData={devisDataMap.get(devisOrder.id)}
+          onConfirm={(devis) => {
             if (devisOrder) {
               const id = devisOrder.id;
               setDevisAppliedIds((prev) => new Set([...prev, id]));
@@ -405,6 +417,12 @@ export default function CommandesImportePage() {
                 next.delete(id);
                 return next;
               });
+              setDevisDataMap((prev) => {
+                const next = new Map(prev);
+                next.set(id, { rows: devis.rows, totalManuel: devis.totalManuel, autoCalc: devis.autoCalc, currencyCode: devis.currencyCode });
+                return next;
+              });
+              setPriorityIds((prev) => [id, ...prev.filter((p) => p !== id)]);
             }
           }}
         />
