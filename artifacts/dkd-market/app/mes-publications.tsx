@@ -125,6 +125,23 @@ export default function MesPublications() {
   const [searchQuery,  setSearchQuery]  = useState("");
   const searchAnim = useRef(new Animated.Value(0)).current;
 
+  /* ── Recherche onglets Articles / En gros ── */
+  const [tabSearchOpen,  setTabSearchOpen]  = useState(false);
+  const [tabSearchQuery, setTabSearchQuery] = useState("");
+  const tabSearchAnim = useRef(new Animated.Value(0)).current;
+
+  const toggleTabSearch = () => {
+    Haptics.selectionAsync();
+    const opening = !tabSearchOpen;
+    setTabSearchOpen(opening);
+    if (!opening) setTabSearchQuery("");
+    Animated.timing(tabSearchAnim, {
+      toValue: opening ? 1 : 0,
+      duration: 220,
+      useNativeDriver: false,
+    }).start();
+  };
+
   /* ── Modales vidéo ── */
   const [playerStartIndex, setPlayerStartIndex] = useState<number | null>(null);
   const [currentPlayerIdx, setCurrentPlayerIdx] = useState(0);
@@ -172,10 +189,11 @@ export default function MesPublications() {
     }).start();
   };
 
-  const q = searchQuery.toLowerCase().trim();
-  const filteredArticles = q ? articles.filter((a) => a.title.toLowerCase().includes(q)) : articles;
-  const filteredEngros   = q ? engros.filter((a)   => a.title.toLowerCase().includes(q)) : engros;
-  const filteredVideos   = q ? videos.filter((v)   => v.title.toLowerCase().includes(q)) : videos;
+  const q    = searchQuery.toLowerCase().trim();
+  const tabQ = tabSearchQuery.toLowerCase().trim();
+  const filteredArticles = tabQ ? articles.filter((a) => a.title.toLowerCase().includes(tabQ)) : articles;
+  const filteredEngros   = tabQ ? engros.filter((a)   => a.title.toLowerCase().includes(tabQ)) : engros;
+  const filteredVideos   = q    ? videos.filter((v)   => v.title.toLowerCase().includes(q))    : videos;
 
   const TABS = [
     { key: "articles" as Tab, label: "Articles", count: articles.length, icon: "bag-handle-outline" },
@@ -238,7 +256,7 @@ export default function MesPublications() {
         </View>
       </Animated.View>
 
-      {/* Tabs */}
+      {/* Tabs + loupe */}
       <View style={[s.tabBar, { backgroundColor: isDark ? "#111" : "#F8F8F8", borderBottomColor: dBORDER }]}>
         {TABS.map((tab) => {
           const active = activeTab === tab.key;
@@ -250,7 +268,15 @@ export default function MesPublications() {
                 { backgroundColor: isDark ? "#1A1A1A" : "#EFEFEF" },
                 active && s.tabItemActive,
               ]}
-              onPress={() => { setActiveTab(tab.key); Haptics.selectionAsync(); }}
+              onPress={() => {
+                setActiveTab(tab.key);
+                Haptics.selectionAsync();
+                if (tab.key === "video" && tabSearchOpen) {
+                  setTabSearchOpen(false);
+                  setTabSearchQuery("");
+                  Animated.timing(tabSearchAnim, { toValue: 0, duration: 180, useNativeDriver: false }).start();
+                }
+              }}
               activeOpacity={0.8}
             >
               <Ionicons name={tab.icon as any} size={15} color={active ? ORANGE : dMUTED} />
@@ -261,7 +287,51 @@ export default function MesPublications() {
             </TouchableOpacity>
           );
         })}
+
+        {/* Loupe — visible seulement sur Articles / En gros */}
+        {activeTab !== "video" && (
+          <TouchableOpacity style={s.tabLoupeBtn} onPress={toggleTabSearch} activeOpacity={0.8}>
+            <Ionicons
+              name={tabSearchOpen ? "close" : "search"}
+              size={18}
+              color={tabSearchOpen ? ORANGE : dMUTED}
+            />
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* Barre de recherche Articles / En gros */}
+      {activeTab !== "video" && (
+        <Animated.View style={[
+          s.tabSearchWrap,
+          {
+            backgroundColor: isDark ? "#0D1117" : "#F1F5F9",
+            maxHeight: tabSearchAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 54] }),
+            opacity: tabSearchAnim,
+            overflow: "hidden",
+            borderBottomWidth: 1,
+            borderBottomColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)",
+          },
+        ]}>
+          <View style={[s.tabSearchInner, { backgroundColor: isDark ? "#161B25" : "#FFFFFF", borderColor: isDark ? "#2A3244" : "#E2E8F0" }]}>
+            <Ionicons name="search-outline" size={14} color={dMUTED} />
+            <TextInput
+              style={[s.tabSearchInput, { color: dTEXT }]}
+              placeholder={`Rechercher ${activeTab === "engros" ? "en gros" : "articles"}…`}
+              placeholderTextColor={dMUTED}
+              value={tabSearchQuery}
+              onChangeText={setTabSearchQuery}
+              autoFocus={tabSearchOpen}
+              returnKeyType="search"
+            />
+            {tabSearchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setTabSearchQuery("")}>
+                <Ionicons name="close-circle" size={15} color={dMUTED} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </Animated.View>
+      )}
 
       {/* Contenu — onglet Vidéo (grille 3 colonnes) */}
       {activeTab === "video" ? (
@@ -662,7 +732,34 @@ const s = StyleSheet.create({
   searchInner: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
   searchInput: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 13, padding: 0 },
 
-  tabBar: { flexDirection: "row", paddingHorizontal: 14, paddingVertical: 10, gap: 8, borderBottomWidth: 1 },
+  tabBar: { flexDirection: "row", paddingHorizontal: 14, paddingVertical: 10, gap: 8, borderBottomWidth: 1, alignItems: "center" },
+  tabLoupeBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  tabSearchWrap: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  tabSearchInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  tabSearchInput: {
+    flex: 1,
+    fontFamily: "Poppins_400Regular",
+    fontSize: 13,
+    padding: 0,
+  },
   tabItem: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 10, borderRadius: 12 },
   tabItemActive: { backgroundColor: "#FF6B0012", borderWidth: 1.5, borderColor: "#FF6B0050" },
   tabLabel: { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
