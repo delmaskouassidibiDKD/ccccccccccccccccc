@@ -91,14 +91,6 @@ const ACTIONS: ActionItem[] = [
     route: "/collaborateur-personnalisation",
   },
   {
-    key: "paiements",
-    icon: "wallet-outline",
-    label: "Paiements",
-    sub: "En attente & réglés",
-    color: "#22C55E",
-    route: "/paiements-personnalisation",
-  },
-  {
     key: "campagnes",
     icon: "megaphone-outline",
     label: "Campagnes pub",

@@ -226,22 +226,6 @@ export default function MonPlatPage() {
             <Ionicons name="chevron-forward" size={18} color={dynSub} />
           </TouchableOpacity>
 
-          {/* Paiements */}
-          <TouchableOpacity
-            style={[s.actionBtn, { backgroundColor: dynCARD, borderColor: dynBorder }]}
-            onPress={() => { Haptics.selectionAsync(); router.push("/paiements-gastronomie" as any); }}
-            activeOpacity={0.8}
-          >
-            <View style={[s.actionIcon, { backgroundColor: "#22C55E22" }]}>
-              <Ionicons name="wallet-outline" size={26} color="#22C55E" />
-            </View>
-            <View style={s.actionText}>
-              <Text style={[s.actionTitle, { color: dynText }]}>Paiements en cours</Text>
-              <Text style={[s.actionSub, { color: dynSub }]}>Paiements en attente et réglés</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={dynSub} />
-          </TouchableOpacity>
-
           {/* Messages */}
           <TouchableOpacity
             style={[s.actionBtn, { backgroundColor: dynCARD, borderColor: dynBorder }]}

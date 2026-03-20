@@ -472,20 +472,6 @@ function AccueilView({ displayName, initial, profilePhoto, onPhotoChanged, isDar
           <Ionicons name="chevron-forward" size={18} color={dynSub} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[s.actionBtn, { backgroundColor: dynCARD, borderColor: "#F59E0B44" }]}
-          onPress={() => { Haptics.selectionAsync(); router.push("/paiements-grossiste" as any); }}
-          activeOpacity={0.85}
-        >
-          <View style={[s.actionBtnIconWrap, { backgroundColor: "#F59E0B22" }]}>
-            <Ionicons name="card-outline" size={24} color="#F59E0B" />
-          </View>
-          <View style={s.actionBtnTextWrap}>
-            <Text style={[s.actionBtnTitle, { color: dynText }]}>Mes paiements en cours</Text>
-            <Text style={[s.actionBtnSub, { color: dynSub }]}>Suivez vos transactions et encaissements</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={dynSub} />
-        </TouchableOpacity>
       </View>
 
       {/* ── ZONES COMMERCIALES ── */}
