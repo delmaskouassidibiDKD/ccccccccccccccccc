@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -11,14 +11,35 @@ import { useTheme } from "../contexts/ThemeContext";
 type DeliveryStatus = "en_cours" | "livre";
 type Delivery = {
   id: string; name: string; initials: string; colorHex: string;
-  company: string; vehicle: string; stars: number;
-  code: string; article: string; price: string; status: DeliveryStatus;
+  company: string;
+  vehicle: string; vehicleColor: string; vehiclePlate?: string;
+  stars: number;
+  code: string; price: string; status: DeliveryStatus;
+  pickupDate: string; pickupTime: string; pickupLocation: string;
 };
 
 const INIT_DELIVERIES: Delivery[] = [
-  { id: "d1", name: "Ibrahim Touré",  initials: "IT", colorHex: "#3B82F6", company: "DKD Express",     vehicle: "Moto",    stars: 4.8, code: "",         article: "Sac Louis Vuitton × 2", price: "12 500 FCFA", status: "en_cours" },
-  { id: "d2", name: "Seydou Bamba",   initials: "SB", colorHex: "#22C55E", company: "Flash Livraison", vehicle: "Voiture", stars: 4.5, code: "",         article: "Chaussures Nike Air",   price: "8 200 FCFA",  status: "en_cours" },
-  { id: "d3", name: "Fatoumata Sy",   initials: "FS", colorHex: "#EC4899", company: "Rapid Courses",   vehicle: "Moto",    stars: 4.9, code: "LIV-2841", article: "Veste en cuir × 3",    price: "25 000 FCFA", status: "livre"    },
+  {
+    id: "d1", name: "Ibrahim Touré", initials: "IT", colorHex: "#3B82F6",
+    company: "DKD Express",
+    vehicle: "Moto", vehicleColor: "Rouge",
+    stars: 4.8, code: "", price: "12 500 FCFA", status: "en_cours",
+    pickupDate: "20 mars 2026", pickupTime: "10h30", pickupLocation: "Cocody Angré, Rue des Jardins, Abidjan",
+  },
+  {
+    id: "d2", name: "Seydou Bamba", initials: "SB", colorHex: "#22C55E",
+    company: "Flash Livraison",
+    vehicle: "Voiture", vehicleColor: "Blanc", vehiclePlate: "AB 1234 CI",
+    stars: 4.5, code: "", price: "8 200 FCFA", status: "en_cours",
+    pickupDate: "20 mars 2026", pickupTime: "14h00", pickupLocation: "Plateau Centre, Avenue Delafosse, Abidjan",
+  },
+  {
+    id: "d3", name: "Fatoumata Sy", initials: "FS", colorHex: "#EC4899",
+    company: "Rapid Courses",
+    vehicle: "Moto", vehicleColor: "Noir",
+    stars: 4.9, code: "LIV-2841", price: "25 000 FCFA", status: "livre",
+    pickupDate: "19 mars 2026", pickupTime: "09h00", pickupLocation: "Yopougon Marché, Avenue 18, Abidjan",
+  },
 ];
 
 function StarRow({ stars, numColor }: { stars: number; numColor: string }) {
@@ -47,28 +68,24 @@ export default function GestionLivraisonPage() {
   const dCARD   = isDark ? "#161B22" : "#FFFFFF";
   const dCARD2  = isDark ? "#1C2230" : "#F3F4F6";
   const dTEXT   = isDark ? "#FFFFFF" : "#111827";
-  const dSUB    = isDark ? "rgba(255,255,255,0.6)"  : "#374151";
-  const dMUTED  = isDark ? "rgba(255,255,255,0.38)" : "#9CA3AF";
+  const dSUB    = isDark ? "rgba(255,255,255,0.75)" : "#374151";
+  const dMUTED  = isDark ? "rgba(255,255,255,0.45)" : "#9CA3AF";
   const dBORDER = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
 
   const [tab,        setTab]        = useState<DeliveryStatus>("en_cours");
   const [deliveries, setDeliveries] = useState<Delivery[]>(INIT_DELIVERIES);
   const [codes,      setCodes]      = useState<Record<string, string>>({});
   const [showTrack,  setShowTrack]  = useState<string | null>(null);
+  const [showDate,   setShowDate]   = useState<Delivery | null>(null);
+  const [showVehicle, setShowVehicle] = useState<Delivery | null>(null);
+  const [showAvatar,  setShowAvatar]  = useState<Delivery | null>(null);
 
   const enCoursCount = deliveries.filter((d) => d.status === "en_cours").length;
   const livreCount   = deliveries.filter((d) => d.status === "livre").length;
   const filtered     = deliveries.filter((d) => d.status === tab);
 
-  const markDelivered = useCallback((dlId: string) => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setDeliveries((prev) =>
-      prev.map((d) => d.id === dlId ? { ...d, status: "livre" as const, code: codes[dlId] || d.code } : d)
-    );
-  }, [codes]);
-
   const vehicleIcon = (v: string) =>
-    v === "Moto" ? "bicycle-outline" : v === "Voiture" ? "car-outline" : "walk-outline";
+    v === "Moto" ? "bicycle-outline" : v === "Voiture" ? "car-outline" : v === "Camion" ? "bus-outline" : "walk-outline";
 
   return (
     <View style={[s.root, { paddingTop: insets.top, backgroundColor: dBG }]}>
@@ -127,28 +144,34 @@ export default function GestionLivraisonPage() {
 
             {/* LIVREUR ROW */}
             <View style={s.livreurRow}>
-              <View style={[s.avatar, { backgroundColor: dl.colorHex + "28" }]}>
+              {/* Avatar → tap pour agrandir */}
+              <TouchableOpacity
+                style={[s.avatar, { backgroundColor: dl.colorHex + "28" }]}
+                onPress={() => { Haptics.selectionAsync(); setShowAvatar(dl); }}
+                activeOpacity={0.75}
+              >
                 <Text style={[s.avatarText, { color: dl.colorHex }]}>{dl.initials}</Text>
-              </View>
+              </TouchableOpacity>
+
               <View style={s.livreurInfo}>
                 <Text style={[s.livreurName, { color: dTEXT }]}>{dl.name}</Text>
                 <StarRow stars={dl.stars} numColor="#F59E0B" />
+                {/* Société de livraison — bien visible */}
                 <View style={s.companyRow}>
-                  <Ionicons name="business-outline" size={11} color={dMUTED} />
-                  <Text style={[s.companyText, { color: dMUTED }]}>{dl.company}</Text>
+                  <Ionicons name="business-outline" size={12} color={dl.colorHex} />
+                  <Text style={[s.companyText, { color: dl.colorHex }]}>{dl.company}</Text>
                 </View>
               </View>
-              <View style={[s.vehicleTag, { backgroundColor: dl.colorHex + "18", borderColor: dl.colorHex + "33" }]}>
+
+              {/* Bouton véhicule → tap pour infos */}
+              <TouchableOpacity
+                style={[s.vehicleTag, { backgroundColor: dl.colorHex + "18", borderColor: dl.colorHex + "55" }]}
+                onPress={() => { Haptics.selectionAsync(); setShowVehicle(dl); }}
+                activeOpacity={0.75}
+              >
                 <Ionicons name={vehicleIcon(dl.vehicle) as any} size={15} color={dl.colorHex} />
                 <Text style={[s.vehicleText, { color: dl.colorHex }]}>{dl.vehicle}</Text>
-              </View>
-            </View>
-
-            {/* ARTICLE ROW */}
-            <View style={[s.articleRow, { backgroundColor: dCARD2 }]}>
-              <Ionicons name="cube-outline" size={14} color={dMUTED} />
-              <Text style={[s.articleText, { color: dSUB }]} numberOfLines={1}>{dl.article}</Text>
-              <Text style={s.articlePrice}>{dl.price}</Text>
+              </TouchableOpacity>
             </View>
 
             {/* CODE */}
@@ -180,6 +203,7 @@ export default function GestionLivraisonPage() {
                 <Ionicons name="eye-outline" size={15} color={dSUB} />
                 <Text style={[s.actionGhostText, { color: dSUB }]}>Voir</Text>
               </TouchableOpacity>
+
               {tab === "en_cours" && (
                 <>
                   <TouchableOpacity
@@ -190,16 +214,19 @@ export default function GestionLivraisonPage() {
                     <Ionicons name="navigate-outline" size={15} color="#3B82F6" />
                     <Text style={[s.actionColorText, { color: "#3B82F6" }]}>Suivre</Text>
                   </TouchableOpacity>
+
+                  {/* Bouton Date → remplace Livré */}
                   <TouchableOpacity
-                    style={[s.actionColor, { backgroundColor: "#22C55E18", borderColor: "#22C55E40" }]}
-                    onPress={() => markDelivered(dl.id)}
+                    style={[s.actionColor, { backgroundColor: "#8B5CF618", borderColor: "#8B5CF640" }]}
+                    onPress={() => { Haptics.selectionAsync(); setShowDate(dl); }}
                     activeOpacity={0.75}
                   >
-                    <Ionicons name="checkmark-done-outline" size={15} color="#22C55E" />
-                    <Text style={[s.actionColorText, { color: "#22C55E" }]}>Livré</Text>
+                    <Ionicons name="calendar-outline" size={15} color="#8B5CF6" />
+                    <Text style={[s.actionColorText, { color: "#8B5CF6" }]}>Date</Text>
                   </TouchableOpacity>
                 </>
               )}
+
               {tab === "livre" && (
                 <View style={s.livreBadge}>
                   <Ionicons name="checkmark-circle" size={15} color="#22C55E" />
@@ -211,32 +238,199 @@ export default function GestionLivraisonPage() {
         ))}
       </ScrollView>
 
-      {/* TRACKING MODAL */}
+      {/* ── MODAL SUIVI ── */}
       <Modal visible={!!showTrack} animationType="fade" transparent statusBarTranslucent onRequestClose={() => setShowTrack(null)}>
-        <View style={tm.overlay}>
-          <View style={[tm.box, { backgroundColor: isDark ? "#161B22" : "#FFFFFF" }]}>
-            <View style={tm.header}>
+        <View style={m.overlay}>
+          <View style={[m.box, { backgroundColor: isDark ? "#161B22" : "#FFFFFF" }]}>
+            <View style={m.mHeader}>
               <Ionicons name="navigate-circle-outline" size={28} color="#3B82F6" />
-              <Text style={[tm.title, { color: dTEXT }]}>Suivi — {showTrack}</Text>
+              <Text style={[m.mTitle, { color: dTEXT }]}>Suivi — {showTrack}</Text>
               <TouchableOpacity onPress={() => setShowTrack(null)} activeOpacity={0.7}>
                 <Ionicons name="close" size={20} color={dMUTED} />
               </TouchableOpacity>
             </View>
-            <View style={[tm.mapZone, { backgroundColor: isDark ? "#0D1117" : "#F3F4F6" }]}>
+            <View style={[m.mapZone, { backgroundColor: isDark ? "#0D1117" : "#F3F4F6" }]}>
               <Ionicons name="location" size={40} color="#3B82F6" />
-              <Text style={[tm.mapText, { color: dMUTED }]}>Position en cours de localisation...</Text>
-              <View style={tm.pulse} />
+              <Text style={[m.mapText, { color: dMUTED }]}>Position en cours de localisation...</Text>
             </View>
-            <View style={tm.statusRow}>
-              <View style={tm.statusDot} />
-              <Text style={tm.statusText}>En route · Estimée dans 12 min</Text>
+            <View style={m.statusRow}>
+              <View style={m.statusDot} />
+              <Text style={m.statusText}>En route · Estimée dans 12 min</Text>
             </View>
-            <TouchableOpacity style={[tm.closeBtn, { backgroundColor: isDark ? "#1C2230" : "#F3F4F6" }]} onPress={() => setShowTrack(null)} activeOpacity={0.85}>
-              <Text style={[tm.closeBtnText, { color: dTEXT }]}>Fermer</Text>
+            <TouchableOpacity style={[m.closeBtn, { backgroundColor: isDark ? "#1C2230" : "#F3F4F6" }]} onPress={() => setShowTrack(null)} activeOpacity={0.85}>
+              <Text style={[m.closeBtnText, { color: dTEXT }]}>Fermer</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+
+      {/* ── MODAL DATE DE RÉCUPÉRATION ── */}
+      <Modal visible={!!showDate} animationType="slide" transparent statusBarTranslucent onRequestClose={() => setShowDate(null)}>
+        <Pressable style={m.overlay} onPress={() => setShowDate(null)}>
+          <Pressable style={[m.sheet, { backgroundColor: isDark ? "#161B22" : "#FFFFFF" }]} onPress={(e) => e.stopPropagation()}>
+            {/* Handle */}
+            <View style={m.handle} />
+
+            <View style={m.mHeader}>
+              <View style={[m.iconCircle, { backgroundColor: "#8B5CF622" }]}>
+                <Ionicons name="calendar-outline" size={22} color="#8B5CF6" />
+              </View>
+              <Text style={[m.mTitle, { color: dTEXT }]}>Détails de récupération</Text>
+              <TouchableOpacity onPress={() => setShowDate(null)} activeOpacity={0.7}>
+                <Ionicons name="close" size={20} color={dMUTED} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[m.subtitle, { color: dMUTED }]}>Récupération du colis par le livreur</Text>
+
+            {showDate && (
+              <View style={{ gap: 12, marginTop: 4 }}>
+                <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                  <View style={[m.infoIcon, { backgroundColor: "#8B5CF622" }]}>
+                    <Ionicons name="person-outline" size={16} color="#8B5CF6" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[m.infoLabel, { color: dMUTED }]}>Livreur</Text>
+                    <Text style={[m.infoValue, { color: dTEXT }]}>{showDate.name}</Text>
+                  </View>
+                </View>
+
+                <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                  <View style={[m.infoIcon, { backgroundColor: "#3B82F622" }]}>
+                    <Ionicons name="calendar-outline" size={16} color="#3B82F6" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[m.infoLabel, { color: dMUTED }]}>Date de récupération</Text>
+                    <Text style={[m.infoValue, { color: dTEXT }]}>{showDate.pickupDate}</Text>
+                  </View>
+                </View>
+
+                <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                  <View style={[m.infoIcon, { backgroundColor: "#F59E0B22" }]}>
+                    <Ionicons name="time-outline" size={16} color="#F59E0B" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[m.infoLabel, { color: dMUTED }]}>Heure prévue</Text>
+                    <Text style={[m.infoValue, { color: dTEXT }]}>{showDate.pickupTime}</Text>
+                  </View>
+                </View>
+
+                <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                  <View style={[m.infoIcon, { backgroundColor: "#22C55E22" }]}>
+                    <Ionicons name="location-outline" size={16} color="#22C55E" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[m.infoLabel, { color: dMUTED }]}>Lieu de récupération</Text>
+                    <Text style={[m.infoValue, { color: dTEXT }]}>{showDate.pickupLocation}</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            <TouchableOpacity style={[m.closeBtn, { backgroundColor: "#8B5CF6", marginTop: 8 }]} onPress={() => setShowDate(null)} activeOpacity={0.85}>
+              <Text style={[m.closeBtnText, { color: "#fff" }]}>Fermer</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── MODAL VÉHICULE ── */}
+      <Modal visible={!!showVehicle} animationType="slide" transparent statusBarTranslucent onRequestClose={() => setShowVehicle(null)}>
+        <Pressable style={m.overlay} onPress={() => setShowVehicle(null)}>
+          <Pressable style={[m.sheet, { backgroundColor: isDark ? "#161B22" : "#FFFFFF" }]} onPress={(e) => e.stopPropagation()}>
+            <View style={m.handle} />
+
+            {showVehicle && (
+              <>
+                <View style={m.mHeader}>
+                  <View style={[m.iconCircle, { backgroundColor: showVehicle.colorHex + "22" }]}>
+                    <Ionicons name={vehicleIcon(showVehicle.vehicle) as any} size={22} color={showVehicle.colorHex} />
+                  </View>
+                  <Text style={[m.mTitle, { color: dTEXT }]}>Véhicule de livraison</Text>
+                  <TouchableOpacity onPress={() => setShowVehicle(null)} activeOpacity={0.7}>
+                    <Ionicons name="close" size={20} color={dMUTED} />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={[m.subtitle, { color: dMUTED }]}>Informations sur le véhicule utilisé</Text>
+
+                <View style={{ gap: 12, marginTop: 4 }}>
+                  <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                    <View style={[m.infoIcon, { backgroundColor: showVehicle.colorHex + "22" }]}>
+                      <Ionicons name={vehicleIcon(showVehicle.vehicle) as any} size={16} color={showVehicle.colorHex} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[m.infoLabel, { color: dMUTED }]}>Type de véhicule</Text>
+                      <Text style={[m.infoValue, { color: dTEXT }]}>{showVehicle.vehicle}</Text>
+                    </View>
+                  </View>
+
+                  <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                    <View style={[m.infoIcon, { backgroundColor: "#EC489922" }]}>
+                      <Ionicons name="color-palette-outline" size={16} color="#EC4899" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[m.infoLabel, { color: dMUTED }]}>Couleur</Text>
+                      <Text style={[m.infoValue, { color: dTEXT }]}>{showVehicle.vehicleColor}</Text>
+                    </View>
+                  </View>
+
+                  {showVehicle.vehiclePlate && (
+                    <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                      <View style={[m.infoIcon, { backgroundColor: "#F59E0B22" }]}>
+                        <Ionicons name="document-text-outline" size={16} color="#F59E0B" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[m.infoLabel, { color: dMUTED }]}>Numéro d'immatriculation</Text>
+                        <Text style={[m.infoValue, { color: dTEXT, fontFamily: "Poppins_700Bold", letterSpacing: 1.5 }]}>{showVehicle.vehiclePlate}</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  <View style={[m.infoRow, { backgroundColor: isDark ? "#1C2230" : "#F8FAFF" }]}>
+                    <View style={[m.infoIcon, { backgroundColor: "#3B82F622" }]}>
+                      <Ionicons name="person-outline" size={16} color="#3B82F6" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[m.infoLabel, { color: dMUTED }]}>Conducteur</Text>
+                      <Text style={[m.infoValue, { color: dTEXT }]}>{showVehicle.name}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={[m.closeBtn, { backgroundColor: showVehicle.colorHex, marginTop: 8 }]} onPress={() => setShowVehicle(null)} activeOpacity={0.85}>
+                  <Text style={[m.closeBtnText, { color: "#fff" }]}>Fermer</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── MODAL AVATAR AGRANDI ── */}
+      <Modal visible={!!showAvatar} animationType="fade" transparent statusBarTranslucent onRequestClose={() => setShowAvatar(null)}>
+        <Pressable style={m.overlay} onPress={() => setShowAvatar(null)}>
+          <Pressable style={[m.avatarCard, { backgroundColor: isDark ? "#1C2230" : "#FFFFFF" }]} onPress={(e) => e.stopPropagation()}>
+            {showAvatar && (
+              <>
+                <View style={[m.avatarBig, { backgroundColor: showAvatar.colorHex + "28" }]}>
+                  <Text style={[m.avatarBigText, { color: showAvatar.colorHex }]}>{showAvatar.initials}</Text>
+                </View>
+                <Text style={[m.avatarName, { color: dTEXT }]}>{showAvatar.name}</Text>
+                <View style={[m.avatarCompany, { backgroundColor: showAvatar.colorHex + "18" }]}>
+                  <Ionicons name="business-outline" size={13} color={showAvatar.colorHex} />
+                  <Text style={[m.avatarCompanyText, { color: showAvatar.colorHex }]}>{showAvatar.company}</Text>
+                </View>
+                <StarRow stars={showAvatar.stars} numColor="#F59E0B" />
+              </>
+            )}
+            <TouchableOpacity style={[m.closeBtn, { backgroundColor: isDark ? "#0D1117" : "#F3F4F6", marginTop: 8 }]} onPress={() => setShowAvatar(null)} activeOpacity={0.85}>
+              <Text style={[m.closeBtnText, { color: dTEXT }]}>Fermer</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
     </View>
   );
 }
@@ -260,13 +454,10 @@ const s = StyleSheet.create({
   avatarText: { fontFamily: "Poppins_700Bold", fontSize: 18 },
   livreurInfo: { flex: 1, gap: 4 },
   livreurName: { fontFamily: "Poppins_700Bold", fontSize: 15 },
-  companyRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  companyText: { fontFamily: "Poppins_400Regular", fontSize: 11 },
-  vehicleTag: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1 },
+  companyRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  companyText: { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
+  vehicleTag: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1.5 },
   vehicleText: { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
-  articleRow: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  articleText: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 13 },
-  articlePrice: { color: "#FF6B00", fontFamily: "Poppins_700Bold", fontSize: 14 },
   codeRow: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: "rgba(245,158,11,0.25)" },
   codeInput: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 13 },
   codeUsedRow: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -280,17 +471,30 @@ const s = StyleSheet.create({
   livreBadgeText: { color: "#22C55E", fontFamily: "Poppins_600SemiBold", fontSize: 12 },
 });
 
-const tm = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.75)", alignItems: "center", justifyContent: "center", padding: 24 },
-  box: { borderRadius: 22, padding: 22, width: "100%", gap: 16 },
-  header: { flexDirection: "row", alignItems: "center", gap: 10 },
-  title: { flex: 1, fontFamily: "Poppins_700Bold", fontSize: 15 },
-  mapZone: { height: 170, borderRadius: 16, alignItems: "center", justifyContent: "center", gap: 10 },
+const m = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.72)", justifyContent: "flex-end", alignItems: "center" },
+  box: { borderRadius: 22, padding: 22, width: "100%", gap: 16, marginBottom: 20, marginHorizontal: 20 },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, width: "100%", gap: 16, paddingBottom: 32 },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "rgba(150,150,150,0.3)", alignSelf: "center", marginBottom: 4 },
+  mHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  mTitle: { flex: 1, fontFamily: "Poppins_700Bold", fontSize: 15 },
+  subtitle: { fontFamily: "Poppins_400Regular", fontSize: 12, marginTop: -8 },
+  iconCircle: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
+  infoRow: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 14, padding: 14 },
+  infoIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  infoLabel: { fontFamily: "Poppins_400Regular", fontSize: 11, marginBottom: 2 },
+  infoValue: { fontFamily: "Poppins_600SemiBold", fontSize: 14 },
+  mapZone: { height: 140, borderRadius: 16, alignItems: "center", justifyContent: "center", gap: 10 },
   mapText: { fontFamily: "Poppins_400Regular", fontSize: 12 },
-  pulse: { width: 18, height: 18, borderRadius: 9, backgroundColor: "rgba(59,130,246,0.3)" },
   statusRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#22C55E" },
   statusText: { color: "#22C55E", fontFamily: "Poppins_600SemiBold", fontSize: 13 },
-  closeBtn: { borderRadius: 12, paddingVertical: 13, alignItems: "center" },
+  closeBtn: { borderRadius: 14, paddingVertical: 14, alignItems: "center" },
   closeBtnText: { fontFamily: "Poppins_700Bold", fontSize: 14 },
+  avatarCard: { borderRadius: 24, padding: 28, width: "82%", alignItems: "center", gap: 14, marginBottom: 200 },
+  avatarBig: { width: 110, height: 110, borderRadius: 55, alignItems: "center", justifyContent: "center" },
+  avatarBigText: { fontFamily: "Poppins_700Bold", fontSize: 44 },
+  avatarName: { fontFamily: "Poppins_700Bold", fontSize: 18 },
+  avatarCompany: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
+  avatarCompanyText: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
 });
