@@ -20,6 +20,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "@/constants/colors";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useLocalSearchParams, router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -97,6 +98,14 @@ export default function SellerScreen() {
   const [logoError,     setLogoError]     = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const { user } = useAuth();
+  const { isDark } = useTheme();
+  const dBG     = isDark ? "#0D1117" : "#F0F4F8";
+  const dCARD   = isDark ? "#1C2230" : "#FFFFFF";
+  const dTEXT   = isDark ? "#FFFFFF" : "#111827";
+  const dSUB    = isDark ? "rgba(255,255,255,0.5)"  : "#6B7280";
+  const dMUTED  = isDark ? "rgba(255,255,255,0.4)"  : "rgba(0,0,0,0.45)";
+  const dBORDER = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
+  const dICON   = isDark ? "#fff" : "#374151";
 
   useEffect(() => {
     AsyncStorage.multiGet([SELLER_SHOP_TYPES_KEY, PROFILE_PHOTO_KEY, DELETED_ARTICLES_KEY, DELETED_ENGROS_KEY]).then(([types, photo, delA, delE]) => {
@@ -176,7 +185,7 @@ export default function SellerScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: topPadding }]}>
+      <View style={[styles.container, styles.centered, { paddingTop: topPadding, backgroundColor: dBG }]}>
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
@@ -184,9 +193,9 @@ export default function SellerScreen() {
 
   if (sellerQuery.isError && id !== "own") {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: topPadding }]}>
-        <Ionicons name="alert-circle-outline" size={48} color={Colors.textMuted} />
-        <Text style={styles.errorText}>Impossible de charger le profil</Text>
+      <View style={[styles.container, styles.centered, { paddingTop: topPadding, backgroundColor: dBG }]}>
+        <Ionicons name="alert-circle-outline" size={48} color={dMUTED} />
+        <Text style={[styles.errorText, { color: dTEXT }]}>Impossible de charger le profil</Text>
         <TouchableOpacity style={styles.retryBtn} onPress={() => sellerQuery.refetch()}>
           <Text style={styles.retryBtnText}>Réessayer</Text>
         </TouchableOpacity>
@@ -223,7 +232,7 @@ export default function SellerScreen() {
   const showPublicView = !isOwnProfile;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: dBG }]}>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -273,7 +282,7 @@ export default function SellerScreen() {
 
             <View style={{ flex: 1, gap: 4 }}>
               {/* Name */}
-              <Text style={styles.shopName}>{shopName}</Text>
+              <Text style={[styles.shopName, { color: "#fff" }]}>{shopName}</Text>
               {/* Seller badge */}
               {sellerSinceLabel && (
                 <View style={styles.sellerSinceBadge}>
@@ -285,28 +294,28 @@ export default function SellerScreen() {
 
           {/* Stats: Note, Livraisons, Abonnés */}
           {showPublicView && (
-            <View style={styles.statsRow}>
+            <View style={[styles.statsRow, { backgroundColor: isDark ? "#1C2230" : Colors.surface, borderColor: dBORDER }]}>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{rating.toFixed(1)}</Text>
+                <Text style={[styles.statValue, { color: dTEXT }]}>{rating.toFixed(1)}</Text>
                 <View style={styles.statLabelRow}>
                   <Ionicons name="star" size={11} color="#F59E0B" />
-                  <Text style={styles.statLabel}>Note</Text>
+                  <Text style={[styles.statLabel, { color: dMUTED }]}>Note</Text>
                 </View>
               </View>
-              <View style={styles.statDivider} />
+              <View style={[styles.statDivider, { backgroundColor: dBORDER }]} />
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{formatCount(totalSales)}</Text>
+                <Text style={[styles.statValue, { color: dTEXT }]}>{formatCount(totalSales)}</Text>
                 <View style={styles.statLabelRow}>
                   <Ionicons name="cube-outline" size={11} color="#3B82F6" />
-                  <Text style={styles.statLabel}>Livraisons</Text>
+                  <Text style={[styles.statLabel, { color: dMUTED }]}>Livraisons</Text>
                 </View>
               </View>
-              <View style={styles.statDivider} />
+              <View style={[styles.statDivider, { backgroundColor: dBORDER }]} />
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{formatCount(followers)}</Text>
+                <Text style={[styles.statValue, { color: dTEXT }]}>{formatCount(followers)}</Text>
                 <View style={styles.statLabelRow}>
                   <Ionicons name="heart" size={11} color="#EC4899" />
-                  <Text style={styles.statLabel}>Abonnés</Text>
+                  <Text style={[styles.statLabel, { color: dMUTED }]}>Abonnés</Text>
                 </View>
               </View>
             </View>
@@ -317,21 +326,21 @@ export default function SellerScreen() {
             <View style={styles.actionRow}>
               {/* S'abonner */}
               <TouchableOpacity
-                style={[styles.subscribeBtn, subscribed && styles.subscribedBtn]}
+                style={[styles.subscribeBtn, subscribed && [styles.subscribedBtn, { backgroundColor: dCARD, borderColor: dBORDER }]]}
                 onPress={handleSubscribe}
                 activeOpacity={0.8}
                 disabled={followMutation.isPending || unfollowMutation.isPending}
               >
                 {(followMutation.isPending || unfollowMutation.isPending) ? (
-                  <ActivityIndicator size="small" color={subscribed ? Colors.text : "#fff"} />
+                  <ActivityIndicator size="small" color={subscribed ? dTEXT : "#fff"} />
                 ) : (
                   <>
                     <Ionicons
                       name={subscribed ? "checkmark" : "person-add-outline"}
                       size={16}
-                      color={subscribed ? Colors.text : "#fff"}
+                      color={subscribed ? dTEXT : "#fff"}
                     />
-                    <Text style={[styles.subscribeBtnText, subscribed && { color: Colors.text }]}>
+                    <Text style={[styles.subscribeBtnText, subscribed && { color: dTEXT }]}>
                       {subscribed ? "Abonné" : "S'abonner"}
                     </Text>
                   </>
@@ -359,8 +368,8 @@ export default function SellerScreen() {
           {/* Owner view (dashboard link) */}
           {isOwnProfile && (
             <View style={styles.ownerActions}>
-              <TouchableOpacity style={styles.ownerIconBtn} onPress={handleShare}>
-                <Ionicons name="share-social-outline" size={18} color={Colors.text} />
+              <TouchableOpacity style={[styles.ownerIconBtn, { backgroundColor: isDark ? "#1C2230" : Colors.surface, borderColor: dBORDER }]} onPress={handleShare}>
+                <Ionicons name="share-social-outline" size={18} color={dICON} />
               </TouchableOpacity>
               <TouchableOpacity style={[styles.ownerActionBtn, { flex: 1 }]} onPress={() => router.push("/add-product")}>
                 <Ionicons name="add" size={16} color="#fff" />
@@ -370,15 +379,15 @@ export default function SellerScreen() {
                 <Ionicons name="videocam-outline" size={16} color="#fff" />
                 <Text style={styles.ownerActionBtnText}>Vidéo</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.ownerIconBtn}>
-                <Ionicons name="chatbubble-outline" size={18} color={Colors.text} />
+              <TouchableOpacity style={[styles.ownerIconBtn, { backgroundColor: isDark ? "#1C2230" : Colors.surface, borderColor: dBORDER }]}>
+                <Ionicons name="chatbubble-outline" size={18} color={dICON} />
               </TouchableOpacity>
             </View>
           )}
 
           {/* Description */}
           {description ? (
-            <Text style={styles.description} numberOfLines={3}>{description}</Text>
+            <Text style={[styles.description, { color: dSUB }]} numberOfLines={3}>{description}</Text>
           ) : null}
         </View>
 
@@ -436,7 +445,7 @@ export default function SellerScreen() {
         )}
 
         {/* Tabs + loupe */}
-        <View style={[styles.tabsRow, { alignItems: "center" }]}>
+        <View style={[styles.tabsRow, { alignItems: "center", borderBottomColor: dBORDER, backgroundColor: dBG }]}>
           {SELLER_TABS.map((tab, i) => (
             <TouchableOpacity
               key={tab}
@@ -451,7 +460,7 @@ export default function SellerScreen() {
                 }
               }}
             >
-              <Text style={[styles.tabText, activeTab === i && styles.tabTextActive]}>
+              <Text style={[styles.tabText, { color: activeTab === i ? Colors.primary : dMUTED }]}>
                 {tab}
               </Text>
             </TouchableOpacity>
@@ -475,18 +484,18 @@ export default function SellerScreen() {
             maxHeight: tabSearchAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 54] }),
             opacity: tabSearchAnim,
             overflow: "hidden",
-            backgroundColor: "#F1F5F9",
+            backgroundColor: isDark ? "#141A24" : "#F1F5F9",
             borderBottomWidth: 1,
-            borderBottomColor: "rgba(0,0,0,0.07)",
+            borderBottomColor: dBORDER,
             paddingHorizontal: 14,
             paddingVertical: 8,
           }}>
-            <View style={styles.tabSearchInner}>
-              <Ionicons name="search-outline" size={14} color={Colors.textMuted} />
+            <View style={[styles.tabSearchInner, { backgroundColor: dCARD, borderColor: dBORDER }]}>
+              <Ionicons name="search-outline" size={14} color={dMUTED} />
               <TextInput
-                style={styles.tabSearchInput}
+                style={[styles.tabSearchInput, { color: dTEXT }]}
                 placeholder={`Rechercher ${activeTab === 2 ? "en gros" : "articles"}…`}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={dMUTED}
                 value={tabSearchQuery}
                 onChangeText={setTabSearchQuery}
                 autoFocus={tabSearchOpen}
@@ -505,8 +514,8 @@ export default function SellerScreen() {
         {activeTab === 0 && (
           DEMO_VIDEOS.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="videocam-outline" size={40} color={Colors.textMuted} />
-              <Text style={styles.emptyText}>Aucune vidéo pour le moment</Text>
+              <Ionicons name="videocam-outline" size={40} color={dMUTED} />
+              <Text style={[styles.emptyText, { color: dMUTED }]}>Aucune vidéo pour le moment</Text>
             </View>
           ) : (
             <View style={styles.videoGrid}>
@@ -545,15 +554,15 @@ export default function SellerScreen() {
           <View style={{ paddingHorizontal: 8, paddingTop: 8 }}>
             {displayed.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="bag-outline" size={40} color={Colors.textMuted} />
-                <Text style={styles.emptyText}>{tabQ ? "Aucun résultat" : "Aucun article pour le moment"}</Text>
+                <Ionicons name="bag-outline" size={40} color={dMUTED} />
+                <Text style={[styles.emptyText, { color: dMUTED }]}>{tabQ ? "Aucun résultat" : "Aucun article pour le moment"}</Text>
               </View>
             ) : (
               displayed.map((item) => (
                 <SellerProductCard
                   key={item.id}
                   item={item}
-                  isDark={false}
+                  isDark={isDark}
                   isEngros={false}
                   accentColor={Colors.primary}
                   onAddToCart={() => {}}
@@ -573,15 +582,15 @@ export default function SellerScreen() {
           <View style={{ paddingHorizontal: 8, paddingTop: 8 }}>
             {displayed.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="cube-outline" size={40} color={Colors.textMuted} />
-                <Text style={styles.emptyText}>{tabQ ? "Aucun résultat" : "Aucun article En Gros pour le moment"}</Text>
+                <Ionicons name="cube-outline" size={40} color={dMUTED} />
+                <Text style={[styles.emptyText, { color: dMUTED }]}>{tabQ ? "Aucun résultat" : "Aucun article En Gros pour le moment"}</Text>
               </View>
             ) : (
               displayed.map((item) => (
                 <SellerProductCard
                   key={item.id}
                   item={item}
-                  isDark={false}
+                  isDark={isDark}
                   isEngros={true}
                   accentColor={Colors.primary}
                   onAddToCart={() => {}}
