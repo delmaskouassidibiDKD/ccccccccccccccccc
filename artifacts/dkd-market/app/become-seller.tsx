@@ -144,11 +144,11 @@ export default function BecomeSellerScreen() {
   const topPad = IS_WEB ? 0 : insets.top;
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     AsyncStorage.getItem("@dkd:seller_profile_photo").then((uri) => {
       if (uri) setProfilePhoto(uri);
     }).catch(() => {});
-  }, []);
+  }, []));
 
   if (isSeller) {
     return (

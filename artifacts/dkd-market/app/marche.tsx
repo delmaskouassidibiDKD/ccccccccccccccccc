@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, Switch,
   ScrollView, Modal, FlatList, Image,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -56,6 +56,12 @@ export default function MarchePage() {
       if (photo[1] !== null) setProfilePhoto(photo[1]);
     });
   }, []);
+
+  useFocusEffect(useCallback(() => {
+    AsyncStorage.getItem("@dkd:seller_profile_photo").then((uri) => {
+      if (uri) setProfilePhoto(uri);
+    }).catch(() => {});
+  }, []));
 
   const toggleOpen = (val: boolean) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

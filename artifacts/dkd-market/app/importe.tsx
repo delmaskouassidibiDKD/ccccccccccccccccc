@@ -13,7 +13,7 @@ import {
   Dimensions,
   Image,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -121,6 +121,12 @@ export default function ImportePage() {
       if (pairs[3][1]) setProfilePhoto(pairs[3][1]);
     });
   }, []);
+
+  useFocusEffect(useCallback(() => {
+    AsyncStorage.getItem("@dkd:seller_profile_photo").then((uri) => {
+      if (uri) setProfilePhoto(uri);
+    }).catch(() => {});
+  }, []));
 
   const saveField = (key: string, val: string) => AsyncStorage.setItem(key, val);
 
