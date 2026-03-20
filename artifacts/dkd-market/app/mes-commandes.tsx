@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -89,6 +89,7 @@ export default function MesCommandesPage() {
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
 
   const visible = orders.filter((o) => o.status !== "annulee");
   const pendingCount   = visible.filter((o) => o.status === "pending").length;
@@ -112,20 +113,8 @@ export default function MesCommandesPage() {
 
   const promptCancelConfirmed = useCallback((order: Order) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    Alert.alert(
-      "Annuler la commande ?",
-      `Vous êtes sur le point d'annuler définitivement la commande de ${order.clientName}.\n\nCette action est irréversible. Le client sera notifié que sa commande a été annulée par le vendeur.`,
-      [
-        { text: "Retour", style: "cancel" },
-        {
-          text: "Confirmer l'annulation",
-          style: "destructive",
-          onPress: () => cancelOrder(order.id),
-        },
-      ],
-      { cancelable: true }
-    );
-  }, [cancelOrder]);
+    setCancelTarget(order);
+  }, []);
 
   const openDetail = useCallback((order: Order) => {
     Haptics.selectionAsync();
@@ -311,6 +300,64 @@ export default function MesCommandesPage() {
           isDark={isDark}
         />
       )}
+
+      {/* ── Modale de confirmation d'annulation ── */}
+      <Modal
+        visible={!!cancelTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCancelTarget(null)}
+      >
+        <Pressable style={s.overlay} onPress={() => setCancelTarget(null)}>
+          <Pressable style={[s.dialog, { backgroundColor: isDark ? "#1C2230" : "#FFFFFF" }]} onPress={() => {}}>
+            {/* Icône */}
+            <View style={s.dialogIconWrap}>
+              <Ionicons name="warning-outline" size={32} color="#EF4444" />
+            </View>
+
+            {/* Titre */}
+            <Text style={[s.dialogTitle, { color: isDark ? "#FFFFFF" : "#111827" }]}>
+              Annuler la commande ?
+            </Text>
+
+            {/* Corps */}
+            <Text style={[s.dialogBody, { color: isDark ? "rgba(255,255,255,0.65)" : "#4B5563" }]}>
+              Vous êtes sur le point d'annuler définitivement la commande de{" "}
+              <Text style={s.dialogClientName}>{cancelTarget?.clientName}</Text>.
+            </Text>
+            <Text style={[s.dialogWarning, { color: isDark ? "rgba(255,255,255,0.5)" : "#6B7280" }]}>
+              ⚠️ Cette action est irréversible. Le client recevra une notification l'informant que sa commande a été annulée par le vendeur.
+            </Text>
+
+            {/* Boutons */}
+            <View style={s.dialogBtns}>
+              <TouchableOpacity
+                style={[s.dialogBtnBack, { borderColor: isDark ? "rgba(255,255,255,0.15)" : "#E5E7EB" }]}
+                onPress={() => setCancelTarget(null)}
+                activeOpacity={0.8}
+              >
+                <Text style={[s.dialogBtnBackText, { color: isDark ? "rgba(255,255,255,0.7)" : "#374151" }]}>
+                  Retour
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.dialogBtnConfirm}
+                onPress={() => {
+                  if (cancelTarget) {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                    cancelOrder(cancelTarget.id);
+                    setCancelTarget(null);
+                  }
+                }}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="close-circle" size={15} color="#fff" />
+                <Text style={s.dialogBtnConfirmText}>Confirmer l'annulation</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -354,4 +401,17 @@ const s = StyleSheet.create({
   actionBtnColorText: { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
   cancelConfirmedBtn: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 12, borderWidth: 1.5, backgroundColor: "#EF444412", borderColor: "#EF444445" },
   cancelConfirmedText:{ fontFamily: "Poppins_600SemiBold", fontSize: 13, color: "#EF4444", flex: 1 },
+
+  overlay:            { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", alignItems: "center", padding: 24 },
+  dialog:             { width: "100%", maxWidth: 380, borderRadius: 20, padding: 24, gap: 14, shadowColor: "#000", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 20, elevation: 12 },
+  dialogIconWrap:     { width: 60, height: 60, borderRadius: 30, backgroundColor: "#EF444415", alignItems: "center", justifyContent: "center", alignSelf: "center" },
+  dialogTitle:        { fontFamily: "Poppins_700Bold", fontSize: 18, textAlign: "center" },
+  dialogBody:         { fontFamily: "Poppins_400Regular", fontSize: 14, textAlign: "center", lineHeight: 22 },
+  dialogClientName:   { fontFamily: "Poppins_700Bold", color: "#EF4444" },
+  dialogWarning:      { fontFamily: "Poppins_400Regular", fontSize: 12, textAlign: "center", lineHeight: 18 },
+  dialogBtns:         { flexDirection: "row", gap: 10, marginTop: 4 },
+  dialogBtnBack:      { flex: 1, paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, alignItems: "center" },
+  dialogBtnBackText:  { fontFamily: "Poppins_600SemiBold", fontSize: 14 },
+  dialogBtnConfirm:   { flex: 1.4, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, paddingVertical: 13, borderRadius: 12, backgroundColor: "#EF4444" },
+  dialogBtnConfirmText:{ fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
 });
