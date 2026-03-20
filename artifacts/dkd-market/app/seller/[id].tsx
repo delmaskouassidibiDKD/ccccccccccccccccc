@@ -229,7 +229,7 @@ export default function SellerScreen() {
                   <Text style={styles.avatarInitials}>{initials}</Text>
                 )}
               </View>
-              {isVerified && (
+              {isVerified && !isPreview && (
                 <View style={styles.verifiedBadge}>
                   <Ionicons name="checkmark" size={10} color="#fff" />
                 </View>
@@ -305,7 +305,7 @@ export default function SellerScreen() {
 
               {/* Partager — petit, fond noir */}
               <TouchableOpacity style={styles.iconActionBtn} onPress={handleShare} activeOpacity={0.8}>
-                <Ionicons name="share-social-outline" size={15} color="#fff" />
+                <Ionicons name="share-social-outline" size={13} color="#fff" />
                 <Text style={styles.iconActionLabel}>Partager</Text>
               </TouchableOpacity>
 
@@ -366,7 +366,7 @@ export default function SellerScreen() {
                       activeOpacity={0.75}
                       onPress={() => Haptics.selectionAsync()}
                     >
-                      <Ionicons name={cfg.icon as any} size={15} color={cfg.color} />
+                      <Ionicons name={cfg.icon as any} size={12} color={cfg.color} />
                       <Text style={[styles.shopTypeLabel, { color: cfg.color }]} numberOfLines={1}>{cfg.label}</Text>
                     </TouchableOpacity>
                   );
@@ -376,8 +376,8 @@ export default function SellerScreen() {
           </View>
         )}
 
-        {/* ── Section Gestion — visible sur son propre profil (own) ── */}
-        {id === "own" && (
+        {/* ── Section Gestion — visible uniquement sur le vrai profil own (pas aperçu) ── */}
+        {isOwnProfile && (
           <View style={styles.gestionSection}>
             <View style={styles.shopTypesRow}>
               <TouchableOpacity
@@ -597,19 +597,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-around",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 9,
     backgroundColor: Colors.surface,
     marginHorizontal: 16,
-    borderRadius: 14,
-    marginBottom: 14,
+    borderRadius: 12,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  statItem: { flex: 1, alignItems: "center", gap: 4 },
-  statValue: { fontFamily: "Poppins_700Bold", fontSize: 18, color: Colors.text },
+  statItem: { flex: 1, alignItems: "center", gap: 2 },
+  statValue: { fontFamily: "Poppins_700Bold", fontSize: 14, color: Colors.text },
   statLabelRow: { flexDirection: "row", alignItems: "center", gap: 3 },
-  statLabel: { fontFamily: "Poppins_400Regular", fontSize: 11, color: Colors.textMuted },
-  statDivider: { width: 1, height: 32, backgroundColor: Colors.border },
+  statLabel: { fontFamily: "Poppins_400Regular", fontSize: 10, color: Colors.textMuted },
+  statDivider: { width: 1, height: 24, backgroundColor: Colors.border },
 
   /* Action row — compact 3 buttons */
   actionRow: {
@@ -630,17 +630,17 @@ const styles = StyleSheet.create({
   },
   chatBtnText: { fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
   iconActionBtn: {
-    flex: 0.6,
+    flex: 0.42,
     alignItems: "center",
     justifyContent: "center",
-    gap: 3,
-    paddingVertical: 8,
+    gap: 2,
+    paddingVertical: 6,
     backgroundColor: "#111",
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#333",
   },
-  iconActionLabel: { fontFamily: "Poppins_500Medium", fontSize: 9, color: "#fff" },
+  iconActionLabel: { fontFamily: "Poppins_500Medium", fontSize: 8, color: "#fff" },
   subscribeBtn: {
     flex: 1,
     flexDirection: "row",
@@ -704,14 +704,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 3,
-    paddingVertical: 7,
-    borderRadius: 8,
+    gap: 2,
+    paddingVertical: 5,
+    borderRadius: 7,
     borderWidth: 1,
   },
   shopTypeLabel: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 9,
+    fontSize: 8,
     textAlign: "center",
   },
 
