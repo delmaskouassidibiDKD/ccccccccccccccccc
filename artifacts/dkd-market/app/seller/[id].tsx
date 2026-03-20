@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   TouchableWithoutFeedback,
   Platform,
@@ -28,7 +29,7 @@ import { DEMO_ARTICLES as ALL_ARTICLES, DELETED_ARTICLES_KEY } from "@/data/arti
 import { DEMO_ENGROS as ALL_ENGROS, DELETED_ENGROS_KEY } from "@/data/engros";
 import { SellerProductCard } from "@/components/SellerProductCard";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const VIDEO_CELL = (SCREEN_WIDTH - 4) / 3;
 const SELLER_TABS = ["Vidéos", "Articles", "En gros"];
 const SELLER_SHOP_TYPES_KEY = "@dkd:seller_shop_types";
@@ -70,7 +71,8 @@ export default function SellerScreen() {
   const [activeTab, setActiveTab] = useState(0);
   const [subscribed, setSubscribed] = useState(false);
   const [shopTypes, setShopTypes] = useState<string[]>([]);
-  const [playerVideo,   setPlayerVideo]   = useState<VideoPublication | null>(null);
+  const [playerStartIndex, setPlayerStartIndex] = useState<number | null>(null);
+  const [currentPlayerIdx, setCurrentPlayerIdx] = useState(0);
   const [pubArticles,   setPubArticles]   = useState(ALL_ARTICLES);
   const [pubEngros,     setPubEngros]     = useState(ALL_ENGROS);
   const [logoError,     setLogoError]     = useState(false);
@@ -441,7 +443,13 @@ export default function SellerScreen() {
               {DEMO_VIDEOS.map((vid) => (
                 <TouchableWithoutFeedback
                   key={vid.id}
-                  onPress={() => { Haptics.selectionAsync(); setPlayerVideo(vid); }}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    const idx = DEMO_VIDEOS.findIndex((v) => v.id === vid.id);
+                    const i = idx >= 0 ? idx : 0;
+                    setCurrentPlayerIdx(i);
+                    setPlayerStartIndex(i);
+                  }}
                 >
                   <View style={[styles.videoCell, { backgroundColor: vid.color }]}>
                     <Ionicons name={vid.icon as any} size={28} color="rgba(255,255,255,0.3)" style={{ position: "absolute" }} />
@@ -508,41 +516,62 @@ export default function SellerScreen() {
         )}
       </ScrollView>
 
-      {/* ── Modal player lecture seule (aperçu public) ── */}
-      <Modal visible={!!playerVideo} animationType="fade" statusBarTranslucent>
-        {playerVideo && (
-          <View style={{ flex: 1, backgroundColor: "#000" }}>
-            {/* Barre top — fermer seulement */}
-            <View style={[styles.playerTopBar, { paddingTop: insets.top + 10 }]}>
-              <TouchableOpacity style={styles.playerCloseBtn} onPress={() => setPlayerVideo(null)} activeOpacity={0.8}>
-                <Ionicons name="close" size={22} color="#fff" />
-              </TouchableOpacity>
-              <Text style={styles.playerTitle} numberOfLines={1}>{playerVideo.title}</Text>
-            </View>
-
-            {/* Zone vidéo */}
-            <View style={[styles.playerVideoArea, { backgroundColor: playerVideo.color }]}>
-              <Ionicons name={playerVideo.icon as any} size={64} color="rgba(255,255,255,0.25)" />
-              <Ionicons name="play-circle" size={72} color="rgba(255,255,255,0.85)" style={{ position: "absolute" }} />
-              <View style={styles.playerDurationPill}>
-                <Text style={styles.playerDurationText}>{playerVideo.duration}</Text>
-              </View>
-            </View>
-
-            {/* Infos bas */}
-            <View style={styles.playerInfoBar}>
-              <Text style={styles.playerInfoTitle} numberOfLines={2}>{playerVideo.title}</Text>
-              <View style={styles.playerInfoStats}>
-                <Ionicons name="eye-outline" size={14} color="#aaa" />
-                <Text style={styles.playerInfoStatText}>{playerVideo.views.toLocaleString()} vues</Text>
-                <Ionicons name="heart-outline" size={14} color="#aaa" />
-                <Text style={styles.playerInfoStatText}>{playerVideo.likes}</Text>
-                <Ionicons name="chatbubble-outline" size={14} color="#aaa" />
-                <Text style={styles.playerInfoStatText}>{playerVideo.comments}</Text>
-              </View>
-            </View>
+      {/* ── Modal TikTok player lecture seule ── */}
+      <Modal visible={playerStartIndex !== null} animationType="fade" statusBarTranslucent>
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+          {/* Barre flottante fermer */}
+          <View style={[styles.playerTopBar, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity style={styles.playerCloseBtn} onPress={() => setPlayerStartIndex(null)} activeOpacity={0.8}>
+              <Ionicons name="close" size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.playerTitle} numberOfLines={1}>
+              {DEMO_VIDEOS[currentPlayerIdx]?.title ?? ""}
+            </Text>
           </View>
-        )}
+
+          {/* Liste TikTok */}
+          {playerStartIndex !== null && (
+            <FlatList
+              data={DEMO_VIDEOS}
+              keyExtractor={(v) => v.id}
+              pagingEnabled
+              showsVerticalScrollIndicator={false}
+              initialScrollIndex={playerStartIndex}
+              getItemLayout={(_, index) => ({ length: SCREEN_HEIGHT, offset: SCREEN_HEIGHT * index, index })}
+              onMomentumScrollEnd={(e) => {
+                const idx = Math.round(e.nativeEvent.contentOffset.y / SCREEN_HEIGHT);
+                setCurrentPlayerIdx(idx);
+              }}
+              renderItem={({ item }) => (
+                <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: item.color }}>
+                  {/* Icône + play centré */}
+                  <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name={item.icon as any} size={88} color="rgba(255,255,255,0.18)" />
+                    <View style={{ position: "absolute" }}>
+                      <Ionicons name="play-circle" size={82} color="rgba(255,255,255,0.85)" />
+                    </View>
+                  </View>
+                  {/* Durée */}
+                  <View style={styles.playerDurationPill}>
+                    <Text style={styles.playerDurationText}>{item.duration}</Text>
+                  </View>
+                  {/* Infos bas */}
+                  <View style={[styles.playerInfoBar, { position: "absolute", bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom + 24 }]}>
+                    <Text style={styles.playerInfoTitle} numberOfLines={2}>{item.title}</Text>
+                    <View style={styles.playerInfoStats}>
+                      <Ionicons name="eye-outline" size={14} color="#aaa" />
+                      <Text style={styles.playerInfoStatText}>{item.views.toLocaleString()} vues</Text>
+                      <Ionicons name="heart-outline" size={14} color="#aaa" />
+                      <Text style={styles.playerInfoStatText}>{item.likes}</Text>
+                      <Ionicons name="chatbubble-outline" size={14} color="#aaa" />
+                      <Text style={styles.playerInfoStatText}>{item.comments}</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            />
+          )}
+        </View>
       </Modal>
     </View>
   );

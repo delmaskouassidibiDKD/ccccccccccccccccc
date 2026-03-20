@@ -126,7 +126,8 @@ export default function MesPublications() {
   const searchAnim = useRef(new Animated.Value(0)).current;
 
   /* ── Modales vidéo ── */
-  const [playerVideo,  setPlayerVideo]  = useState<VideoPublication | null>(null);
+  const [playerStartIndex, setPlayerStartIndex] = useState<number | null>(null);
+  const [currentPlayerIdx, setCurrentPlayerIdx] = useState(0);
   const [statsVideo,   setStatsVideo]   = useState<VideoPublication | null>(null);
   const [confirmVideo, setConfirmVideo] = useState<VideoPublication | null>(null);
   const [confirmFrom,  setConfirmFrom]  = useState<"player" | "stats">("player");
@@ -188,7 +189,7 @@ export default function MesPublications() {
     if (!confirmVideo) return;
     setVideos((prev) => prev.filter((v) => v.id !== confirmVideo.id));
     setConfirmVideo(null);
-    setPlayerVideo(null);
+    setPlayerStartIndex(null);
     setStatsVideo(null);
   };
 
@@ -276,7 +277,13 @@ export default function MesPublications() {
             <VideoThumb
               item={item}
               isDark={isDark}
-              onPress={() => { Haptics.selectionAsync(); setPlayerVideo(item); }}
+              onPress={() => {
+              Haptics.selectionAsync();
+              const idx = filteredVideos.findIndex((v) => v.id === item.id);
+              const i = idx >= 0 ? idx : 0;
+              setCurrentPlayerIdx(i);
+              setPlayerStartIndex(i);
+            }}
               onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setStatsVideo(item); }}
             />
           )}
@@ -321,51 +328,73 @@ export default function MesPublications() {
         />
       )}
 
-      {/* ── Modal player plein écran ── */}
-      <Modal visible={!!playerVideo} animationType="fade" statusBarTranslucent>
-        {playerVideo && (
-          <View style={pm.container}>
-            {/* Bouton Supprimer en haut */}
-            <View style={[pm.topBar, { paddingTop: insets.top + 10 }]}>
-              <TouchableOpacity style={pm.closeBtn} onPress={() => setPlayerVideo(null)} activeOpacity={0.8}>
-                <Ionicons name="close" size={22} color="#fff" />
-              </TouchableOpacity>
-              <Text style={pm.title} numberOfLines={1}>{playerVideo.title}</Text>
-              <TouchableOpacity
-                style={pm.deleteBtn}
-                onPress={() => { setConfirmFrom("player"); setConfirmVideo(playerVideo); }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="trash-outline" size={16} color="#fff" />
-                <Text style={pm.deleteBtnText}>Supprimer</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Zone vidéo (placeholder coloré) */}
-            <View style={[pm.videoArea, { backgroundColor: playerVideo.color }]}>
-              <Ionicons name={playerVideo.icon as any} size={64} color="rgba(255,255,255,0.25)" />
-              <View style={pm.bigPlay}>
-                <Ionicons name="play-circle" size={72} color="rgba(255,255,255,0.85)" />
-              </View>
-              <View style={pm.durationPill}>
-                <Text style={pm.durationText}>{playerVideo.duration}</Text>
-              </View>
-            </View>
-
-            {/* Infos bas */}
-            <View style={pm.infoBar}>
-              <Text style={pm.infoTitle} numberOfLines={2}>{playerVideo.title}</Text>
-              <View style={pm.infoStats}>
-                <Ionicons name="eye-outline" size={14} color="#aaa" />
-                <Text style={pm.infoStatText}>{playerVideo.views.toLocaleString()} vues</Text>
-                <Ionicons name="heart-outline" size={14} color="#aaa" />
-                <Text style={pm.infoStatText}>{playerVideo.likes}</Text>
-                <Ionicons name="chatbubble-outline" size={14} color="#aaa" />
-                <Text style={pm.infoStatText}>{playerVideo.comments}</Text>
-              </View>
-            </View>
+      {/* ── Modal TikTok player (défilement vertical) ── */}
+      <Modal visible={playerStartIndex !== null} animationType="fade" statusBarTranslucent>
+        <View style={pm.container}>
+          {/* Barre flottante fermer + supprimer */}
+          <View style={[pm.topBar, { paddingTop: insets.top + 10 }]}>
+            <TouchableOpacity style={pm.closeBtn} onPress={() => setPlayerStartIndex(null)} activeOpacity={0.8}>
+              <Ionicons name="close" size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={pm.title} numberOfLines={1}>
+              {filteredVideos[currentPlayerIdx]?.title ?? ""}
+            </Text>
+            <TouchableOpacity
+              style={pm.deleteBtn}
+              onPress={() => {
+                const vid = filteredVideos[currentPlayerIdx];
+                if (vid) { setConfirmFrom("player"); setConfirmVideo(vid); }
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="trash-outline" size={16} color="#fff" />
+              <Text style={pm.deleteBtnText}>Supprimer</Text>
+            </TouchableOpacity>
           </View>
-        )}
+
+          {/* Liste défilable style TikTok */}
+          {playerStartIndex !== null && (
+            <FlatList
+              data={filteredVideos}
+              keyExtractor={(v) => v.id}
+              pagingEnabled
+              showsVerticalScrollIndicator={false}
+              initialScrollIndex={playerStartIndex}
+              getItemLayout={(_, index) => ({ length: SCREEN_H, offset: SCREEN_H * index, index })}
+              onMomentumScrollEnd={(e) => {
+                const idx = Math.round(e.nativeEvent.contentOffset.y / SCREEN_H);
+                setCurrentPlayerIdx(idx);
+              }}
+              renderItem={({ item }) => (
+                <View style={{ width: SCREEN_W, height: SCREEN_H, backgroundColor: item.color }}>
+                  {/* Icône + play centré */}
+                  <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
+                    <Ionicons name={item.icon as any} size={88} color="rgba(255,255,255,0.18)" />
+                    <View style={{ position: "absolute" }}>
+                      <Ionicons name="play-circle" size={82} color="rgba(255,255,255,0.85)" />
+                    </View>
+                  </View>
+                  {/* Durée */}
+                  <View style={pm.durationPill}>
+                    <Text style={pm.durationText}>{item.duration}</Text>
+                  </View>
+                  {/* Infos bas */}
+                  <View style={[pm.infoBar, { position: "absolute", bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom + 24 }]}>
+                    <Text style={pm.infoTitle} numberOfLines={2}>{item.title}</Text>
+                    <View style={pm.infoStats}>
+                      <Ionicons name="eye-outline" size={14} color="#aaa" />
+                      <Text style={pm.infoStatText}>{item.views.toLocaleString()} vues</Text>
+                      <Ionicons name="heart-outline" size={14} color="#aaa" />
+                      <Text style={pm.infoStatText}>{item.likes}</Text>
+                      <Ionicons name="chatbubble-outline" size={14} color="#aaa" />
+                      <Text style={pm.infoStatText}>{item.comments}</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            />
+          )}
+        </View>
       </Modal>
 
       {/* ── Modal stats (appui long) ── */}
