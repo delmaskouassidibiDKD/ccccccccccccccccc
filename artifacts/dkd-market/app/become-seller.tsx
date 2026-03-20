@@ -499,6 +499,14 @@ function SellerDashboard({ initials, profilePhoto, onPhotoChanged, shopName, sta
 
         <Text style={[dashStyles.sectionTitle, { color: dTEXT }]}>Gestion</Text>
 
+        <TouchableOpacity
+          style={[dashStyles.mgmtBtn, { backgroundColor: "rgba(255,107,0,0.12)", borderColor: "rgba(255,107,0,0.3)" }]}
+          onPress={() => router.push("/paiements-vendeur" as any)}
+        >
+          <Ionicons name="cash-outline" size={20} color="#FF6B00" />
+          <Text style={[dashStyles.mgmtBtnText, { color: "#FF6B00" }]}>Mes paiements en cours</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={dashStyles.mgmtBtn} onPress={() => router.push("/mes-publications" as any)}>
           <MaterialCommunityIcons name="format-list-bulleted" size={20} color="#06B6D4" />
           <Text style={[dashStyles.mgmtBtnText, { color: "#06B6D4" }]}>Gérer mes publications</Text>
