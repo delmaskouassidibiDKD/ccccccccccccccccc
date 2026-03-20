@@ -115,11 +115,7 @@ export function AppHeader({ onMenuPress, showNotif = true, notifCount = 1, onGlo
             )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7} onPress={() => router.push("/profile")}>
-            {profilePhoto ? (
-              <Image source={{ uri: profilePhoto }} style={styles.profilePhotoThumb} />
-            ) : (
-              <Ionicons name="settings-outline" size={21} color="#fff" />
-            )}
+            <Ionicons name="settings-outline" size={21} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
