@@ -8,8 +8,8 @@ import * as Haptics from "expo-haptics";
 import type { Source } from "@/lib/orders-data";
 
 const { width: SW } = Dimensions.get("window");
-const CARD_W   = Math.round((SW - 52) / 2);
-const CARD_GAP = 10;
+const CARD_W   = SW - 48;
+const CARD_GAP = 12;
 const SNAP     = CARD_W + CARD_GAP;
 
 export const SOURCE_CONFIG: Record<Source, { label: string; color: string; icon: string }> = {

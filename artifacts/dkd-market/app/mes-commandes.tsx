@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../contexts/ThemeContext";
-import CommandeDetailModal, { SOURCE_CONFIG, type ProductSlide } from "@/components/CommandeDetailModal";
+import CommandeDetailModal, { type ProductSlide } from "@/components/CommandeDetailModal";
 import type { Source } from "@/lib/orders-data";
 
 const ACCENT = "#C0392B";
@@ -205,25 +205,16 @@ export default function MesCommandesPage() {
           </View>
         )}
         {filtered.map((order) => {
-          const src = order.source ? SOURCE_CONFIG[order.source] : null;
           const hasGros = order.products.some((p) => p.isGros);
           return (
             <View key={order.id} style={[s.card, { backgroundColor: dCARD, borderColor: dBORDER }]}>
 
-              {(src || hasGros) && (
+              {hasGros && (
                 <View style={s.badgesRow}>
-                  {src && (
-                    <View style={[s.sourceBadge, { backgroundColor: src.color + "16", borderColor: src.color + "35" }]}>
-                      <Ionicons name={src.icon as any} size={11} color={src.color} />
-                      <Text style={[s.sourceBadgeText, { color: src.color }]}>{src.label}</Text>
-                    </View>
-                  )}
-                  {hasGros && (
-                    <View style={[s.sourceBadge, { backgroundColor: "#EF444416", borderColor: "#EF444435" }]}>
-                      <Ionicons name="people-outline" size={11} color="#EF4444" />
-                      <Text style={[s.sourceBadgeText, { color: "#EF4444" }]}>Achats groupés</Text>
-                    </View>
-                  )}
+                  <View style={[s.sourceBadge, { backgroundColor: "#EF444416", borderColor: "#EF444435" }]}>
+                    <Ionicons name="people-outline" size={11} color="#EF4444" />
+                    <Text style={[s.sourceBadgeText, { color: "#EF4444" }]}>Achats groupés</Text>
+                  </View>
                 </View>
               )}
 

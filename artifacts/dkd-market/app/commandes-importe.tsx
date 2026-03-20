@@ -9,7 +9,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ORDERS } from "@/lib/orders-data";
-import CommandeDetailModal, { SOURCE_CONFIG, type ProductSlide } from "@/components/CommandeDetailModal";
+import CommandeDetailModal, { type ProductSlide } from "@/components/CommandeDetailModal";
 import DevisBuilderModal from "@/components/DevisBuilderModal";
 import type { Order } from "@/lib/orders-data";
 
@@ -223,7 +223,6 @@ export default function CommandesImportePage() {
             const processing = processingIds.has(item.id);
             const devisDone  = devisedIds.has(item.id);
             const confirmed  = confirmedIds.has(item.id);
-            const src        = item.source ? SOURCE_CONFIG[item.source] : null;
             const hasGros    = item.items.some((i) => i.isGros);
             const devisEnabled = processing;
 
@@ -233,14 +232,8 @@ export default function CommandesImportePage() {
                 { backgroundColor: dynCARD, borderColor: confirmed ? "#22C55E44" : processing ? "#F59E0B44" : dynBorder },
               ]}>
 
-                {/* Badges source + gros + statut */}
+                {/* Badges */}
                 <View style={s.badgesRow}>
-                  {src && (
-                    <View style={[s.sourceBadge, { backgroundColor: src.color + "16", borderColor: src.color + "35" }]}>
-                      <Ionicons name={src.icon as any} size={11} color={src.color} />
-                      <Text style={[s.sourceBadgeText, { color: src.color }]}>{src.label}</Text>
-                    </View>
-                  )}
                   {hasGros && (
                     <View style={[s.sourceBadge, { backgroundColor: "#EF444416", borderColor: "#EF444435" }]}>
                       <Ionicons name="people-outline" size={11} color="#EF4444" />
