@@ -201,12 +201,6 @@ export default function GestionLivraisonPage() {
                 </View>
               )
             )}
-            {tab === "livre" && dl.code !== "" && (
-              <View style={s.codeUsedRow}>
-                <Ionicons name="checkmark-circle" size={14} color="#22C55E" />
-                <Text style={[s.codeUsedText, { color: dMUTED }]}>Code utilisé : {dl.code}</Text>
-              </View>
-            )}
 
             {/* ACTIONS */}
             <View style={s.actionsRow}>
