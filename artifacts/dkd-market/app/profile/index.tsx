@@ -69,12 +69,7 @@ export default function ProfileScreen() {
   }
 
   const initials = user?.full_name
-    ? user.full_name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+    ? user.full_name.charAt(0).toUpperCase()
     : "?";
 
   const handlePickAvatar = async () => {

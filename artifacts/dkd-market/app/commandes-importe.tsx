@@ -134,6 +134,31 @@ export default function CommandesImportePage() {
     setCancelledIds((prev) => new Set([...prev, id]));
   };
 
+  const cancelConfirmedOrder = (id: string, clientName: string) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert(
+      "Annuler la commande ?",
+      `Vous êtes sur le point d'annuler définitivement la commande de ${clientName}.\n\nCette action est irréversible. Le client recevra une notification l'informant que sa commande a été annulée par le vendeur.`,
+      [
+        { text: "Retour", style: "cancel" },
+        {
+          text: "Confirmer l'annulation",
+          style: "destructive",
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            setCancelledIds((prev) => new Set([...prev, id]));
+            setConfirmedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(id);
+              return next;
+            });
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   const openDevisBuilder = (order: Order) => {
     if (!processingIds.has(order.id) && !devisAppliedIds.has(order.id)) return;
     Haptics.selectionAsync();
@@ -372,6 +397,21 @@ export default function CommandesImportePage() {
                       {processing ? "En cours de traitement" : "Marquer comme en cours de traitement"}
                     </Text>
                     {processing && <Ionicons name="checkmark-circle" size={14} color="#F59E0B" style={{ marginLeft: "auto" }} />}
+                  </TouchableOpacity>
+                )}
+
+                {/* Bouton "Annuler la commande" — uniquement dans Confirmées */}
+                {confirmed && (
+                  <TouchableOpacity
+                    style={[s.confirmClientBtn, { backgroundColor: "#EF444414", borderColor: "#EF444450" }]}
+                    onPress={() => cancelConfirmedOrder(item.id, item.name)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="close-circle-outline" size={15} color="#EF4444" />
+                    <Text style={[s.confirmClientText, { color: "#EF4444" }]}>
+                      Annuler la commande
+                    </Text>
+                    <Ionicons name="chevron-forward" size={13} color="#EF4444" style={{ marginLeft: "auto" }} />
                   </TouchableOpacity>
                 )}
 
