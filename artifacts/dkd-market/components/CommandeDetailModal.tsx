@@ -8,7 +8,7 @@ import * as Haptics from "expo-haptics";
 import type { Source } from "@/lib/orders-data";
 
 const { width: SW } = Dimensions.get("window");
-const CARD_W   = SW - 48;
+const CARD_W   = Math.min(Math.round(SW * 0.62), 250);
 const CARD_GAP = 12;
 const SNAP     = CARD_W + CARD_GAP;
 
@@ -201,9 +201,11 @@ const pc = StyleSheet.create({
   card: {
     borderRadius: 16,
     overflow: "hidden",
+    width: CARD_W,
+    height: CARD_W,
   },
   photo: {
-    height: 120,
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",

@@ -52,8 +52,9 @@ export default function CommandesImportePage() {
   const [search,         setSearch]         = useState("");
   const [processingIds,  setProcessingIds]  = useState<Set<string>>(new Set());
   const [cancelledIds,   setCancelledIds]   = useState<Set<string>>(new Set());
-  const [devisedIds,     setDevisedIds]     = useState<Set<string>>(new Set());
-  const [confirmedIds,   setConfirmedIds]   = useState<Set<string>>(new Set());
+  const [devisAppliedIds, setDevisAppliedIds] = useState<Set<string>>(new Set());
+  const [devisedIds,      setDevisedIds]      = useState<Set<string>>(new Set());
+  const [confirmedIds,    setConfirmedIds]    = useState<Set<string>>(new Set());
 
   const [detailOpen,     setDetailOpen]     = useState(false);
   const [detailOrder,    setDetailOrder]    = useState<Order | null>(null);
@@ -219,12 +220,13 @@ export default function CommandesImportePage() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
           renderItem={({ item }) => {
-            const total      = orderTotal(item);
-            const processing = processingIds.has(item.id);
-            const devisDone  = devisedIds.has(item.id);
-            const confirmed  = confirmedIds.has(item.id);
-            const hasGros    = item.items.some((i) => i.isGros);
-            const devisEnabled = processing;
+            const total         = orderTotal(item);
+            const processing    = processingIds.has(item.id);
+            const devisApplied  = devisAppliedIds.has(item.id);
+            const devisSent     = devisedIds.has(item.id);
+            const confirmed     = confirmedIds.has(item.id);
+            const hasGros       = item.items.some((i) => i.isGros);
+            const devisEnabled  = processing && !devisApplied;
 
             return (
               <View style={[
@@ -246,10 +248,16 @@ export default function CommandesImportePage() {
                       <Text style={[s.sourceBadgeText, { color: "#22C55E" }]}>Confirmé</Text>
                     </View>
                   )}
-                  {!confirmed && devisDone && (
+                  {!confirmed && devisSent && (
                     <View style={[s.sourceBadge, { backgroundColor: "#F59E0B16", borderColor: "#F59E0B35" }]}>
                       <Ionicons name="time-outline" size={11} color="#F59E0B" />
                       <Text style={[s.sourceBadgeText, { color: "#F59E0B" }]}>En attente de validation</Text>
+                    </View>
+                  )}
+                  {!confirmed && devisApplied && !devisSent && (
+                    <View style={[s.sourceBadge, { backgroundColor: "#3B82F616", borderColor: "#3B82F635" }]}>
+                      <Ionicons name="document-text-outline" size={11} color="#3B82F6" />
+                      <Text style={[s.sourceBadgeText, { color: "#3B82F6" }]}>Devis prêt</Text>
                     </View>
                   )}
                 </View>
@@ -272,7 +280,7 @@ export default function CommandesImportePage() {
                 <View style={[s.totalRow, { borderColor: dynBorder }]}>
                   <Text style={[s.totalLabel, { color: dynSub }]}>Total commande</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    {processing && !devisDone && (
+                    {processing && !devisApplied && (
                       <View style={[s.processingBadge, { backgroundColor: "#F59E0B18", borderColor: "#F59E0B44" }]}>
                         <View style={s.processingDot} />
                         <Text style={[s.processingBadgeText, { color: "#F59E0B" }]}>En cours</Text>
@@ -301,11 +309,11 @@ export default function CommandesImportePage() {
                     <Text style={[s.btnChatText, { color: "#34D399" }]}>Discuter</Text>
                   </TouchableOpacity>
 
-                  {/* Bouton Devis — désactivé si pas en cours de traitement */}
+                  {/* Bouton Devis */}
                   <TouchableOpacity
                     style={[
                       s.btnDevis,
-                      devisDone
+                      devisApplied
                         ? { backgroundColor: ACCENT }
                         : devisEnabled
                           ? { backgroundColor: "transparent", borderWidth: 1.5, borderColor: ACCENT }
@@ -318,16 +326,16 @@ export default function CommandesImportePage() {
                     <Ionicons
                       name="document-text-outline"
                       size={13}
-                      color={devisDone ? "#fff" : devisEnabled ? ACCENT : dynSub}
+                      color={devisApplied ? "#fff" : devisEnabled ? ACCENT : dynSub}
                     />
-                    <Text style={[s.btnDevisText, { color: devisDone ? "#fff" : devisEnabled ? ACCENT : dynSub }]}>
+                    <Text style={[s.btnDevisText, { color: devisApplied ? "#fff" : devisEnabled ? ACCENT : dynSub }]}>
                       Devis
                     </Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* Bouton "En cours de traitement" — seulement si pas encore devisé */}
-                {!devisDone && !confirmed && (
+                {/* Bouton "En cours de traitement" — seulement si devis pas encore appliqué */}
+                {!devisApplied && !confirmed && (
                   <TouchableOpacity
                     style={[
                       s.processingToggle,
@@ -347,8 +355,26 @@ export default function CommandesImportePage() {
                   </TouchableOpacity>
                 )}
 
+                {/* Bouton "Envoyer le devis" — devis fait mais pas encore envoyé */}
+                {devisApplied && !devisSent && !confirmed && (
+                  <TouchableOpacity
+                    style={[s.confirmClientBtn, { backgroundColor: "#3B82F614", borderColor: "#3B82F644" }]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      setDevisedIds((prev) => new Set([...prev, item.id]));
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="send-outline" size={14} color="#3B82F6" />
+                    <Text style={[s.confirmClientText, { color: "#3B82F6" }]}>
+                      Envoyer le devis au client
+                    </Text>
+                    <Ionicons name="chevron-forward" size={13} color="#3B82F6" style={{ marginLeft: "auto" }} />
+                  </TouchableOpacity>
+                )}
+
                 {/* Bouton "Client a confirmé" — seulement dans En attente */}
-                {devisDone && !confirmed && (
+                {devisSent && !confirmed && (
                   <TouchableOpacity
                     style={[s.confirmClientBtn, { backgroundColor: "#22C55E14", borderColor: "#22C55E44" }]}
                     onPress={() => confirmByClient(item.id)}
@@ -386,7 +412,7 @@ export default function CommandesImportePage() {
           isDark={isDark}
           onConfirm={() => {
             if (devisOrder) {
-              setDevisedIds((prev) => new Set([...prev, devisOrder.id]));
+              setDevisAppliedIds((prev) => new Set([...prev, devisOrder.id]));
             }
           }}
         />

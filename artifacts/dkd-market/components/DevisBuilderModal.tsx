@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import {
   View, Text, StyleSheet, Modal, Pressable, TouchableOpacity,
-  TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform,
+  TextInput, ScrollView, KeyboardAvoidingView, Platform,
   Switch,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -105,11 +105,8 @@ export default function DevisBuilderModal({ visible, onClose, clientName, isDark
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const totalVal  = autoCalc ? fmtNum(totalAuto) : totalManuel;
     const totalFull = `${totalVal} ${currency.code}`;
-    Alert.alert(
-      "Devis appliqué",
-      `Le devis de ${totalFull} a été appliqué pour ${clientName}.`,
-      [{ text: "OK", onPress: () => { handleClose(); onConfirm({ rows, total: totalFull, autoCalc }); } }]
-    );
+    handleClose();
+    onConfirm({ rows, total: totalFull, autoCalc });
   };
 
   const handleClose = useCallback(() => {
