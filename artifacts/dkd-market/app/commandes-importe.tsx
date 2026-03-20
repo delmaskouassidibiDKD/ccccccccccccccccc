@@ -58,6 +58,7 @@ export default function CommandesImportePage() {
 
   const [devisOpen,      setDevisOpen]      = useState(false);
   const [devisOrder,     setDevisOrder]     = useState<Order | null>(null);
+  const [devisedIds,     setDevisedIds]     = useState<Set<string>>(new Set());
 
   const activeOrders = ORDERS.filter((o) => !cancelledIds.has(o.id));
 
@@ -116,10 +117,6 @@ export default function CommandesImportePage() {
     router.push(`/dm-importe?id=${encodeURIComponent(dmId)}&name=${encodeURIComponent(item.name)}&initials=${encodeURIComponent(item.initials)}&color=${encodeURIComponent(item.color)}` as any);
   };
 
-  const applyDevis = (o: Order) => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert("Devis appliqué", `Le devis de ${orderTotal(o).toLocaleString("fr-FR")} FCFA a été appliqué pour ${o.name}.`, [{ text: "OK" }]);
-  };
 
   return (
     <View style={[s.root, { backgroundColor: dynBG }]}>
@@ -265,24 +262,23 @@ export default function CommandesImportePage() {
                     <Text style={[s.btnChatText, { color: "#34D399" }]}>Discuter</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[s.btnDevis, { backgroundColor: ACCENT }]}
-                    onPress={() => applyDevis(item)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="document-text-outline" size={13} color="#fff" />
-                    <Text style={s.btnDevisText}>Devis</Text>
-                  </TouchableOpacity>
+                  {(() => {
+                    const done = devisedIds.has(item.id);
+                    return (
+                      <TouchableOpacity
+                        style={done
+                          ? [s.btnDevis, { backgroundColor: ACCENT }]
+                          : [s.btnDevis, { backgroundColor: "transparent", borderWidth: 1.5, borderColor: ACCENT }]
+                        }
+                        onPress={() => openDevisBuilder(item)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="document-text-outline" size={13} color={done ? "#fff" : ACCENT} />
+                        <Text style={[s.btnDevisText, { color: done ? "#fff" : ACCENT }]}>Devis</Text>
+                      </TouchableOpacity>
+                    );
+                  })()}
                 </View>
-
-                <TouchableOpacity
-                  style={[s.btnDevisCustom, { backgroundColor: isDark ? "#1E293B" : "#F0F4FA", borderColor: "#8B5CF640" }]}
-                  onPress={() => openDevisBuilder(item)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="create-outline" size={14} color="#8B5CF6" />
-                  <Text style={[s.btnDevisCustomText, { color: "#8B5CF6" }]}>Devis personnalisé</Text>
-                </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[
@@ -324,7 +320,11 @@ export default function CommandesImportePage() {
           onClose={() => { setDevisOpen(false); setDevisOrder(null); }}
           clientName={devisOrder.name}
           isDark={isDark}
-          onConfirm={() => {}}
+          onConfirm={() => {
+            if (devisOrder) {
+              setDevisedIds((prev) => new Set([...prev, devisOrder.id]));
+            }
+          }}
         />
       )}
     </View>
@@ -372,9 +372,7 @@ const s = StyleSheet.create({
   btnChat:         { flex: 0.9, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderWidth: 1.5, borderRadius: 10, paddingVertical: 8 },
   btnChatText:     { fontFamily: "Poppins_600SemiBold", fontSize: 11 },
   btnDevis:        { flex: 0.8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 10, paddingVertical: 8 },
-  btnDevisText:        { fontFamily: "Poppins_600SemiBold", fontSize: 11, color: "#fff" },
-  btnDevisCustom:      { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 1, borderRadius: 10, paddingVertical: 9 },
-  btnDevisCustomText:  { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
+  btnDevisText:        { fontFamily: "Poppins_600SemiBold", fontSize: 11 },
   processingToggle:     { flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8 },
   processingToggleText: { fontFamily: "Poppins_500Medium", fontSize: 11, flex: 1 },
   empty:        { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
