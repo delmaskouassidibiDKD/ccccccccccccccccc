@@ -247,7 +247,7 @@ export default function SellerScreen() {
         }
       >
         {/* Cover + profile */}
-        <View style={styles.coverSection}>
+        <View style={[styles.coverSection, { backgroundColor: isDark ? "#141A24" : "#FFFFFF" }]}>
           {bannerUrl ? (
             <Image source={{ uri: bannerUrl }} style={styles.coverBg} resizeMode="cover" />
           ) : (
