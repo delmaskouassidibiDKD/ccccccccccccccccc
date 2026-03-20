@@ -312,9 +312,6 @@ export default function PaiementsVendeurPage() {
                   <DkdLogo size={42} />
                   <View style={{ flex: 1 }}>
                     <Text style={[s.cardName, { color: dynText }]}>DKD-MARKET</Text>
-                    <Text style={[s.cardService, { color: dynSub }]}>
-                      {item.products.length} produit{item.products.length > 1 ? "s" : ""} · {item.orderRef}
-                    </Text>
                   </View>
                   <View style={[s.statusPill, { backgroundColor: isPaidTab ? "#22C55E18" : ACCENT + "18" }]}>
                     <Ionicons name={isPaidTab ? "checkmark-circle" : "time-outline"} size={11} color={isPaidTab ? "#22C55E" : ACCENT} />
