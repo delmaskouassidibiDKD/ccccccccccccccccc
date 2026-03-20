@@ -10,6 +10,7 @@ import {
   Dimensions,
   TextInput,
   Switch,
+  Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -44,10 +45,11 @@ export default function GrossistePage() {
   const [paymentMethod, setPaymentMethod] = useState("");
 
   useEffect(() => {
-    AsyncStorage.multiGet(["@dkd:gros_phone", "@dkd:gros_whatsapp", "@dkd:gros_payment"]).then((pairs) => {
+    AsyncStorage.multiGet(["@dkd:gros_phone", "@dkd:gros_whatsapp", "@dkd:gros_payment", "@dkd:seller_profile_photo"]).then((pairs) => {
       if (pairs[0][1]) setPhone(pairs[0][1]);
       if (pairs[1][1]) setWhatsapp(pairs[1][1]);
       if (pairs[2][1]) setPaymentMethod(pairs[2][1]);
+      if (pairs[3][1]) setProfilePhoto(pairs[3][1]);
     });
   }, []);
 
@@ -80,6 +82,7 @@ export default function GrossistePage() {
 
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Boss";
   const initial     = displayName.charAt(0).toUpperCase();
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
   const dynBG     = isDark ? "#0D1117" : "#F0F4FA";
   const dynCARD   = isDark ? "#161B25" : "#FFFFFF";
@@ -150,7 +153,10 @@ export default function GrossistePage() {
         {/* Drawer header */}
         <View style={[s.drawerHeader, { paddingTop: insets.top + 12, borderBottomColor: dynBorder, backgroundColor: ACCENT2 + (isDark ? "18" : "10") }]}>
           <View style={s.drawerAvatar}>
-            <Text style={s.drawerAvatarText}>{initial}</Text>
+            {profilePhoto
+              ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
+              : <Text style={s.drawerAvatarText}>{initial}</Text>
+            }
           </View>
           <Text style={[s.drawerName, { color: dynText }]}>{displayName}</Text>
           <View style={s.drawerBadge}>

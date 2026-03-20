@@ -11,6 +11,7 @@ import {
   Animated,
   ScrollView,
   Dimensions,
+  Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -113,10 +114,11 @@ export default function ImportePage() {
   const PAYMENT_OPTIONS = ["Mobile Money", "Virement", "Espèces", "Carte"];
 
   useEffect(() => {
-    AsyncStorage.multiGet(["@dkd:imp_phone", "@dkd:imp_whatsapp", "@dkd:imp_payment"]).then((pairs) => {
+    AsyncStorage.multiGet(["@dkd:imp_phone", "@dkd:imp_whatsapp", "@dkd:imp_payment", "@dkd:seller_profile_photo"]).then((pairs) => {
       if (pairs[0][1]) setPhone(pairs[0][1]);
       if (pairs[1][1]) setWhatsapp(pairs[1][1]);
       if (pairs[2][1]) setPaymentMethod(pairs[2][1]);
+      if (pairs[3][1]) setProfilePhoto(pairs[3][1]);
     });
   }, []);
 
@@ -177,6 +179,7 @@ export default function ImportePage() {
   const currentMenu = MENU_ITEMS.find((m) => m.id === activeSection);
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Boss";
   const initial = displayName.charAt(0).toUpperCase();
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top, backgroundColor: dynBG }]}>
@@ -234,7 +237,10 @@ export default function ImportePage() {
         {/* Drawer header */}
         <View style={[styles.drawerHeader, { paddingTop: insets.top + 12 }]}>
           <View style={styles.drawerAvatar}>
-            <Text style={styles.drawerAvatarText}>{initial}</Text>
+            {profilePhoto
+              ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
+              : <Text style={styles.drawerAvatarText}>{initial}</Text>
+            }
           </View>
           <Text style={[styles.drawerName, { color: dynText }]}>{displayName}</Text>
           <View style={styles.drawerBadge}>

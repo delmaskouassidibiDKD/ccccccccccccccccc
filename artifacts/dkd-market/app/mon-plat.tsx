@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, Switch,
-  ScrollView, Modal, FlatList,
+  ScrollView, Modal, FlatList, Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -42,16 +42,19 @@ export default function MonPlatPage() {
 
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Gastronomie";
   const initial     = displayName.charAt(0).toUpperCase();
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
   useEffect(() => {
     AsyncStorage.multiGet([
       "@dkd:monplat_open",
       "@dkd:monplat_opentime",
       "@dkd:monplat_closetime",
-    ]).then(([o, ot, ct]) => {
-      if (o[1] !== null)  setIsOpen(o[1] === "1");
-      if (ot[1] !== null) setOpenTime(ot[1]);
-      if (ct[1] !== null) setCloseTime(ct[1]);
+      "@dkd:seller_profile_photo",
+    ]).then(([o, ot, ct, photo]) => {
+      if (o[1] !== null)     setIsOpen(o[1] === "1");
+      if (ot[1] !== null)    setOpenTime(ot[1]);
+      if (ct[1] !== null)    setCloseTime(ct[1]);
+      if (photo[1] !== null) setProfilePhoto(photo[1]);
     });
   }, []);
 
@@ -104,7 +107,10 @@ export default function MonPlatPage() {
 
           {/* Avatar centré en haut */}
           <View style={[s.sellerAvatar, { backgroundColor: ACCENT + "33", borderColor: ACCENT + "88" }]}>
-            <Text style={[s.sellerAvatarText, { color: ACCENT }]}>{initial}</Text>
+            {profilePhoto
+              ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
+              : <Text style={[s.sellerAvatarText, { color: ACCENT }]}>{initial}</Text>
+            }
           </View>
 
           {/* Nom + badge Gastronomia */}
