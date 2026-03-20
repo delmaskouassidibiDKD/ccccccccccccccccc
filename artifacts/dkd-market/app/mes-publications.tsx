@@ -4,10 +4,14 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   FlatList,
   Platform,
   TextInput,
   Animated,
+  Modal,
+  Pressable,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,6 +21,9 @@ import { useTheme } from "../contexts/ThemeContext";
 import { SellerProductCard, SellerProduct } from "@/components/SellerProductCard";
 
 const ORANGE = "#FF6B00";
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+const CELL_SIZE = (SCREEN_W - 4) / 3;
+
 type Tab = "articles" | "engros" | "video";
 
 /* ─── Données démo ─────────────────────────────────────────────── */
@@ -40,6 +47,8 @@ type VideoPublication = {
   shopFlag: string;
   duration: string;
   views: number;
+  likes: number;
+  comments: number;
   price: string;
   color: string;
   icon: string;
@@ -48,189 +57,82 @@ type VideoPublication = {
 };
 
 const DEMO_VIDEOS: VideoPublication[] = [
-  { id: "v1", shopName: "Savons Ouaga",  shopFlag: "🇧🇫", title: "Présentation savon karité naturel",  duration: "1:24", views: 1240, price: "1 500 FCFA",  color: "#4A7C59", icon: "sparkles-outline",  status: "published" },
-  { id: "v2", shopName: "Mode Dakar",    shopFlag: "🇸🇳", title: "Collection pagne wax printemps 2025", duration: "2:08", views: 876,  price: "12 500 FCFA", color: "#1B4D9E", icon: "shirt-outline",     status: "published" },
-  { id: "v3", shopName: "Cuir Cotonou",  shopFlag: "🇧🇯", title: "Nouveau modèle chaussures cuir",     duration: "0:58", views: 322,  price: "18 500 FCFA", color: "#7B4226", icon: "footsteps-outline", status: "draft"     },
+  { id: "v1", shopName: "Savons Ouaga",  shopFlag: "🇧🇫", title: "Présentation savon karité naturel",    duration: "1:24", views: 1240, likes: 342, comments: 58, price: "1 500 FCFA",  color: "#4A7C59", icon: "sparkles-outline",  status: "published" },
+  { id: "v2", shopName: "Mode Dakar",    shopFlag: "🇸🇳", title: "Collection pagne wax printemps 2025",  duration: "2:08", views: 876,  likes: 215, comments: 33, price: "12 500 FCFA", color: "#1B4D9E", icon: "shirt-outline",     status: "published" },
+  { id: "v3", shopName: "Cuir Cotonou",  shopFlag: "🇧🇯", title: "Nouveau modèle chaussures cuir",       duration: "0:58", views: 322,  likes: 88,  comments: 12, price: "18 500 FCFA", color: "#7B4226", icon: "footsteps-outline", status: "draft"     },
+  { id: "v4", shopName: "Savons Ouaga",  shopFlag: "🇧🇫", title: "Recette savon liquide maison",          duration: "3:10", views: 2100, likes: 510, comments: 97, price: "900 FCFA",   color: "#A16207", icon: "water-outline",     status: "published" },
+  { id: "v5", shopName: "Mode Dakar",    shopFlag: "🇸🇳", title: "Tenue soirée pagne wax",               duration: "1:45", views: 654,  likes: 178, comments: 24, price: "22 000 FCFA", color: "#7E22CE", icon: "color-palette-outline", status: "published" },
+  { id: "v6", shopName: "Cuir Cotonou",  shopFlag: "🇧🇯", title: "Entretien chaussures cuir - astuces",  duration: "2:33", views: 489,  likes: 102, comments: 18, price: "18 500 FCFA", color: "#B45309", icon: "construct-outline",  status: "draft"     },
 ];
 
-/* ─── Card vidéo ────────────────────────────────────────────────── */
+/* ─── Miniature grille vidéo (style TikTok) ────────────────────── */
 
-function VideoCard({
+function VideoThumb({
   item,
   isDark,
-  onPlay,
-  onEdit,
+  onPress,
+  onLongPress,
 }: {
   item: VideoPublication;
   isDark: boolean;
-  onPlay: () => void;
-  onEdit: () => void;
+  onPress: () => void;
+  onLongPress: () => void;
 }) {
-  const dCARD   = isDark ? "#161B25" : "#FFFFFF";
-  const dBORDER = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.07)";
-  const dTEXT   = isDark ? "#F0F0F0" : "#111827";
-  const dSUB    = isDark ? "#8B9AB0" : "#6B7280";
-  const dMOD    = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
-  const published = item.status === "published";
-
   return (
-    <View style={[vc.card, { backgroundColor: dCARD, borderColor: dBORDER }]}>
-
-      {/* Miniature colorée */}
-      <View style={[vc.thumb, { backgroundColor: item.color }]}>
-        <Ionicons name={item.icon as any} size={28} color="rgba(255,255,255,0.6)" />
-
-        {/* Overlay lecture */}
-        <TouchableOpacity style={vc.playOverlay} onPress={onPlay} activeOpacity={0.85}>
-          <Ionicons name="play-circle" size={38} color="#fff" />
-        </TouchableOpacity>
-
-        {/* Durée */}
-        <View style={vc.durationBadge}>
-          <Text style={vc.durationText}>{item.duration}</Text>
+    <TouchableWithoutFeedback onPress={onPress} onLongPress={onLongPress} delayLongPress={400}>
+      <View style={[th.cell, { backgroundColor: item.color }]}>
+        <Ionicons name={item.icon as any} size={32} color="rgba(255,255,255,0.35)" style={th.icon} />
+        <View style={th.playIcon}>
+          <Ionicons name="play" size={18} color="rgba(255,255,255,0.85)" />
         </View>
-
-        {/* Statut */}
-        <View style={[vc.statusBadge, { backgroundColor: published ? "#22C55E" : "#F59E0B" }]}>
-          <Text style={vc.statusText}>{published ? "Publié" : "Brouillon"}</Text>
+        <View style={th.viewsRow}>
+          <Ionicons name="play-outline" size={11} color="#fff" />
+          <Text style={th.viewsText}>{item.views >= 1000 ? (item.views / 1000).toFixed(1) + "k" : item.views}</Text>
         </View>
+        {item.status === "draft" && (
+          <View style={th.draftBadge}>
+            <Text style={th.draftText}>Brouillon</Text>
+          </View>
+        )}
       </View>
-
-      {/* Infos */}
-      <View style={vc.info}>
-        <Text style={[vc.title, { color: dTEXT }]} numberOfLines={2}>
-          {item.title}
-        </Text>
-
-        <View style={vc.statsRow}>
-          <Ionicons name="eye-outline" size={12} color={dSUB} />
-          <Text style={[vc.statsText, { color: dSUB }]}>{item.views.toLocaleString()} vues</Text>
-          <View style={vc.dot} />
-          <Text style={[vc.price, { color: ORANGE }]}>{item.price}</Text>
-        </View>
-
-        {/* Boutons */}
-        <View style={vc.actions}>
-          <TouchableOpacity
-            style={[vc.btn, { backgroundColor: ORANGE + "18", borderColor: ORANGE + "40" }]}
-            onPress={onPlay}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="play-circle-outline" size={14} color={ORANGE} />
-            <Text style={[vc.btnText, { color: ORANGE }]}>Regarder</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[vc.btn, { backgroundColor: dMOD }]}
-            onPress={onEdit}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="create-outline" size={14} color={dSUB} />
-            <Text style={[vc.btnText, { color: dSUB }]}>Modifier</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 
-const vc = StyleSheet.create({
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: "hidden",
-    marginBottom: 14,
-  },
-  thumb: {
-    height: 150,
+const th = StyleSheet.create({
+  cell: {
+    width: CELL_SIZE,
+    height: CELL_SIZE * 1.35,
     alignItems: "center",
     justifyContent: "center",
+    margin: 0.5,
   },
-  playOverlay: {
+  icon: { position: "absolute" },
+  playIcon: {
     position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -12 }, { translateY: -12 }],
   },
-  durationBadge: {
+  viewsRow: {
     position: "absolute",
-    bottom: 8,
-    right: 10,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  durationText: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 11,
-    color: "#fff",
-  },
-  statusBadge: {
-    position: "absolute",
-    top: 8,
-    left: 10,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  statusText: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 10,
-    color: "#fff",
-  },
-  info: {
-    padding: 14,
-    gap: 4,
-  },
-  shopName: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 11,
-  },
-  title: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  statsRow: {
+    bottom: 6,
+    left: 6,
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    marginTop: 2,
+    gap: 3,
   },
-  statsText: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 11,
+  viewsText: { fontFamily: "Poppins_700Bold", fontSize: 11, color: "#fff" },
+  draftBadge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
   },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: "#94A3B8",
-  },
-  price: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 12,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 8,
-  },
-  btn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  btnText: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 12,
-  },
+  draftText: { fontFamily: "Poppins_600SemiBold", fontSize: 9, color: "#F59E0B" },
 });
 
 /* ─── Écran principal ───────────────────────────────────────────── */
@@ -246,14 +148,23 @@ export default function MesPublications() {
   const dHEAD   = isDark ? "#111"    : "#1a1f2e";
   const dMUTED  = isDark ? "#6B7280" : "#9CA3AF";
   const dBORDER = isDark ? "#1E1E1E" : "rgba(0,0,0,0.08)";
+  const dCARD   = isDark ? "#161B25" : "#FFFFFF";
+  const dTEXT   = isDark ? "#F0F0F0" : "#111827";
+  const dSUB    = isDark ? "#8B9AB0" : "#6B7280";
 
   const [activeTab,    setActiveTab]    = useState<Tab>("articles");
   const [articles]                      = useState(DEMO_ARTICLES);
   const [engros]                        = useState(DEMO_ENGROS);
-  const [videos]                        = useState(DEMO_VIDEOS);
+  const [videos,       setVideos]       = useState(DEMO_VIDEOS);
   const [searchOpen,   setSearchOpen]   = useState(false);
   const [searchQuery,  setSearchQuery]  = useState("");
   const searchAnim = useRef(new Animated.Value(0)).current;
+
+  /* ── Modales ── */
+  const [playerVideo,  setPlayerVideo]  = useState<VideoPublication | null>(null);
+  const [statsVideo,   setStatsVideo]   = useState<VideoPublication | null>(null);
+  const [confirmVideo, setConfirmVideo] = useState<VideoPublication | null>(null);
+  const [confirmFrom,  setConfirmFrom]  = useState<"player" | "stats">("player");
 
   const toggleSearch = () => {
     Haptics.selectionAsync();
@@ -279,6 +190,14 @@ export default function MesPublications() {
   ];
 
   const isEngros = activeTab === "engros";
+
+  const handleDeleteConfirmed = () => {
+    if (!confirmVideo) return;
+    setVideos((prev) => prev.filter((v) => v.id !== confirmVideo.id));
+    setConfirmVideo(null);
+    setPlayerVideo(null);
+    setStatsVideo(null);
+  };
 
   return (
     <View style={[s.container, { paddingTop, backgroundColor: dBG }]}>
@@ -350,32 +269,22 @@ export default function MesPublications() {
         })}
       </View>
 
-      {/* Contenu — onglet Vidéo */}
+      {/* Contenu — onglet Vidéo (grille 3 colonnes) */}
       {activeTab === "video" ? (
         <FlatList
           key="video"
           data={filteredVideos}
           keyExtractor={(i) => i.id}
-          contentContainerStyle={[s.list, { paddingBottom: paddingBottom + 24 }]}
+          numColumns={3}
+          columnWrapperStyle={{ gap: 0 }}
+          contentContainerStyle={{ paddingBottom: paddingBottom + 24 }}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <VideoCard
+            <VideoThumb
               item={item}
               isDark={isDark}
-              onPlay={() => {
-                Haptics.selectionAsync();
-                router.push({
-                  pathname: "/product-video" as any,
-                  params: { videoUrl: item.videoUrl ?? "", productTitle: item.title },
-                });
-              }}
-              onEdit={() => {
-                Haptics.selectionAsync();
-                router.push({
-                  pathname: "/edit-product/[id]" as any,
-                  params: { id: item.id, productTitle: item.title, accentColor: ORANGE },
-                });
-              }}
+              onPress={() => { Haptics.selectionAsync(); setPlayerVideo(item); }}
+              onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setStatsVideo(item); }}
             />
           )}
           ListEmptyComponent={
@@ -413,10 +322,271 @@ export default function MesPublications() {
           }
         />
       )}
+
+      {/* ── Modal player plein écran ── */}
+      <Modal visible={!!playerVideo} animationType="fade" statusBarTranslucent>
+        {playerVideo && (
+          <View style={pm.container}>
+            {/* Bouton Supprimer en haut */}
+            <View style={[pm.topBar, { paddingTop: insets.top + 10 }]}>
+              <TouchableOpacity style={pm.closeBtn} onPress={() => setPlayerVideo(null)} activeOpacity={0.8}>
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+              <Text style={pm.title} numberOfLines={1}>{playerVideo.title}</Text>
+              <TouchableOpacity
+                style={pm.deleteBtn}
+                onPress={() => { setConfirmFrom("player"); setConfirmVideo(playerVideo); }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="trash-outline" size={16} color="#fff" />
+                <Text style={pm.deleteBtnText}>Supprimer</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Zone vidéo (placeholder coloré) */}
+            <View style={[pm.videoArea, { backgroundColor: playerVideo.color }]}>
+              <Ionicons name={playerVideo.icon as any} size={64} color="rgba(255,255,255,0.25)" />
+              <View style={pm.bigPlay}>
+                <Ionicons name="play-circle" size={72} color="rgba(255,255,255,0.85)" />
+              </View>
+              <View style={pm.durationPill}>
+                <Text style={pm.durationText}>{playerVideo.duration}</Text>
+              </View>
+            </View>
+
+            {/* Infos bas */}
+            <View style={pm.infoBar}>
+              <Text style={pm.infoTitle} numberOfLines={2}>{playerVideo.title}</Text>
+              <View style={pm.infoStats}>
+                <Ionicons name="eye-outline" size={14} color="#aaa" />
+                <Text style={pm.infoStatText}>{playerVideo.views.toLocaleString()} vues</Text>
+                <Ionicons name="heart-outline" size={14} color="#aaa" />
+                <Text style={pm.infoStatText}>{playerVideo.likes}</Text>
+                <Ionicons name="chatbubble-outline" size={14} color="#aaa" />
+                <Text style={pm.infoStatText}>{playerVideo.comments}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+      </Modal>
+
+      {/* ── Modal stats (appui long) ── */}
+      <Modal visible={!!statsVideo} animationType="fade" transparent statusBarTranslucent>
+        {statsVideo && (
+          <Pressable style={sm.overlay} onPress={() => setStatsVideo(null)}>
+            <Pressable style={[sm.card, { backgroundColor: dCARD }]} onPress={() => {}}>
+              {/* Miniature */}
+              <View style={[sm.thumb, { backgroundColor: statsVideo.color }]}>
+                <Ionicons name={statsVideo.icon as any} size={28} color="rgba(255,255,255,0.4)" />
+              </View>
+
+              <Text style={[sm.videoTitle, { color: dTEXT }]} numberOfLines={2}>{statsVideo.title}</Text>
+
+              {/* Statistiques */}
+              <View style={[sm.statsRow, { borderColor: isDark ? "#2A2A2A" : "#E5E7EB" }]}>
+                <View style={sm.statItem}>
+                  <Ionicons name="eye" size={20} color="#60A5FA" />
+                  <Text style={[sm.statVal, { color: dTEXT }]}>{statsVideo.views.toLocaleString()}</Text>
+                  <Text style={[sm.statLbl, { color: dSUB }]}>Vues</Text>
+                </View>
+                <View style={[sm.statDiv, { backgroundColor: isDark ? "#2A2A2A" : "#E5E7EB" }]} />
+                <View style={sm.statItem}>
+                  <Ionicons name="heart" size={20} color="#EF4444" />
+                  <Text style={[sm.statVal, { color: dTEXT }]}>{statsVideo.likes}</Text>
+                  <Text style={[sm.statLbl, { color: dSUB }]}>Cœurs</Text>
+                </View>
+                <View style={[sm.statDiv, { backgroundColor: isDark ? "#2A2A2A" : "#E5E7EB" }]} />
+                <View style={sm.statItem}>
+                  <Ionicons name="chatbubble" size={20} color="#A78BFA" />
+                  <Text style={[sm.statVal, { color: dTEXT }]}>{statsVideo.comments}</Text>
+                  <Text style={[sm.statLbl, { color: dSUB }]}>Commentaires</Text>
+                </View>
+              </View>
+
+              {/* Bouton supprimer */}
+              <TouchableOpacity
+                style={sm.deleteBtn}
+                onPress={() => { setStatsVideo(null); setConfirmFrom("stats"); setConfirmVideo(statsVideo); }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="trash-outline" size={16} color="#fff" />
+                <Text style={sm.deleteBtnText}>Supprimer cette vidéo</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        )}
+      </Modal>
+
+      {/* ── Modal confirmation suppression ── */}
+      <Modal visible={!!confirmVideo} animationType="fade" transparent statusBarTranslucent>
+        {confirmVideo && (
+          <Pressable style={sm.overlay} onPress={() => setConfirmVideo(null)}>
+            <Pressable style={[sm.confirmCard, { backgroundColor: dCARD }]} onPress={() => {}}>
+              <View style={sm.confirmIconWrap}>
+                <Ionicons name="trash" size={32} color="#EF4444" />
+              </View>
+              <Text style={[sm.confirmTitle, { color: dTEXT }]}>Supprimer la vidéo ?</Text>
+              <Text style={[sm.confirmDesc, { color: dSUB }]} numberOfLines={2}>
+                « {confirmVideo.title} » sera définitivement supprimée.
+              </Text>
+              <View style={sm.confirmBtns}>
+                <TouchableOpacity
+                  style={[sm.confirmBtn, { backgroundColor: isDark ? "#1E2535" : "#F1F5F9", borderColor: isDark ? "#2A2A2A" : "#E2E8F0", borderWidth: 1 }]}
+                  onPress={() => setConfirmVideo(null)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[sm.confirmBtnText, { color: dSUB }]}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[sm.confirmBtn, { backgroundColor: "#EF4444" }]}
+                  onPress={handleDeleteConfirmed}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[sm.confirmBtnText, { color: "#fff" }]}>Supprimer</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        )}
+      </Modal>
+
     </View>
   );
 }
 
+/* ── Styles player plein écran ─────────────────────────────────── */
+const pm = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#000" },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingBottom: 10,
+    gap: 10,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  closeBtn: { padding: 4 },
+  title: { flex: 1, fontFamily: "Poppins_600SemiBold", fontSize: 13, color: "#fff" },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#EF4444",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  deleteBtnText: { fontFamily: "Poppins_700Bold", fontSize: 12, color: "#fff" },
+  videoArea: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bigPlay: { position: "absolute" },
+  durationPill: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  durationText: { fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
+  infoBar: {
+    backgroundColor: "rgba(0,0,0,0.85)",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 32,
+    gap: 8,
+  },
+  infoTitle: { fontFamily: "Poppins_700Bold", fontSize: 15, color: "#fff" },
+  infoStats: { flexDirection: "row", alignItems: "center", gap: 8 },
+  infoStatText: { fontFamily: "Poppins_400Regular", fontSize: 13, color: "#aaa" },
+});
+
+/* ── Styles modal stats + confirmation ─────────────────────────── */
+const sm = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  card: {
+    width: SCREEN_W * 0.82,
+    borderRadius: 20,
+    overflow: "hidden",
+    alignItems: "center",
+    paddingBottom: 20,
+  },
+  thumb: {
+    width: "100%",
+    height: 110,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  videoTitle: {
+    fontFamily: "Poppins_700Bold",
+    fontSize: 13,
+    textAlign: "center",
+    paddingHorizontal: 16,
+    marginBottom: 14,
+  },
+  statsRow: {
+    flexDirection: "row",
+    width: "100%",
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    paddingVertical: 14,
+    marginBottom: 16,
+  },
+  statItem: { flex: 1, alignItems: "center", gap: 4 },
+  statVal:  { fontFamily: "Poppins_700Bold", fontSize: 16 },
+  statLbl:  { fontFamily: "Poppins_400Regular", fontSize: 10 },
+  statDiv:  { width: 1, marginVertical: 4 },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "#EF4444",
+    paddingHorizontal: 24,
+    paddingVertical: 11,
+    borderRadius: 12,
+    marginHorizontal: 16,
+  },
+  deleteBtnText: { fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
+
+  confirmCard: {
+    width: SCREEN_W * 0.82,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    gap: 10,
+  },
+  confirmIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#EF444420",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  confirmTitle: { fontFamily: "Poppins_700Bold", fontSize: 16 },
+  confirmDesc:  { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center" },
+  confirmBtns:  { flexDirection: "row", gap: 12, marginTop: 8, width: "100%" },
+  confirmBtn:   { flex: 1, alignItems: "center", paddingVertical: 12, borderRadius: 12 },
+  confirmBtnText: { fontFamily: "Poppins_700Bold", fontSize: 14 },
+});
+
+/* ── Styles écran principal ─────────────────────────────────────── */
 const s = StyleSheet.create({
   container: { flex: 1 },
 
