@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../contexts/ThemeContext";
 import { SellerProductCard, SellerProduct } from "@/components/SellerProductCard";
+import { VideoPublication, DEMO_VIDEOS } from "@/data/videos";
 
 const ORANGE = "#FF6B00";
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
@@ -38,31 +39,6 @@ const DEMO_ENGROS: SellerProduct[] = [
   { id: "1", shopName: "Grossiste ABJ",   shopFlag: "🇨🇮", title: "Carton pagnes wax 50 pièces",      price: "180 000 FCFA", rating: 4.6, reviewCount: 34, status: "active",   icon: "cube-outline",   color: "#3B5998", minQty: "50 pcs"   },
   { id: "2", shopName: "Palm Conakry",    shopFlag: "🇬🇳", title: "Palette huile de palme 24 bidons", price: "72 000 FCFA",  rating: 4.3, reviewCount: 19, status: "active",   icon: "leaf-outline",   color: "#3B7A43", minQty: "24 bidons"},
   { id: "3", shopName: "Beauté Pro Lomé", shopFlag: "🇹🇬", title: "Carton savon karité 100 pcs",      price: "45 000 FCFA",  rating: 4.1, reviewCount: 11, status: "inactive", icon: "flower-outline", color: "#9B2B6B", minQty: "100 pcs" },
-];
-
-type VideoPublication = {
-  id: string;
-  title: string;
-  shopName: string;
-  shopFlag: string;
-  duration: string;
-  views: number;
-  likes: number;
-  comments: number;
-  price: string;
-  color: string;
-  icon: string;
-  status: "published" | "draft";
-  videoUrl?: string;
-};
-
-const DEMO_VIDEOS: VideoPublication[] = [
-  { id: "v1", shopName: "Savons Ouaga",  shopFlag: "🇧🇫", title: "Présentation savon karité naturel",    duration: "1:24", views: 1240, likes: 342, comments: 58, price: "1 500 FCFA",  color: "#4A7C59", icon: "sparkles-outline",  status: "published" },
-  { id: "v2", shopName: "Mode Dakar",    shopFlag: "🇸🇳", title: "Collection pagne wax printemps 2025",  duration: "2:08", views: 876,  likes: 215, comments: 33, price: "12 500 FCFA", color: "#1B4D9E", icon: "shirt-outline",     status: "published" },
-  { id: "v3", shopName: "Cuir Cotonou",  shopFlag: "🇧🇯", title: "Nouveau modèle chaussures cuir",       duration: "0:58", views: 322,  likes: 88,  comments: 12, price: "18 500 FCFA", color: "#7B4226", icon: "footsteps-outline", status: "draft"     },
-  { id: "v4", shopName: "Savons Ouaga",  shopFlag: "🇧🇫", title: "Recette savon liquide maison",          duration: "3:10", views: 2100, likes: 510, comments: 97, price: "900 FCFA",   color: "#A16207", icon: "water-outline",     status: "published" },
-  { id: "v5", shopName: "Mode Dakar",    shopFlag: "🇸🇳", title: "Tenue soirée pagne wax",               duration: "1:45", views: 654,  likes: 178, comments: 24, price: "22 000 FCFA", color: "#7E22CE", icon: "color-palette-outline", status: "published" },
-  { id: "v6", shopName: "Cuir Cotonou",  shopFlag: "🇧🇯", title: "Entretien chaussures cuir - astuces",  duration: "2:33", views: 489,  likes: 102, comments: 18, price: "18 500 FCFA", color: "#B45309", icon: "construct-outline",  status: "draft"     },
 ];
 
 /* ─── Miniature grille vidéo (style TikTok) ────────────────────── */

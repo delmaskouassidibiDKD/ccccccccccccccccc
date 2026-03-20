@@ -5,12 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   Platform,
   Dimensions,
   ActivityIndicator,
   Image,
   Share,
   RefreshControl,
+  Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,8 +23,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, Seller, Product } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { VideoPublication, DEMO_VIDEOS } from "@/data/videos";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const VIDEO_CELL = (SCREEN_WIDTH - 4) / 3;
 const SELLER_TABS = ["Vidéos", "Articles", "En gros"];
 const SELLER_SHOP_TYPES_KEY = "@dkd:seller_shop_types";
 const PROFILE_PHOTO_KEY     = "@dkd:seller_profile_photo";
@@ -63,6 +67,7 @@ export default function SellerScreen() {
   const [activeTab, setActiveTab] = useState(0);
   const [subscribed, setSubscribed] = useState(false);
   const [shopTypes, setShopTypes] = useState<string[]>([]);
+  const [playerVideo, setPlayerVideo] = useState<VideoPublication | null>(null);
   const [logoError,    setLogoError]    = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const { user } = useAuth();
@@ -415,12 +420,34 @@ export default function SellerScreen() {
           ))}
         </View>
 
-        {/* Vidéos */}
+        {/* Vidéos — grille 3 colonnes lecture seule */}
         {activeTab === 0 && (
-          <View style={styles.emptyState}>
-            <Ionicons name="videocam-outline" size={40} color={Colors.textMuted} />
-            <Text style={styles.emptyText}>Aucune vidéo pour le moment</Text>
-          </View>
+          DEMO_VIDEOS.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="videocam-outline" size={40} color={Colors.textMuted} />
+              <Text style={styles.emptyText}>Aucune vidéo pour le moment</Text>
+            </View>
+          ) : (
+            <View style={styles.videoGrid}>
+              {DEMO_VIDEOS.map((vid) => (
+                <TouchableWithoutFeedback
+                  key={vid.id}
+                  onPress={() => { Haptics.selectionAsync(); setPlayerVideo(vid); }}
+                >
+                  <View style={[styles.videoCell, { backgroundColor: vid.color }]}>
+                    <Ionicons name={vid.icon as any} size={28} color="rgba(255,255,255,0.3)" style={{ position: "absolute" }} />
+                    <Ionicons name="play" size={16} color="rgba(255,255,255,0.85)" style={{ position: "absolute", top: "50%", left: "50%", transform: [{ translateX: -8 }, { translateY: -8 }] }} />
+                    <View style={styles.videoCellViews}>
+                      <Ionicons name="play-outline" size={10} color="#fff" />
+                      <Text style={styles.videoCellViewsText}>
+                        {vid.views >= 1000 ? (vid.views / 1000).toFixed(1) + "k" : vid.views}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableWithoutFeedback>
+              ))}
+            </View>
+          )
         )}
 
         {/* Articles */}
@@ -484,6 +511,43 @@ export default function SellerScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* ── Modal player lecture seule (aperçu public) ── */}
+      <Modal visible={!!playerVideo} animationType="fade" statusBarTranslucent>
+        {playerVideo && (
+          <View style={{ flex: 1, backgroundColor: "#000" }}>
+            {/* Barre top — fermer seulement */}
+            <View style={[styles.playerTopBar, { paddingTop: insets.top + 10 }]}>
+              <TouchableOpacity style={styles.playerCloseBtn} onPress={() => setPlayerVideo(null)} activeOpacity={0.8}>
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.playerTitle} numberOfLines={1}>{playerVideo.title}</Text>
+            </View>
+
+            {/* Zone vidéo */}
+            <View style={[styles.playerVideoArea, { backgroundColor: playerVideo.color }]}>
+              <Ionicons name={playerVideo.icon as any} size={64} color="rgba(255,255,255,0.25)" />
+              <Ionicons name="play-circle" size={72} color="rgba(255,255,255,0.85)" style={{ position: "absolute" }} />
+              <View style={styles.playerDurationPill}>
+                <Text style={styles.playerDurationText}>{playerVideo.duration}</Text>
+              </View>
+            </View>
+
+            {/* Infos bas */}
+            <View style={styles.playerInfoBar}>
+              <Text style={styles.playerInfoTitle} numberOfLines={2}>{playerVideo.title}</Text>
+              <View style={styles.playerInfoStats}>
+                <Ionicons name="eye-outline" size={14} color="#aaa" />
+                <Text style={styles.playerInfoStatText}>{playerVideo.views.toLocaleString()} vues</Text>
+                <Ionicons name="heart-outline" size={14} color="#aaa" />
+                <Text style={styles.playerInfoStatText}>{playerVideo.likes}</Text>
+                <Ionicons name="chatbubble-outline" size={14} color="#aaa" />
+                <Text style={styles.playerInfoStatText}>{playerVideo.comments}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+      </Modal>
     </View>
   );
 }
@@ -786,6 +850,63 @@ const styles = StyleSheet.create({
   loadingSection: { paddingVertical: 40, alignItems: "center" },
   emptyState: { paddingVertical: 40, alignItems: "center", gap: 10 },
   emptyText: { color: Colors.textMuted, fontFamily: "Poppins_500Medium", fontSize: 14 },
+
+  /* Grille vidéo */
+  videoGrid: { flexDirection: "row", flexWrap: "wrap" },
+  videoCell: {
+    width: (SCREEN_WIDTH - 4) / 3,
+    height: ((SCREEN_WIDTH - 4) / 3) * 1.35,
+    margin: 0.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoCellViews: {
+    position: "absolute",
+    bottom: 6,
+    left: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  videoCellViewsText: { fontFamily: "Poppins_700Bold", fontSize: 11, color: "#fff" },
+
+  /* Player lecture seule */
+  playerTopBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingBottom: 10,
+    gap: 10,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  playerCloseBtn: { padding: 4 },
+  playerTitle: { flex: 1, fontFamily: "Poppins_600SemiBold", fontSize: 13, color: "#fff" },
+  playerVideoArea: { flex: 1, alignItems: "center", justifyContent: "center" },
+  playerDurationPill: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  playerDurationText: { fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
+  playerInfoBar: {
+    backgroundColor: "rgba(0,0,0,0.85)",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 32,
+    gap: 8,
+  },
+  playerInfoTitle: { fontFamily: "Poppins_700Bold", fontSize: 15, color: "#fff" },
+  playerInfoStats: { flexDirection: "row", alignItems: "center", gap: 8 },
+  playerInfoStatText: { fontFamily: "Poppins_400Regular", fontSize: 13, color: "#aaa" },
   errorText: { color: Colors.textMuted, fontFamily: "Poppins_500Medium", fontSize: 14, marginTop: 12 },
   retryBtn: {
     backgroundColor: Colors.primary,
