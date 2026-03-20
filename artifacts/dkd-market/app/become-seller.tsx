@@ -11,6 +11,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Alert,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -141,11 +142,19 @@ export default function BecomeSellerScreen() {
 
   const shopName = (user as any)?.shop_name || user?.full_name || "Ma Boutique";
   const topPad = IS_WEB ? 0 : insets.top;
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem("@dkd:seller_profile_photo").then((uri) => {
+      if (uri) setProfilePhoto(uri);
+    }).catch(() => {});
+  }, []);
 
   if (isSeller) {
     return (
       <SellerDashboard
         initials={initials}
+        profilePhoto={profilePhoto}
         shopName={shopName}
         stats={stats}
         pendingCount={pendingCount}
@@ -274,7 +283,7 @@ export default function BecomeSellerScreen() {
   );
 }
 
-function SellerDashboard({ initials, shopName, stats, pendingCount, activeTab, setActiveTab, topPad, insets }: any) {
+function SellerDashboard({ initials, profilePhoto, shopName, stats, pendingCount, activeTab, setActiveTab, topPad, insets }: any) {
   const [activeShopTypes, setActiveShopTypes] = useState<string[]>([]);
   const { isDark } = useTheme();
   const dBG      = isDark ? "#0D1117" : "#F0F4F8";
@@ -345,7 +354,10 @@ function SellerDashboard({ initials, shopName, stats, pendingCount, activeTab, s
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         <View style={[dashStyles.profileSection, { backgroundColor: dBG }]}>
           <View style={[dashStyles.avatarCircle, { backgroundColor: dCARD }]}>
-            <Text style={[dashStyles.avatarText, { color: dTEXT }]}>{initials}</Text>
+            {profilePhoto
+              ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
+              : <Text style={[dashStyles.avatarText, { color: dTEXT }]}>{initials}</Text>
+            }
           </View>
           <Text style={[dashStyles.shopName, { color: dTEXT }]}>{shopName}</Text>
           <Text style={[dashStyles.shopRole, { color: dSUB }]}>Entrepreneur & Vendeur DKD</Text>

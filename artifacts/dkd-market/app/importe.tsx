@@ -210,7 +210,7 @@ export default function ImportePage() {
 
       {/* ── MAIN CONTENT ── */}
       <View style={{ flex: 1 }}>
-        {activeSection === "accueil"            && <AccueilView displayName={displayName} initial={initial} isDark={isDark} dynCARD={dynCARD} dynText={dynText} dynSub={dynSub} dynBG={dynBG} dynBorder={dynBorder}
+        {activeSection === "accueil"            && <AccueilView displayName={displayName} initial={initial} profilePhoto={profilePhoto} isDark={isDark} dynCARD={dynCARD} dynText={dynText} dynSub={dynSub} dynBG={dynBG} dynBorder={dynBorder}
           originCountries={originCountries} setOriginCountries={setOriginCountries}
           expoCountries={expoCountries}     setExpoCountries={setExpoCountries} />}
         {activeSection === "commandes_en_cours" && <CommandesEnCoursView isDark={isDark} dynCARD={dynCARD} dynText={dynText} dynSub={dynSub} dynBG={dynBG} dynBorder={dynBorder} checkedMap={checkedMap} userRoutes={userRoutes} />}
@@ -418,9 +418,9 @@ const SOURCE_COUNTRIES = [
 ];
 
 /* ─────── Accueil View ─────── */
-function AccueilView({ displayName, initial, isDark, dynCARD, dynText, dynSub, dynBG, dynBorder,
+function AccueilView({ displayName, initial, profilePhoto, isDark, dynCARD, dynText, dynSub, dynBG, dynBorder,
   originCountries, setOriginCountries, expoCountries, setExpoCountries }: {
-  displayName: string; initial: string;
+  displayName: string; initial: string; profilePhoto: string | null;
   isDark: boolean; dynCARD: string; dynText: string; dynSub: string; dynBG: string; dynBorder: string;
   originCountries: string[]; setOriginCountries: (fn: (p:string[])=>string[]) => void;
   expoCountries:   string[]; setExpoCountries:   (fn: (p:string[])=>string[]) => void;
@@ -458,7 +458,10 @@ function AccueilView({ displayName, initial, isDark, dynCARD, dynText, dynSub, d
       {/* Welcome card */}
       <View style={[styles.welcomeCard, { backgroundColor: dynCARD, borderColor: dynBorder }]}>
         <View style={styles.welcomeAvatar}>
-          <Text style={styles.welcomeAvatarText}>{initial}</Text>
+          {profilePhoto
+            ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
+            : <Text style={styles.welcomeAvatarText}>{initial}</Text>
+          }
         </View>
         <Text style={[styles.welcomeTitle, { color: dynText }]}>
           Bienvenue,{"\n"}

@@ -1,5 +1,6 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -31,6 +32,13 @@ export default function VoirBoutiqueGastronomiaPage() {
 
   const displayName = user?.full_name || user?.email?.split("@")[0] || "Gastronomie";
   const initial     = displayName.charAt(0).toUpperCase();
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem("@dkd:seller_profile_photo").then((uri) => {
+      if (uri) setProfilePhoto(uri);
+    }).catch(() => {});
+  }, []);
 
   return (
     <View style={[s.root, { backgroundColor: dynBG, paddingTop: insets.top }]}>
@@ -58,7 +66,10 @@ export default function VoirBoutiqueGastronomiaPage() {
         <View style={[s.banner, { backgroundColor: ACCENT + "18", borderColor: ACCENT + "33" }]}>
           <View style={[s.bannerGlow, { backgroundColor: ACCENT + "22" }]} />
           <View style={[s.bannerAvatar, { backgroundColor: ACCENT + "33", borderColor: ACCENT + "88" }]}>
-            <Text style={[s.bannerAvatarText, { color: ACCENT }]}>{initial}</Text>
+            {profilePhoto
+              ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
+              : <Text style={[s.bannerAvatarText, { color: ACCENT }]}>{initial}</Text>
+            }
           </View>
           <Text style={[s.bannerName, { color: dynText }]}>{displayName}</Text>
           <View style={[s.bannerBadge, { backgroundColor: ACCENT + "22" }]}>

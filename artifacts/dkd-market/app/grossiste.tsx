@@ -128,6 +128,7 @@ export default function GrossistePage() {
           <AccueilView
             displayName={displayName}
             initial={initial}
+            profilePhoto={profilePhoto}
             isDark={isDark}
             dynBG={dynBG}
             dynCARD={dynCARD}
@@ -292,6 +293,7 @@ export default function GrossistePage() {
 type AccueilProps = {
   displayName: string;
   initial: string;
+  profilePhoto: string | null;
   isDark: boolean;
   dynBG: string;
   dynCARD: string;
@@ -318,7 +320,7 @@ const PAYS_LIST = [
   { code: "tg", label: "Togo",          flag: "🇹🇬" },
 ];
 
-function AccueilView({ displayName, initial, isDark, dynCARD, dynText, dynSub, dynBorder }: AccueilProps) {
+function AccueilView({ displayName, initial, profilePhoto, isDark, dynCARD, dynText, dynSub, dynBorder }: AccueilProps) {
   const router = useRouter();
   const [paysExpanded, setPaysExpanded] = useState(false);
   const [selectedPays, setSelectedPays] = useState<Set<string>>(new Set());
@@ -365,7 +367,10 @@ function AccueilView({ displayName, initial, isDark, dynCARD, dynText, dynSub, d
       <View style={[s.welcomeCard, { backgroundColor: dynCARD, borderColor: ACCENT + "33" }]}>
         <View style={s.welcomeGlow} />
         <View style={s.welcomeAvatar}>
-          <Text style={s.welcomeAvatarText}>{initial}</Text>
+          {profilePhoto
+            ? <Image source={{ uri: profilePhoto }} style={{ width: "100%", height: "100%", borderRadius: 999 }} />
+            : <Text style={s.welcomeAvatarText}>{initial}</Text>
+          }
         </View>
         <Text style={[s.welcomeTitle, { color: dynText }]}>
           Bienvenue,{"\n"}

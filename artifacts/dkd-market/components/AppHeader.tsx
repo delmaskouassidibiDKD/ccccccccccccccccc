@@ -1,5 +1,6 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Image } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -72,6 +73,13 @@ export function AppHeader({ onMenuPress, showNotif = true, notifCount = 1, onGlo
   const { colors } = useTheme();
   const { user } = useAuth();
   const topPadding = Platform.OS === "web" ? 0 : insets.top;
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem("@dkd:seller_profile_photo").then((uri) => {
+      if (uri) setProfilePhoto(uri);
+    }).catch(() => {});
+  }, []);
 
   const displayFlag = countryFlag ?? (user?.country_code ? countryCodeToFlag(user.country_code) : undefined);
 
@@ -107,7 +115,11 @@ export function AppHeader({ onMenuPress, showNotif = true, notifCount = 1, onGlo
             )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7} onPress={() => router.push("/profile")}>
-            <Ionicons name="settings-outline" size={21} color="#fff" />
+            {profilePhoto ? (
+              <Image source={{ uri: profilePhoto }} style={styles.profilePhotoThumb} />
+            ) : (
+              <Ionicons name="settings-outline" size={21} color="#fff" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -173,5 +185,12 @@ const styles = StyleSheet.create({
   flagText: {
     fontSize: 15,
     lineHeight: 18,
+  },
+  profilePhotoThumb: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.6)",
   },
 });
