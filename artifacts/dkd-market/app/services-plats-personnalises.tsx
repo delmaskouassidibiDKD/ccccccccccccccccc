@@ -218,38 +218,47 @@ function CuteChefRobot({ size = 100 }: { size?: number }) {
    VERSION MINIATURE pour le drawer (44px)
    ═══════════════════════════════════════════════ */
 function MiniChefRobot({ active }: { active: boolean }) {
-  const bg = active ? "#A855F722" : "transparent";
-  const headColor = active ? "#60C5E4" : "#7DB8CC";
+  const headColor = active ? "#60C5E4" : "#90BAC8";
   const irisColor = active ? ACCENT : "#6B9FAD";
 
   return (
-    <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "flex-end", paddingBottom: 4 }}>
-      {/* Mini toque */}
-      <View style={{ alignItems: "center", position: "absolute", top: 0, left: 0, right: 0, alignItems: "center" }}>
-        <View style={{ width: 18, height: 12, borderRadius: 9, backgroundColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 2, marginBottom: -4 }} />
-        <View style={{ width: 22, height: 6, backgroundColor: "#F0F0F0", borderRadius: 3, borderWidth: 0.5, borderColor: "#DDD" }} />
+    <View style={{ width: 44, height: 44, overflow: "hidden", position: "relative", backgroundColor: headColor }}>
+
+      {/* ── TOQUE : zone blanche en haut ── */}
+      <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 15, backgroundColor: "#FAFAFA" }}>
+        {/* Ligne séparatrice toque/tête */}
+        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1.5, backgroundColor: "#E2E8F0" }} />
+        {/* Stries de la toque */}
+        <View style={{ position: "absolute", top: 3, left: 8, right: 8, gap: 3 }}>
+          <View style={{ height: 1, backgroundColor: "rgba(180,180,180,0.4)" }} />
+          <View style={{ height: 1, backgroundColor: "rgba(180,180,180,0.4)" }} />
+        </View>
       </View>
-      {/* Mini tête */}
-      <View style={{
-        width: 26, height: 22, borderRadius: 7,
-        backgroundColor: headColor,
-        alignItems: "center", justifyContent: "center",
-        marginBottom: 2,
-        position: "absolute", top: 16, left: 9,
-      }}>
+
+      {/* ── VISAGE : zone bleue en dessous ── */}
+      <View style={{ position: "absolute", top: 15, left: 0, right: 0, bottom: 0, alignItems: "center" }}>
+
         {/* Yeux */}
-        <View style={{ flexDirection: "row", gap: 5, marginBottom: 2 }}>
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 5 }}>
           {[0, 1].map((i) => (
-            <View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#FFF", alignItems: "center", justifyContent: "center" }}>
-              <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: irisColor }} />
+            <View key={i} style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: irisColor, alignItems: "center", justifyContent: "center" }}>
+                <View style={{ position: "absolute", top: 1, left: 1, width: 2, height: 2, borderRadius: 1, backgroundColor: "rgba(255,255,255,0.9)" }} />
+              </View>
             </View>
           ))}
         </View>
-        {/* Sourire mini */}
-        <View style={{ width: 9, height: 4, borderBottomLeftRadius: 5, borderBottomRightRadius: 5, borderWidth: 1.5, borderTopWidth: 0, borderColor: "#1A6080" }} />
+
+        {/* Joues */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", width: 34, marginTop: 2 }}>
+          <View style={{ width: 7, height: 4, borderRadius: 4, backgroundColor: "rgba(255,145,155,0.4)" }} />
+          <View style={{ width: 7, height: 4, borderRadius: 4, backgroundColor: "rgba(255,145,155,0.4)" }} />
+        </View>
+
+        {/* Sourire */}
+        <View style={{ width: 14, height: 6, borderBottomLeftRadius: 7, borderBottomRightRadius: 7, borderWidth: 2, borderTopWidth: 0, borderColor: "#1A6080", marginTop: 2 }} />
       </View>
-      {/* Mini corps */}
-      <View style={{ width: 22, height: 11, backgroundColor: "#4EB5D8", borderRadius: 4, position: "absolute", bottom: 3, left: 11 }} />
+
     </View>
   );
 }
