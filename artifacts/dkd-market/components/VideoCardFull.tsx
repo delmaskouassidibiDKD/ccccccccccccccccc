@@ -149,7 +149,7 @@ export default function VideoCardFull({ item, index, bottomOffset = 80, onClose 
       <View style={[styles.bottomInfo, { bottom: bottomOffset + 4 }]}>
         <Text style={styles.sellerName}>@{item.shopName} {item.shopFlag}</Text>
         <View style={[styles.titleTag, { backgroundColor: accent }]}>
-          <Text style={styles.titleTagText}>{(item.title || "").toUpperCase()}</Text>
+          <Text style={styles.titleTagText} numberOfLines={1}>{(item.title || "").toUpperCase()}</Text>
         </View>
         <View style={styles.ctaRow}>
           <TouchableOpacity style={styles.commandBtn} activeOpacity={0.85}>
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   bottomInfo: { position: "absolute", left: ms(14), right: ms(76), gap: 6, zIndex: 10 },
   sellerName: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: fs(15) },
-  titleTag: { alignSelf: "flex-start", paddingHorizontal: ms(10), paddingVertical: 4, borderRadius: 20 },
+  titleTag: { alignSelf: "flex-start", paddingHorizontal: ms(10), paddingVertical: 4, borderRadius: 20, maxWidth: "100%" },
   titleTagText: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: fs(10), letterSpacing: 0.8 },
   ctaRow: { flexDirection: "row", gap: 8, marginTop: 5 },
   commandBtn: {
