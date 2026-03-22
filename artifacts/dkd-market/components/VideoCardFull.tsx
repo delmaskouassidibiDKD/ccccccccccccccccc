@@ -156,10 +156,6 @@ export default function VideoCardFull({ item, index, bottomOffset = 80, onClose 
             <Ionicons name="basket-outline" size={14} color="#000" />
             <Text style={styles.commandText}>ACHETER</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.boutiqueBtn} activeOpacity={0.85}>
-            <Ionicons name="storefront-outline" size={14} color="#fff" />
-            <Text style={styles.boutiqueText}>BOUTIQUE</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -226,10 +222,4 @@ const styles = StyleSheet.create({
     gap: 5, backgroundColor: "#fff", paddingVertical: ms(7), borderRadius: 10,
   },
   commandText: { color: "#000", fontFamily: "Poppins_700Bold", fontSize: fs(11) },
-  boutiqueBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 5, backgroundColor: "rgba(255,255,255,0.15)", paddingVertical: ms(7),
-    borderRadius: 10, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.4)",
-  },
-  boutiqueText: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: fs(11) },
 });
