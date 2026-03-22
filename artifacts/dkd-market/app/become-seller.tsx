@@ -6,6 +6,7 @@ import {
   ScrollView,
   FlatList,
   TouchableOpacity,
+  Pressable,
   Platform,
   ActivityIndicator,
   Modal,
@@ -398,55 +399,67 @@ function SellerDashboard({ initials, profilePhoto, onPhotoChanged, shopName, sta
 
         {/* Primary actions — 2 big cards */}
         <View style={dashStyles.primaryRow}>
-          <TouchableOpacity style={[dashStyles.primaryCard, { backgroundColor: "#C0392B" }]} onPress={() => router.push("/add-product")} activeOpacity={0.8}>
-            <View style={dashStyles.primaryIconWrap}>
-              <Ionicons name="cloud-upload-outline" size={26} color="#fff" />
-            </View>
-            <Text style={dashStyles.primaryLabel}>Ajouter{"\n"}un article</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[dashStyles.primaryCard, { backgroundColor: "#1B7A4E" }]} onPress={() => router.push("/add-video" as any)} activeOpacity={0.8}>
-            <View style={dashStyles.primaryIconWrap}>
-              <Ionicons name="videocam-outline" size={26} color="#fff" />
-            </View>
-            <Text style={dashStyles.primaryLabel}>Ajouter{"\n"}une vidéo</Text>
-          </TouchableOpacity>
+          <Pressable
+            style={({ pressed }) => [dashStyles.primaryCard, { backgroundColor: pressed ? "#FF620012" : dCARD, borderWidth: 1, borderColor: pressed ? "#FF620040" : dBORDER }]}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/add-product"); }}
+          >
+            {({ pressed }) => (<>
+              <View style={[dashStyles.primaryIconWrap, { backgroundColor: pressed ? "#FF620018" : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)") }]}>
+                <Ionicons name="cloud-upload-outline" size={26} color={pressed ? "#FF6200" : dICON} />
+              </View>
+              <Text style={[dashStyles.primaryLabel, { color: pressed ? "#FF6200" : dTEXT }]}>Ajouter{"\n"}un article</Text>
+            </>)}
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [dashStyles.primaryCard, { backgroundColor: pressed ? "#FF620012" : dCARD, borderWidth: 1, borderColor: pressed ? "#FF620040" : dBORDER }]}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/add-video" as any); }}
+          >
+            {({ pressed }) => (<>
+              <View style={[dashStyles.primaryIconWrap, { backgroundColor: pressed ? "#FF620018" : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)") }]}>
+                <Ionicons name="videocam-outline" size={26} color={pressed ? "#FF6200" : dICON} />
+              </View>
+              <Text style={[dashStyles.primaryLabel, { color: pressed ? "#FF6200" : dTEXT }]}>Ajouter{"\n"}une vidéo</Text>
+            </>)}
+          </Pressable>
         </View>
 
         {/* MES COMMANDES */}
-        <TouchableOpacity
-          style={[dashStyles.wideBtn, { backgroundColor: "#7E22CE" }]}
+        <Pressable
+          style={({ pressed }) => [dashStyles.wideBtn, { backgroundColor: pressed ? "#FF620012" : dCARD, borderColor: pressed ? "#FF620040" : dBORDER }]}
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/mes-commandes" as any); }}
-          activeOpacity={0.85}
         >
-          <View style={dashStyles.wideBtnLeft}>
-            <View style={[dashStyles.wideBtnIcon, { backgroundColor: "rgba(255,255,255,0.18)" }]}>
-              <Ionicons name="receipt-outline" size={22} color="#fff" />
+          {({ pressed }) => (
+            <View style={dashStyles.wideBtnLeft}>
+              <View style={[dashStyles.wideBtnIcon, { backgroundColor: pressed ? "#FF620018" : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)") }]}>
+                <Ionicons name="receipt-outline" size={22} color={pressed ? "#FF6200" : dICON} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[dashStyles.wideBtnTitle, { color: pressed ? "#FF6200" : dTEXT }]}>Mes commandes</Text>
+                <Text style={[dashStyles.wideBtnSub, { color: dSUB }]}>Suivre et gérer vos commandes</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={pressed ? "#FF6200" : dSUB} />
             </View>
-            <View>
-              <Text style={dashStyles.wideBtnTitle}>Mes commandes</Text>
-              <Text style={dashStyles.wideBtnSub}>Suivre et gérer vos commandes</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.5)" />
-        </TouchableOpacity>
+          )}
+        </Pressable>
 
         {/* GESTION LIVRAISON */}
-        <TouchableOpacity
-          style={[dashStyles.wideBtn, { backgroundColor: "#1D4ED8" }]}
+        <Pressable
+          style={({ pressed }) => [dashStyles.wideBtn, { backgroundColor: pressed ? "#FF620012" : dCARD, borderColor: pressed ? "#FF620040" : dBORDER }]}
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/gestion-livraison" as any); }}
-          activeOpacity={0.85}
         >
-          <View style={dashStyles.wideBtnLeft}>
-            <View style={[dashStyles.wideBtnIcon, { backgroundColor: "rgba(255,255,255,0.18)" }]}>
-              <Ionicons name="bicycle-outline" size={22} color="#fff" />
+          {({ pressed }) => (
+            <View style={dashStyles.wideBtnLeft}>
+              <View style={[dashStyles.wideBtnIcon, { backgroundColor: pressed ? "#FF620018" : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)") }]}>
+                <Ionicons name="bicycle-outline" size={22} color={pressed ? "#FF6200" : dICON} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[dashStyles.wideBtnTitle, { color: pressed ? "#FF6200" : dTEXT }]}>Gestion de la livraison</Text>
+                <Text style={[dashStyles.wideBtnSub, { color: dSUB }]}>Gérer les livreurs et suivre les colis</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={pressed ? "#FF6200" : dSUB} />
             </View>
-            <View>
-              <Text style={dashStyles.wideBtnTitle}>Gestion de la livraison</Text>
-              <Text style={dashStyles.wideBtnSub}>Gérer les livreurs et suivre les colis</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.5)" />
-        </TouchableOpacity>
+          )}
+        </Pressable>
 
         {/* Secondary actions — small utility row */}
         <View style={[dashStyles.secondaryRow, { backgroundColor: dCARD, borderColor: dBORDER }]}>
