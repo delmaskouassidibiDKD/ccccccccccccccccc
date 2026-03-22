@@ -600,7 +600,7 @@ function MessagesTab() {
           conversations.map((conv) => (
             <TouchableOpacity
               key={conv.id}
-              style={styles.convRow}
+              style={[styles.convRow, { backgroundColor: dCARD, borderBottomColor: dBORDER }]}
               activeOpacity={0.75}
               onPress={() => {
                 Haptics.selectionAsync();
@@ -613,16 +613,16 @@ function MessagesTab() {
                 <View style={styles.convAvatar}>
                   <Text style={styles.convInitials}>{conv.initials}</Text>
                 </View>
-                {conv.online && <View style={styles.convOnline} />}
+                {conv.online && <View style={[styles.convOnline, { borderColor: dCARD }]} />}
               </View>
               <View style={styles.convBody}>
                 <View style={styles.convTop}>
-                  <Text style={[styles.convName, conv.unread > 0 && styles.convNameBold]}>{conv.name}</Text>
-                  <Text style={[styles.convTime, conv.unread > 0 ? styles.convTimeUnread : { color: "#9CA3AF" }]}>{conv.time}</Text>
+                  <Text style={[styles.convName, { color: dTEXT }, conv.unread > 0 && styles.convNameBold]}>{conv.name}</Text>
+                  <Text style={[styles.convTime, conv.unread > 0 ? styles.convTimeUnread : { color: dMUTED }]}>{conv.time}</Text>
                 </View>
                 <View style={styles.convBottom}>
                   {conv.read && <Text style={styles.convTick}>✓✓ </Text>}
-                  <Text style={[styles.convPreview, conv.unread === 0 && { color: "#9CA3AF" }]} numberOfLines={1}>{conv.preview}</Text>
+                  <Text style={[styles.convPreview, { color: conv.unread === 0 ? dMUTED : dTEXT }]} numberOfLines={1}>{conv.preview}</Text>
                   {conv.unread > 0 && (
                     <View style={styles.convBadge}>
                       <Text style={styles.convBadgeText}>{conv.unread}</Text>
