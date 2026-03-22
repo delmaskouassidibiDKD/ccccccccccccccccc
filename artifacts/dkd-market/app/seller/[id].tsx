@@ -34,6 +34,10 @@ import { SellerProductCard } from "@/components/SellerProductCard";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const VIDEO_CELL = (SCREEN_WIDTH - 4) / 3;
+const SELLER_CONVS_KEY = "@dkd:seller_convs";
+
+type ChatMsg  = { id: string; text: string; sender: "me" | "seller"; time: string };
+type SellerConv = { sellerId: string; shopName: string; initials: string; lastMessage: string; lastTime: string; unread: number; messages: ChatMsg[] };
 const SELLER_TABS = ["Vidéos", "Articles", "En gros"];
 const SELLER_SHOP_TYPES_KEY = "@dkd:seller_shop_types";
 const PROFILE_PHOTO_KEY     = "@dkd:seller_profile_photo";
@@ -93,7 +97,7 @@ function getImageUri(images: string | null | undefined): string | null {
 }
 
 export default function SellerScreen() {
-  const { id, preview } = useLocalSearchParams<{ id: string; preview?: string }>();
+  const { id, preview, chat } = useLocalSearchParams<{ id: string; preview?: string; chat?: string }>();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState(0);
   const [subscribed, setSubscribed] = useState(false);
@@ -119,8 +123,52 @@ export default function SellerScreen() {
       useNativeDriver: false,
     }).start();
   };
+  const [showChatModal, setShowChatModal] = useState(chat === "true");
+  const [chatMessages,  setChatMessages]  = useState<ChatMsg[]>([]);
+  const [chatInput,     setChatInput]     = useState("");
+  const chatListRef = useRef<FlatList<ChatMsg>>(null);
   const [showPubModal,  setShowPubModal]  = useState(false);
   const [pubTab,        setPubTab]        = useState<"pending" | "published">("pending");
+
+  /* ── Chat helpers ── */
+  const loadChat = async () => {
+    try {
+      const raw = await AsyncStorage.getItem(SELLER_CONVS_KEY);
+      const convs: SellerConv[] = raw ? JSON.parse(raw) : [];
+      const conv = convs.find(c => c.sellerId === (id ?? "unknown"));
+      setChatMessages(conv?.messages ?? []);
+    } catch {}
+  };
+
+  const sendChatMessage = async () => {
+    const text = chatInput.trim();
+    if (!text) return;
+    setChatInput("");
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const now = new Date();
+    const time = `${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}`;
+    const newMsg: ChatMsg = { id: `m_${Date.now()}`, text, sender: "me", time };
+    const updatedMsgs = [...chatMessages, newMsg];
+    setChatMessages(updatedMsgs);
+    setTimeout(() => chatListRef.current?.scrollToEnd({ animated: true }), 80);
+    try {
+      const raw = await AsyncStorage.getItem(SELLER_CONVS_KEY);
+      const convs: SellerConv[] = raw ? JSON.parse(raw) : [];
+      const idx = convs.findIndex(c => c.sellerId === (id ?? "unknown"));
+      const conv: SellerConv = idx >= 0 ? convs[idx] : {
+        sellerId: id ?? "unknown",
+        shopName: shopName,
+        initials: (shopName || "?").slice(0,2).toUpperCase(),
+        lastMessage: "", lastTime: "", unread: 0, messages: [],
+      };
+      conv.messages = updatedMsgs;
+      conv.lastMessage = text;
+      conv.lastTime = time;
+      if (idx >= 0) convs[idx] = conv; else convs.unshift(conv);
+      await AsyncStorage.setItem(SELLER_CONVS_KEY, JSON.stringify(convs));
+    } catch {}
+  };
+
   const [logoError,     setLogoError]     = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const { user } = useAuth();
@@ -132,6 +180,8 @@ export default function SellerScreen() {
   const dMUTED  = isDark ? "rgba(255,255,255,0.4)"  : "rgba(0,0,0,0.45)";
   const dBORDER = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
   const dICON   = isDark ? "#fff" : "#374151";
+
+  useEffect(() => { if (showChatModal) loadChat(); }, [showChatModal]);
 
   useEffect(() => {
     AsyncStorage.multiGet([SELLER_SHOP_TYPES_KEY, PROFILE_PHOTO_KEY, DELETED_ARTICLES_KEY, DELETED_ENGROS_KEY]).then(([types, photo, delA, delE]) => {
@@ -350,9 +400,12 @@ export default function SellerScreen() {
           {/* Public view action row */}
           {showPublicView && (
             <View style={styles.actionRow}>
-              {/* S'abonner */}
+              {/* S'abonner — style TikTok */}
               <TouchableOpacity
-                style={[styles.subscribeBtn, subscribed && [styles.subscribedBtn, { backgroundColor: dCARD, borderColor: dBORDER }]]}
+                style={[
+                  styles.subscribeBtn,
+                  subscribed && { backgroundColor: "transparent", borderWidth: 1.5, borderColor: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.18)" },
+                ]}
                 onPress={handleSubscribe}
                 activeOpacity={0.8}
                 disabled={followMutation.isPending || unfollowMutation.isPending}
@@ -367,7 +420,7 @@ export default function SellerScreen() {
                       color={subscribed ? dTEXT : "#fff"}
                     />
                     <Text style={[styles.subscribeBtnText, subscribed && { color: dTEXT }]}>
-                      {subscribed ? "Abonné" : "S'abonner"}
+                      {subscribed ? "Abonné·e" : "S'abonner"}
                     </Text>
                   </>
                 )}
@@ -379,10 +432,10 @@ export default function SellerScreen() {
                 <Text style={styles.iconActionLabel}>Partager</Text>
               </TouchableOpacity>
 
-              {/* Discuter — compact */}
+              {/* Discuter — ouvre modal chat */}
               <TouchableOpacity
                 style={styles.chatBtn}
-                onPress={() => router.push("/chat/1" as any)}
+                onPress={() => { Haptics.selectionAsync(); setShowChatModal(true); }}
                 activeOpacity={0.8}
               >
                 <Ionicons name="chatbubble-outline" size={16} color="#fff" />
@@ -697,6 +750,89 @@ export default function SellerScreen() {
               )}
             />
           )}
+        </View>
+      </Modal>
+
+      {/* ── Modal Chat Vendeur ── */}
+      <Modal visible={showChatModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowChatModal(false)}>
+        <View style={[styles.chatContainer, { backgroundColor: dBG, paddingTop: insets.top > 0 ? 16 : 32 }]}>
+          {/* En-tête */}
+          <View style={[styles.chatHeader, { backgroundColor: dCARD, borderBottomColor: dBORDER }]}>
+            <TouchableOpacity onPress={() => setShowChatModal(false)} style={{ padding: 4 }}>
+              <Ionicons name="arrow-back" size={22} color={dTEXT} />
+            </TouchableOpacity>
+            <View style={styles.chatHeaderInfo}>
+              <View style={[styles.chatHeaderAvatar, { backgroundColor: Colors.primary + "20" }]}>
+                <Text style={[styles.chatHeaderInitials, { color: Colors.primary }]}>{(shopName || "?").slice(0,2).toUpperCase()}</Text>
+              </View>
+              <View>
+                <Text style={[styles.chatHeaderName, { color: dTEXT }]}>{shopName}</Text>
+                <Text style={[styles.chatHeaderSub, { color: "#10B981" }]}>En ligne</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={{ padding: 4 }} onPress={() => Haptics.selectionAsync()}>
+              <Ionicons name="ellipsis-vertical" size={20} color={dICON} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Messages */}
+          <FlatList
+            ref={chatListRef}
+            data={chatMessages}
+            keyExtractor={(m) => m.id}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 12, gap: 6 }}
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={() => chatMessages.length > 0 && chatListRef.current?.scrollToEnd({ animated: false })}
+            ListEmptyComponent={
+              <View style={{ flex: 1, alignItems: "center", paddingTop: 60, gap: 10 }}>
+                <Ionicons name="chatbubbles-outline" size={48} color={isDark ? "#2D2D2D" : "#D1D5DB"} />
+                <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 13, color: dMUTED, textAlign: "center" }}>
+                  Envoyez un message à {shopName}
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => {
+              const isMe = item.sender === "me";
+              return (
+                <View style={[styles.chatBubbleWrap, isMe && styles.chatBubbleWrapMe]}>
+                  {!isMe && (
+                    <View style={[styles.chatAvatar, { backgroundColor: Colors.primary + "20" }]}>
+                      <Text style={[styles.chatAvatarText, { color: Colors.primary }]}>{(shopName || "?").slice(0,2).toUpperCase()}</Text>
+                    </View>
+                  )}
+                  <View style={{ maxWidth: "75%", gap: 2 }}>
+                    <View style={[styles.chatBubble, isMe ? styles.chatBubbleMe : [styles.chatBubbleThem, { backgroundColor: dCARD, borderColor: dBORDER }]]}>
+                      <Text style={[styles.chatBubbleText, { color: isMe ? "#fff" : dTEXT }]}>{item.text}</Text>
+                    </View>
+                    <Text style={[styles.chatBubbleTime, isMe && { textAlign: "right" }, { color: dMUTED }]}>{item.time}{isMe && " ✓✓"}</Text>
+                  </View>
+                </View>
+              );
+            }}
+          />
+
+          {/* Zone de saisie */}
+          <View style={[styles.chatInputBar, { backgroundColor: dCARD, borderTopColor: dBORDER }]}>
+            <TextInput
+              style={[styles.chatInputField, { backgroundColor: isDark ? "#1A1A1A" : "#F3F4F6", color: dTEXT }]}
+              placeholder="Message…"
+              placeholderTextColor={dMUTED}
+              value={chatInput}
+              onChangeText={setChatInput}
+              multiline
+              maxLength={500}
+              returnKeyType="send"
+              onSubmitEditing={sendChatMessage}
+            />
+            <TouchableOpacity
+              style={[styles.chatSendBtn, { backgroundColor: chatInput.trim() ? Colors.primary : (isDark ? "#2D2D2D" : "#E5E7EB") }]}
+              onPress={sendChatMessage}
+              activeOpacity={0.8}
+              disabled={!chatInput.trim()}
+            >
+              <Ionicons name="send" size={18} color={chatInput.trim() ? "#fff" : dMUTED} />
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
 
@@ -1205,6 +1341,39 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   retryBtnText: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: 13 },
+
+  /* ── Chat ── */
+  chatContainer: { flex: 1 },
+  chatHeader: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1,
+  },
+  chatHeaderInfo: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  chatHeaderAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  chatHeaderInitials: { fontFamily: "Poppins_700Bold", fontSize: 14 },
+  chatHeaderName: { fontFamily: "Poppins_700Bold", fontSize: 15 },
+  chatHeaderSub: { fontFamily: "Poppins_400Regular", fontSize: 11 },
+  chatBubbleWrap: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginVertical: 2 },
+  chatBubbleWrapMe: { flexDirection: "row-reverse" },
+  chatAvatar: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  chatAvatarText: { fontFamily: "Poppins_700Bold", fontSize: 11 },
+  chatBubble: { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8 },
+  chatBubbleMe: { backgroundColor: Colors.primary, borderBottomRightRadius: 4 },
+  chatBubbleThem: { borderWidth: 1, borderBottomLeftRadius: 4 },
+  chatBubbleText: { fontFamily: "Poppins_400Regular", fontSize: 14, lineHeight: 20 },
+  chatBubbleTime: { fontFamily: "Poppins_400Regular", fontSize: 10 },
+  chatInputBar: {
+    flexDirection: "row", alignItems: "flex-end", gap: 8,
+    paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1,
+  },
+  chatInputField: {
+    flex: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10,
+    fontFamily: "Poppins_400Regular", fontSize: 14, maxHeight: 100,
+  },
+  chatSendBtn: {
+    width: 42, height: 42, borderRadius: 21,
+    alignItems: "center", justifyContent: "center", flexShrink: 0,
+  },
 
   /* Bouton Publications en cours */
   pubEnCoursBtn: {

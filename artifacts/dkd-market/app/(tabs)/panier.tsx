@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import FavorisArticlesTab from "@/components/FavorisArticlesTab";
 import FavorisGroupeTab from "@/components/FavorisGroupeTab";
 import {
@@ -389,21 +390,58 @@ const MOCK_CONVERSATIONS = [
   { id: "c7", name: "Kofi Mensah",       initials: "KM", preview: "Je confirme ma commande de 5 unités.", time: "Sam",   unread: 0, online: false, read: true  },
 ];
 
+type SellerConv = {
+  sellerId: string;
+  shopName: string;
+  initials: string;
+  lastMessage: string;
+  lastTime: string;
+  unread: number;
+  messages: { id: string; text: string; sender: "me" | "seller"; time: string }[];
+};
+
+const SELLER_CONVS_KEY = "@dkd:seller_convs";
+
 function MessagesTab() {
   const { groupMessages } = useCart();
   const { colors } = useTheme();
   const { t } = useLanguage();
   const [messageFilter, setMessageFilter] = useState(t.cart.all);
   const MESSAGE_FILTERS = [t.cart.all, t.cart.unread, t.cart.groupsCreated, t.cart.groupsJoined];
+  const [sellerConvs, setSellerConvs] = useState<SellerConv[]>([]);
+
+  const loadSellerConvs = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem(SELLER_CONVS_KEY);
+      if (raw) setSellerConvs(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  useEffect(() => { loadSellerConvs(); }, []);
 
   const getCountryFlag = (code: string) => {
     const flags: Record<string, string> = { CI: "🇨🇮", SN: "🇸🇳", BJ: "🇧🇯" };
     return flags[code] || "🌍";
   };
 
+  const allConvsMixed = [
+    ...sellerConvs.map((sc) => ({
+      id: `seller_${sc.sellerId}`,
+      name: sc.shopName,
+      initials: sc.initials,
+      preview: sc.lastMessage || "…",
+      time: sc.lastTime || "",
+      unread: sc.unread,
+      online: false,
+      read: true,
+      sellerId: sc.sellerId,
+    })),
+    ...MOCK_CONVERSATIONS.map((c) => ({ ...c, sellerId: undefined as string | undefined })),
+  ];
+
   const conversations = messageFilter === t.cart.unread
-    ? MOCK_CONVERSATIONS.filter((c) => c.unread > 0)
-    : MOCK_CONVERSATIONS;
+    ? allConvsMixed.filter((c) => c.unread > 0)
+    : allConvsMixed;
 
   return (
     <View style={styles.tabContent}>
@@ -487,6 +525,12 @@ function MessagesTab() {
               key={conv.id}
               style={styles.convRow}
               activeOpacity={0.75}
+              onPress={() => {
+                Haptics.selectionAsync();
+                if (conv.sellerId) {
+                  router.push({ pathname: "/seller/[id]", params: { id: conv.sellerId, chat: "true" } } as any);
+                }
+              }}
             >
               <View style={styles.convAvatarWrap}>
                 <View style={styles.convAvatar}>
