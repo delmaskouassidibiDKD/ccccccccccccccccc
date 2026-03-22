@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Alert,
   Image,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -55,6 +55,15 @@ export default function AddVideoPage() {
     });
     return unsub;
   }, []);
+
+  /* Pause la vidéo dès que cette page perd le focus (navigation vers une autre page) */
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        videoRef.current?.pauseAsync().catch(() => {});
+      };
+    }, [])
+  );
 
   const pickVideo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -114,6 +123,8 @@ export default function AddVideoPage() {
       Alert.alert("Son requis", "Veuillez choisir un son avant de continuer.");
       return;
     }
+    /* Arrêt explicite de la vidéo avant de quitter la page */
+    await videoRef.current?.pauseAsync().catch(() => {});
     await soundTrimRef.current?.stop();
     Haptics.selectionAsync();
     router.push({
