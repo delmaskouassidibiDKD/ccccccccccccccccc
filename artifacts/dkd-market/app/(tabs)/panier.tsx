@@ -420,6 +420,8 @@ function MessagesTab() {
   const [chatInput,    setChatInput]   = useState("");
   const [chatImages,   setChatImages]  = useState<string[]>([]);
   const chatRef = useRef<FlatList<any>>(null);
+  const [convToDelete, setConvToDelete] = useState<{ id: string; name: string; sellerId?: string } | null>(null);
+  const [deletedMockIds, setDeletedMockIds] = useState<string[]>([]);
 
   const dBG     = isDark ? "#0D1117" : "#F0F4F8";
   const dCARD   = isDark ? "#161B22" : "#FFFFFF";
@@ -435,6 +437,22 @@ function MessagesTab() {
   }, []);
 
   useEffect(() => { loadSellerConvs(); }, []);
+
+  const deleteConv = useCallback(async () => {
+    if (!convToDelete) return;
+    if (convToDelete.sellerId) {
+      try {
+        const raw = await AsyncStorage.getItem(SELLER_CONVS_KEY);
+        const convs: SellerConv[] = raw ? JSON.parse(raw) : [];
+        const filtered = convs.filter(c => c.sellerId !== convToDelete.sellerId);
+        await AsyncStorage.setItem(SELLER_CONVS_KEY, JSON.stringify(filtered));
+        setSellerConvs(filtered);
+      } catch {}
+    } else {
+      setDeletedMockIds(prev => [...prev, convToDelete.id]);
+    }
+    setConvToDelete(null);
+  }, [convToDelete]);
 
   const openConv = useCallback(async (conv: ActiveConv) => {
     setActiveConv(conv);
@@ -513,7 +531,9 @@ function MessagesTab() {
       read: true,
       sellerId: sc.sellerId,
     })),
-    ...MOCK_CONVERSATIONS.map((c) => ({ ...c, sellerId: undefined as string | undefined })),
+    ...MOCK_CONVERSATIONS
+      .filter(c => !deletedMockIds.includes(c.id))
+      .map((c) => ({ ...c, sellerId: undefined as string | undefined })),
   ];
 
   const conversations = messageFilter === t.cart.unread
@@ -608,6 +628,11 @@ function MessagesTab() {
                   openConv({ sellerId: conv.sellerId, shopName: conv.name, initials: conv.initials });
                 }
               }}
+              onLongPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setConvToDelete({ id: conv.id, name: conv.name, sellerId: conv.sellerId });
+              }}
+              delayLongPress={400}
             >
               <View style={styles.convAvatarWrap}>
                 <View style={styles.convAvatar}>
@@ -634,6 +659,36 @@ function MessagesTab() {
           ))
         )
       )}
+      {/* ── Modal confirmation suppression conversation ── */}
+      <Modal visible={!!convToDelete} transparent animationType="fade" onRequestClose={() => setConvToDelete(null)}>
+        <View style={styles.deleteOverlay}>
+          <View style={[styles.deleteSheet, { backgroundColor: colors.backgroundCard, borderColor: colors.border }]}>
+            <Text style={[styles.deleteName, { color: colors.text }]} numberOfLines={1}>
+              {convToDelete?.name}
+            </Text>
+            <Text style={[styles.deleteMsg, { color: colors.textMuted }]}>
+              Supprimer cette conversation ?
+            </Text>
+            <View style={styles.deleteBtns}>
+              <TouchableOpacity
+                style={[styles.deleteCancel, { borderColor: colors.border }]}
+                activeOpacity={0.8}
+                onPress={() => setConvToDelete(null)}
+              >
+                <Text style={[styles.deleteCancelText, { color: colors.text }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteConfirm}
+                activeOpacity={0.8}
+                onPress={deleteConv}
+              >
+                <Text style={styles.deleteConfirmText}>Supprimer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* ── Modal chat vendeur (inline, sans navigation) ── */}
       <Modal visible={!!activeConv} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeConv}>
         <View style={{ flex: 1, backgroundColor: dBG }}>
@@ -1056,6 +1111,33 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
+  deleteOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
+  deleteSheet: {
+    width: "100%",
+    borderRadius: 16,
+    padding: 20,
+    gap: 12,
+    borderWidth: 1,
+  },
+  deleteName: { fontFamily: "Poppins_700Bold", fontSize: 15, textAlign: "center" },
+  deleteMsg: { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center" },
+  deleteBtns: { flexDirection: "row", gap: 10, marginTop: 4 },
+  deleteCancel: {
+    flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center",
+    borderWidth: 1,
+  },
+  deleteCancelText: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
+  deleteConfirm: {
+    flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center",
+    backgroundColor: "#EF4444",
+  },
+  deleteConfirmText: { fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
   convAvatarWrap: { position: "relative", width: 52, height: 52 },
   convAvatar: {
     width: 52,
