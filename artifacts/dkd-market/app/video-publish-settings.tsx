@@ -10,25 +10,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { STATIC_CATEGORIES } from "./(tabs)/rayons";
 
-/* ── Pays ── */
-const COUNTRIES = [
-  { code: "ALL", flag: "🌍", name: "Tous les pays" },
-  { code: "CI",  flag: "🇨🇮", name: "Côte d'Ivoire" },
-  { code: "SN",  flag: "🇸🇳", name: "Sénégal" },
-  { code: "BJ",  flag: "🇧🇯", name: "Bénin" },
-  { code: "TG",  flag: "🇹🇬", name: "Togo" },
-  { code: "CM",  flag: "🇨🇲", name: "Cameroun" },
-  { code: "ML",  flag: "🇲🇱", name: "Mali" },
-  { code: "BF",  flag: "🇧🇫", name: "Burkina Faso" },
-  { code: "GN",  flag: "🇬🇳", name: "Guinée" },
-  { code: "CD",  flag: "🇨🇩", name: "Congo RDC" },
-  { code: "CG",  flag: "🇨🇬", name: "Congo Brazzaville" },
-  { code: "NE",  flag: "🇳🇪", name: "Niger" },
-  { code: "TD",  flag: "🇹🇩", name: "Tchad" },
-  { code: "GA",  flag: "🇬🇦", name: "Gabon" },
-  { code: "MG",  flag: "🇲🇬", name: "Madagascar" },
-  { code: "MR",  flag: "🇲🇷", name: "Mauritanie" },
-];
 
 /* ── Sections de menus vendeur ── */
 type MenuKey = "vendeur" | "gastro" | "marche" | "supermarche" | "grossiste" | "importe" | "perso" | "svc-gastro";
@@ -80,12 +61,10 @@ export default function VideoPublishSettings() {
     soundTitle: string; soundArtist: string;
   }>();
 
-  const [title,           setTitle]           = useState("");
-  const [description,     setDescription]     = useState("");
-  const [category,        setCategory]        = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("ALL");
-  const [showCountries,   setShowCountries]   = useState(false);
-  const [publishing,      setPublishing]      = useState(false);
+  const [title,       setTitle]       = useState("");
+  const [description, setDescription] = useState("");
+  const [category,    setCategory]    = useState("");
+  const [publishing,  setPublishing]  = useState(false);
 
   /* Article */
   const [articleEnabled,    setArticleEnabled]    = useState(true);
@@ -287,35 +266,6 @@ export default function VideoPublishSettings() {
             </View>
           </View>
 
-          {/* ── DIFFUSION ── */}
-          <View style={s.field}>
-            <Text style={s.label}>Diffusion</Text>
-            <TouchableOpacity
-              style={[s.selector, s.selectorFilled]}
-              onPress={() => { setShowCountries((v) => !v); Haptics.selectionAsync(); }}
-              activeOpacity={0.85}
-            >
-              <Text style={s.selectorText}>
-                {COUNTRIES.find((c) => c.code === selectedCountry)?.flag}{" "}
-                {COUNTRIES.find((c) => c.code === selectedCountry)?.name}
-              </Text>
-              <Ionicons name={showCountries ? "chevron-up" : "chevron-down"} size={18} color="#9CA3AF" />
-            </TouchableOpacity>
-            {showCountries && (
-              <View style={s.dropdown}>
-                {COUNTRIES.map((c) => (
-                  <TouchableOpacity
-                    key={c.code}
-                    style={[s.dropdownItem, selectedCountry === c.code && s.dropdownItemActive]}
-                    onPress={() => { setSelectedCountry(c.code); setShowCountries(false); Haptics.selectionAsync(); }}
-                  >
-                    <Text style={s.dropdownText}>{c.flag} {c.name}</Text>
-                    {selectedCountry === c.code && <Ionicons name="checkmark" size={16} color="#FF6B00" />}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
         </ScrollView>
 
         {/* ── BOUTON PUBLIER ── */}
@@ -347,24 +297,7 @@ export default function VideoPublishSettings() {
             </TouchableOpacity>
           </View>
 
-          {/* Barre de recherche */}
-          <View style={s.modalSearch}>
-            <Ionicons name="search-outline" size={18} color="#4B5563" />
-            <TextInput
-              style={s.modalSearchInput}
-              placeholder="Rechercher un article..."
-              placeholderTextColor="#4B5563"
-              value={articleSearch}
-              onChangeText={setArticleSearch}
-            />
-            {articleSearch.length > 0 && (
-              <TouchableOpacity onPress={() => setArticleSearch("")}>
-                <Ionicons name="close-circle" size={16} color="#4B5563" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Filtres par menu */}
+          {/* Filtres par menu — onglets compacts */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.sectionTabs}>
             <TouchableOpacity
               style={[s.sectionTab, activeMenuFilter === "all" && s.sectionTabActive]}
@@ -378,11 +311,32 @@ export default function VideoPublishSettings() {
                 style={[s.sectionTab, activeMenuFilter === sec.key && [s.sectionTabActive, { borderColor: sec.color }]]}
                 onPress={() => { setActiveMenuFilter(sec.key); Haptics.selectionAsync(); }}
               >
-                <Ionicons name={sec.icon as any} size={13} color={activeMenuFilter === sec.key ? sec.color : "#6B7280"} />
+                <Ionicons name={sec.icon as any} size={12} color={activeMenuFilter === sec.key ? sec.color : "#6B7280"} />
                 <Text style={[s.sectionTabText, activeMenuFilter === sec.key && { color: sec.color }]}>{sec.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
+
+          {/* Barre de recherche — placeholder adapté à la section */}
+          <View style={s.modalSearch}>
+            <Ionicons name="search-outline" size={18} color="#4B5563" />
+            <TextInput
+              style={s.modalSearchInput}
+              placeholder={
+                activeMenuFilter === "all"
+                  ? "Rechercher un article…"
+                  : `Rechercher dans ${visibleSections.find((sec) => sec.key === activeMenuFilter)?.label ?? ""}…`
+              }
+              placeholderTextColor="#4B5563"
+              value={articleSearch}
+              onChangeText={setArticleSearch}
+            />
+            {articleSearch.length > 0 && (
+              <TouchableOpacity onPress={() => setArticleSearch("")}>
+                <Ionicons name="close-circle" size={16} color="#4B5563" />
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Liste articles */}
           <FlatList
@@ -524,15 +478,6 @@ const s = StyleSheet.create({
   categoryInput: { flex: 1, paddingHorizontal: 14, paddingVertical: 12, fontFamily: "Poppins_400Regular", fontSize: 14, color: "#fff" },
   categoryPickerBtn: { paddingHorizontal: 14, paddingVertical: 14, backgroundColor: "#2D2D2D", alignItems: "center", justifyContent: "center", borderLeftWidth: 1, borderLeftColor: "#3D3D3D" },
 
-  /* Diffusion */
-  selector: { backgroundColor: "#1A1A1A", borderRadius: 10, borderWidth: 1.5, borderColor: "#2D2D2D", paddingHorizontal: 14, paddingVertical: 13, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  selectorFilled: { borderColor: "#FF6B0060" },
-  selectorText: { fontFamily: "Poppins_400Regular", fontSize: 14, color: "#fff" },
-  dropdown: { backgroundColor: "#1E1E1E", borderRadius: 10, borderWidth: 1, borderColor: "#2D2D2D", overflow: "hidden", marginTop: 4 },
-  dropdownItem: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#2A2A2A" },
-  dropdownItemActive: { backgroundColor: "#FF6B0010" },
-  dropdownText: { fontFamily: "Poppins_400Regular", fontSize: 14, color: "#E5E7EB" },
-
   /* Bottom bar */
   bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingTop: 12, backgroundColor: "#111", borderTopWidth: 1, borderTopColor: "#2D2D2D" },
   publishBtn: { backgroundColor: "#FF6B00", borderRadius: 14, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
@@ -548,10 +493,10 @@ const s = StyleSheet.create({
   modalSearchInput: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 14, color: "#fff" },
 
   /* Tabs sections */
-  sectionTabs: { paddingHorizontal: 16, paddingBottom: 12, gap: 8 },
-  sectionTab: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "#2D2D2D", backgroundColor: "#1A1A1A" },
+  sectionTabs: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, alignItems: "center" },
+  sectionTab: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: "#2D2D2D", backgroundColor: "#1A1A1A" },
   sectionTabActive: { borderColor: "#FF6B00", backgroundColor: "#FF6B0010" },
-  sectionTabText: { fontFamily: "Poppins_600SemiBold", fontSize: 12, color: "#6B7280" },
+  sectionTabText: { fontFamily: "Poppins_600SemiBold", fontSize: 11, color: "#6B7280" },
 
   /* Articles liste */
   articleRow: { flexDirection: "row", alignItems: "center", paddingVertical: 13, gap: 12 },
