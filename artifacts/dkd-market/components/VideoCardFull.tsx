@@ -81,18 +81,12 @@ export default function VideoCardFull({ item, index, bottomOffset = 80, onClose 
         </View>
       )}
 
-      {/* Bouton fermer (coin haut gauche) */}
+      {/* Bouton retour (coin haut gauche) */}
       {onClose && (
         <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.8}>
-          <Ionicons name="close" size={22} color="#fff" />
+          <Ionicons name="chevron-back" size={26} color="#fff" />
         </TouchableOpacity>
       )}
-
-      {/* Durée */}
-      <View style={styles.durationPill}>
-        <Ionicons name="time-outline" size={11} color="#fff" />
-        <Text style={styles.durationText}>{item.duration}</Text>
-      </View>
 
       {/* Boutons droite */}
       <View style={[styles.rightActions, { bottom: bottomOffset + 50 }]}>
@@ -181,17 +175,8 @@ const styles = StyleSheet.create({
   heartOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", zIndex: 50 },
   closeBtn: {
     position: "absolute", top: 52, left: 14, zIndex: 200,
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: "rgba(0,0,0,0.45)",
     alignItems: "center", justifyContent: "center",
   },
-  durationPill: {
-    position: "absolute", top: 56, right: 14, zIndex: 200,
-    flexDirection: "row", alignItems: "center", gap: 4,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4,
-  },
-  durationText: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: fs(11) },
   rightActions: { position: "absolute", right: 12, alignItems: "center", gap: 16, zIndex: 10 },
   avatarWrap: { alignItems: "center", marginBottom: 4 },
   avatarCircle: {
