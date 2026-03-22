@@ -314,6 +314,8 @@ function SellerDashboard({ initials, profilePhoto, onPhotoChanged, shopName, sta
   const [activeShopTypes, setActiveShopTypes] = useState<string[]>([]);
   const [showPubModal,   setShowPubModal]   = useState(false);
   const [pubTab,         setPubTab]         = useState<"pending" | "published">("pending");
+  const [publications,   setPublications]   = useState<PubItem[]>(DEMO_PUBLICATIONS);
+  const [pubToCancel,    setPubToCancel]    = useState<PubItem | null>(null);
   const { isDark } = useTheme();
   const dBG      = isDark ? "#0D1117" : "#F0F4F8";
   const dHEAD    = isDark ? "#0D1117" : "#FFFFFF";
@@ -559,7 +561,7 @@ function SellerDashboard({ initials, profilePhoto, onPhotoChanged, shopName, sta
           <Ionicons name="cloud-upload-outline" size={20} color="#10B981" />
           <Text style={[dashStyles.mgmtBtnText, { color: "#10B981", flex: 1 }]}>Publications en cours</Text>
           <View style={dashStyles.pubBadge}>
-            <Text style={dashStyles.pubBadgeText}>{DEMO_PUBLICATIONS.filter(p => p.status === "pending").length}</Text>
+            <Text style={dashStyles.pubBadgeText}>{publications.filter(p => p.status === "pending").length}</Text>
           </View>
         </TouchableOpacity>
 
@@ -589,7 +591,7 @@ function SellerDashboard({ initials, profilePhoto, onPhotoChanged, shopName, sta
               <Ionicons name="cloud-upload-outline" size={14} color={pubTab === "pending" ? "#10B981" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)")} />
               <Text style={[dashStyles.pubTabText, { color: pubTab === "pending" ? "#10B981" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)") }]}>En cours d'envoi</Text>
               <View style={[dashStyles.pubTabBadge, { backgroundColor: pubTab === "pending" ? "#10B981" : (isDark ? "#2D2D2D" : "#E5E7EB") }]}>
-                <Text style={[dashStyles.pubTabBadgeText, { color: pubTab === "pending" ? "#fff" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)") }]}>{DEMO_PUBLICATIONS.filter(p => p.status === "pending").length}</Text>
+                <Text style={[dashStyles.pubTabBadgeText, { color: pubTab === "pending" ? "#fff" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)") }]}>{publications.filter(p => p.status === "pending").length}</Text>
               </View>
             </TouchableOpacity>
             <TouchableOpacity
@@ -599,14 +601,14 @@ function SellerDashboard({ initials, profilePhoto, onPhotoChanged, shopName, sta
               <Ionicons name="checkmark-circle-outline" size={14} color={pubTab === "published" ? "#FF6B00" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)")} />
               <Text style={[dashStyles.pubTabText, { color: pubTab === "published" ? "#FF6B00" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)") }]}>Publiées</Text>
               <View style={[dashStyles.pubTabBadge, { backgroundColor: pubTab === "published" ? "#FF6B00" : (isDark ? "#2D2D2D" : "#E5E7EB") }]}>
-                <Text style={[dashStyles.pubTabBadgeText, { color: pubTab === "published" ? "#fff" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)") }]}>{DEMO_PUBLICATIONS.filter(p => p.status === "published").length}</Text>
+                <Text style={[dashStyles.pubTabBadgeText, { color: pubTab === "published" ? "#fff" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)") }]}>{publications.filter(p => p.status === "published").length}</Text>
               </View>
             </TouchableOpacity>
           </View>
 
           {/* Liste */}
           <FlatList
-            data={DEMO_PUBLICATIONS.filter(p => p.status === pubTab)}
+            data={publications.filter(p => p.status === pubTab)}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: insets.bottom + 24 }}
             showsVerticalScrollIndicator={false}
@@ -652,6 +654,18 @@ function SellerDashboard({ initials, profilePhoto, onPhotoChanged, shopName, sta
                       </View>
                     )}
                   </View>
+                  {/* Bouton Annuler (en cours seulement) */}
+                  {item.status === "pending" && (
+                    <TouchableOpacity
+                      style={[dashStyles.pubAnnulerBtn, { borderColor: "#EF444444", backgroundColor: "#EF444412" }]}
+                      activeOpacity={0.8}
+                      onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setPubToCancel(item); }}
+                    >
+                      <Ionicons name="close" size={14} color="#EF4444" />
+                      <Text style={dashStyles.pubAnnulerBtnText}>Annuler</Text>
+                    </TouchableOpacity>
+                  )}
+                  {/* Bouton Voir (publiées seulement) */}
                   {item.status === "published" && (
                     <TouchableOpacity
                       style={dashStyles.pubVoirBtn}
@@ -672,6 +686,43 @@ function SellerDashboard({ initials, profilePhoto, onPhotoChanged, shopName, sta
             ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
           />
         </View>
+      </Modal>
+
+      {/* ── Confirmation suppression publication en cours ── */}
+      <Modal visible={!!pubToCancel} transparent animationType="fade" onRequestClose={() => setPubToCancel(null)}>
+        <Pressable style={dashStyles.pubConfirmOverlay} onPress={() => setPubToCancel(null)}>
+          <Pressable style={[dashStyles.pubConfirmSheet, { backgroundColor: dCARD, borderColor: dBORDER }]} onPress={() => {}}>
+            <View style={dashStyles.pubConfirmIconWrap}>
+              <Ionicons name="cloud-upload-outline" size={28} color="#EF4444" />
+            </View>
+            <Text style={[dashStyles.pubConfirmTitle, { color: dTEXT }]}>Annuler l'envoi ?</Text>
+            <Text style={[dashStyles.pubConfirmBody, { color: dSUB }]}>
+              « {pubToCancel?.title} » sera définitivement supprimée de vos publications en cours.
+            </Text>
+            <View style={dashStyles.pubConfirmBtns}>
+              <TouchableOpacity
+                style={[dashStyles.pubConfirmCancel, { borderColor: dBORDER }]}
+                activeOpacity={0.8}
+                onPress={() => { Haptics.selectionAsync(); setPubToCancel(null); }}
+              >
+                <Ionicons name="play-circle-outline" size={16} color={dTEXT} />
+                <Text style={[dashStyles.pubConfirmCancelText, { color: dTEXT }]}>Non, continuer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={dashStyles.pubConfirmDelete}
+                activeOpacity={0.8}
+                onPress={() => {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                  setPublications(prev => prev.filter(p => p.id !== pubToCancel!.id));
+                  setPubToCancel(null);
+                }}
+              >
+                <Ionicons name="trash-outline" size={16} color="#fff" />
+                <Text style={dashStyles.pubConfirmDeleteText}>Oui, supprimer</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
     </View>
@@ -872,6 +923,21 @@ const dashStyles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, alignSelf: "center", flexShrink: 0,
   },
   pubVoirBtnText: { fontFamily: "Poppins_700Bold", fontSize: 12, color: "#fff" },
+  pubAnnulerBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 6, alignSelf: "center", flexShrink: 0,
+  },
+  pubAnnulerBtnText: { fontFamily: "Poppins_700Bold", fontSize: 12, color: "#EF4444" },
+  pubConfirmOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", alignItems: "center", padding: 24 },
+  pubConfirmSheet: { width: "100%", borderRadius: 20, borderWidth: 1, padding: 24, alignItems: "center", gap: 10 },
+  pubConfirmIconWrap: { width: 56, height: 56, borderRadius: 28, backgroundColor: "#EF444420", alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  pubConfirmTitle: { fontFamily: "Poppins_700Bold", fontSize: 17, textAlign: "center" },
+  pubConfirmBody: { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center", lineHeight: 20 },
+  pubConfirmBtns: { flexDirection: "row", gap: 10, marginTop: 6, width: "100%" },
+  pubConfirmCancel: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
+  pubConfirmCancelText: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
+  pubConfirmDelete: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 12, borderRadius: 12, backgroundColor: "#EF4444" },
+  pubConfirmDeleteText: { fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
 });
 
 const odStyles = StyleSheet.create({
