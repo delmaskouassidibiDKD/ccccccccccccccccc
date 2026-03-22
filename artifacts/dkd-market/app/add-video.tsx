@@ -121,6 +121,7 @@ export default function AddVideoPage() {
   const [showCurrencyDrop, setShowCurrencyDrop] = useState(false);
   const [photoDescription, setPhotoDescription] = useState("");
 
+  const [vidTitle,         setVidTitle]         = useState("");
   const [vidDescription,   setVidDescription]   = useState("");
   const [vidPublishing,    setVidPublishing]     = useState(false);
   const [articleEnabled,   setArticleEnabled]    = useState(true);
@@ -212,7 +213,7 @@ export default function AddVideoPage() {
   };
 
   const showVideoBar = mode === "video" && !!videoUri;
-  const videoPublishReady = showVideoBar && (!articleEnabled || !!selectedArticle);
+  const videoPublishReady = showVideoBar && vidTitle.trim().length > 0 && (!articleEnabled || !!selectedArticle);
   const showPhotoBar = mode === "photo" && photos.length > 0;
   const photoPublishReady =
     showPhotoBar &&
@@ -429,6 +430,25 @@ export default function AddVideoPage() {
                   )}
                 </TouchableOpacity>
               )}
+            </View>
+
+            {/* Titre obligatoire */}
+            <View style={styles.vidField}>
+              <Text style={[styles.sectionLabel, { color: dSUB }]}>
+                Titre <Text style={styles.required}>* obligatoire</Text>
+              </Text>
+              <TextInput
+                style={[styles.descInput, { backgroundColor: isDark ? "#1A1A1A" : "#F3F4F6", color: dTEXT, borderColor: vidTitle.trim().length === 0 ? (isDark ? "#EF444430" : "#EF444430") : (isDark ? "#2D2D2D" : "rgba(0,0,0,0.1)"), minHeight: 44, paddingTop: 12 }]}
+                placeholder="Titre de votre vidéo…"
+                placeholderTextColor="#6B7280"
+                value={vidTitle}
+                onChangeText={setVidTitle}
+                maxLength={80}
+                textAlignVertical="top"
+              />
+              <Text style={[styles.descCount, vidTitle.trim().length === 0 && { color: "#EF4444" }]}>
+                {vidTitle.length}/80{vidTitle.trim().length === 0 ? "  — requis" : ""}
+              </Text>
             </View>
 
             {/* Description optionnelle */}
