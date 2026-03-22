@@ -202,6 +202,16 @@ export default function SellerScreen() {
   useEffect(() => { if (showChatModal) loadChat(); }, [showChatModal]);
 
   useEffect(() => {
+    if (!id || id === "own") return;
+    AsyncStorage.getItem("@dkd:subscriptions").then(raw => {
+      if (raw) {
+        const subs: string[] = JSON.parse(raw);
+        if (subs.includes(id)) setSubscribed(true);
+      }
+    }).catch(() => {});
+  }, [id]);
+
+  useEffect(() => {
     AsyncStorage.multiGet([SELLER_SHOP_TYPES_KEY, PROFILE_PHOTO_KEY, DELETED_ARTICLES_KEY, DELETED_ENGROS_KEY]).then(([types, photo, delA, delE]) => {
       const parsed: string[] = types[1] ? JSON.parse(types[1]) : [];
       if (__DEV__) {
@@ -236,26 +246,30 @@ export default function SellerScreen() {
 
   const followMutation = useMutation({
     mutationFn: () => api.sellers.follow(id!),
-    onMutate: () => {
-      setSubscribed(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    },
-    onError: () => setSubscribed(false),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/sellers", id] }),
   });
 
   const unfollowMutation = useMutation({
     mutationFn: () => api.sellers.unfollow(id!),
-    onMutate: () => {
-      setSubscribed(false);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    },
-    onError: () => setSubscribed(true),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/sellers", id] }),
   });
 
-  const handleSubscribe = () => {
-    subscribed ? unfollowMutation.mutate() : followMutation.mutate();
+  const SUBSCRIPTIONS_KEY = "@dkd:subscriptions";
+
+  const handleSubscribe = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const next = !subscribed;
+    setSubscribed(next);
+    try {
+      const raw = await AsyncStorage.getItem(SUBSCRIPTIONS_KEY);
+      const subs: string[] = raw ? JSON.parse(raw) : [];
+      const sellerId = id ?? "unknown";
+      const updated = next ? [...new Set([...subs, sellerId])] : subs.filter(s => s !== sellerId);
+      await AsyncStorage.setItem(SUBSCRIPTIONS_KEY, JSON.stringify(updated));
+    } catch {}
+    try {
+      if (next) followMutation.mutate(); else unfollowMutation.mutate();
+    } catch {}
   };
 
   const handleShare = async () => {
@@ -426,22 +440,17 @@ export default function SellerScreen() {
                 ]}
                 onPress={handleSubscribe}
                 activeOpacity={0.8}
-                disabled={followMutation.isPending || unfollowMutation.isPending}
               >
-                {(followMutation.isPending || unfollowMutation.isPending) ? (
-                  <ActivityIndicator size="small" color={subscribed ? Colors.primary : "#fff"} />
-                ) : (
-                  <>
-                    <Ionicons
-                      name={subscribed ? "checkmark" : "person-add-outline"}
-                      size={16}
-                      color={subscribed ? Colors.primary : "#fff"}
-                    />
-                    <Text style={[styles.subscribeBtnText, subscribed && { color: Colors.primary }]}>
-                      {subscribed ? "Abonné·e" : "S'abonner"}
-                    </Text>
-                  </>
-                )}
+                <>
+                  <Ionicons
+                    name={subscribed ? "checkmark" : "person-add-outline"}
+                    size={16}
+                    color={subscribed ? Colors.primary : "#fff"}
+                  />
+                  <Text style={[styles.subscribeBtnText, subscribed && { color: Colors.primary }]}>
+                    {subscribed ? "Abonné·e" : "S'abonner"}
+                  </Text>
+                </>
               </TouchableOpacity>
 
               {/* Partager — petit, fond noir */}
