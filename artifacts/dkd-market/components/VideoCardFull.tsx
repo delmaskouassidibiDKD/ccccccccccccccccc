@@ -152,14 +152,14 @@ export default function VideoCardFull({ item, index, bottomOffset = 80, onClose 
           <Text style={styles.titleTagText}>{(item.title || "").toUpperCase()}</Text>
         </View>
         <View style={styles.ctaRow}>
-          <View style={styles.pricePill}>
-            <Ionicons name="pricetag-outline" size={12} color="#fff" />
-            <Text style={styles.priceText}>{item.price}</Text>
-          </View>
-          <View style={styles.viewsPill}>
-            <Ionicons name="eye-outline" size={12} color="rgba(255,255,255,0.7)" />
-            <Text style={styles.viewsText}>{fmtCount(item.views)} vues</Text>
-          </View>
+          <TouchableOpacity style={styles.commandBtn} activeOpacity={0.85}>
+            <Ionicons name="basket-outline" size={14} color="#000" />
+            <Text style={styles.commandText}>ACHETER</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.boutiqueBtn} activeOpacity={0.85}>
+            <Ionicons name="storefront-outline" size={14} color="#fff" />
+            <Text style={styles.boutiqueText}>BOUTIQUE</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -220,17 +220,16 @@ const styles = StyleSheet.create({
   sellerName: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: fs(15) },
   titleTag: { alignSelf: "flex-start", paddingHorizontal: ms(10), paddingVertical: 4, borderRadius: 20 },
   titleTagText: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: fs(10), letterSpacing: 0.8 },
-  ctaRow: { flexDirection: "row", gap: 8, marginTop: 4 },
-  pricePill: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10,
+  ctaRow: { flexDirection: "row", gap: 8, marginTop: 5 },
+  commandBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 5, backgroundColor: "#fff", paddingVertical: ms(7), borderRadius: 10,
   },
-  priceText: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: fs(11) },
-  viewsPill: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10,
+  commandText: { color: "#000", fontFamily: "Poppins_700Bold", fontSize: fs(11) },
+  boutiqueBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 5, backgroundColor: "rgba(255,255,255,0.15)", paddingVertical: ms(7),
+    borderRadius: 10, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.4)",
   },
-  viewsText: { color: "rgba(255,255,255,0.75)", fontFamily: "Poppins_400Regular", fontSize: fs(11) },
+  boutiqueText: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: fs(11) },
 });
