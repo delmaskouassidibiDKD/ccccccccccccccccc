@@ -4,17 +4,19 @@ import { FlatList, Platform, useWindowDimensions, ViewToken } from "react-native
 interface NativeVideoFeedProps {
   children: React.ReactNode[];
   onPageChange: (i: number) => void;
+  initialIndex?: number;
 }
 
 /* ────────────────────────────────────────────────────────────────
    Web — scroll verrouillé : exactement 1 vidéo par molette/swipe
 ──────────────────────────────────────────────────────────────────*/
-function WebVideoFeed({ items, height, onPageChangeRef }: {
+function WebVideoFeed({ items, height, onPageChangeRef, initialIndex = 0 }: {
   items: React.ReactNode[];
   height: number;
   onPageChangeRef: React.MutableRefObject<(i: number) => void>;
+  initialIndex?: number;
 }) {
-  const [currentIdx, setCurrentIdx] = useState(0);
+  const [currentIdx, setCurrentIdx] = useState(initialIndex);
   const isAnimating = useRef(false);
   const touchStartY = useRef(0);
 
@@ -94,7 +96,7 @@ function WebVideoFeed({ items, height, onPageChangeRef }: {
 /* ────────────────────────────────────────────────────────────────
    Composant principal
 ──────────────────────────────────────────────────────────────────*/
-export default function VideoFeed({ children, onPageChange }: NativeVideoFeedProps) {
+export default function VideoFeed({ children, onPageChange, initialIndex = 0 }: NativeVideoFeedProps) {
   const { height } = useWindowDimensions();
   const items = React.Children.toArray(children);
 
@@ -121,6 +123,7 @@ export default function VideoFeed({ children, onPageChange }: NativeVideoFeedPro
         items={items}
         height={height}
         onPageChangeRef={onPageChangeRef}
+        initialIndex={initialIndex}
       />
     );
   }
@@ -152,6 +155,7 @@ export default function VideoFeed({ children, onPageChange }: NativeVideoFeedPro
       maxToRenderPerBatch={2}
       windowSize={5}
       initialNumToRender={1}
+      initialScrollIndex={initialIndex}
       removeClippedSubviews
       scrollEventThrottle={16}
     />

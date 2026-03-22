@@ -32,6 +32,8 @@ import { DEMO_ARTICLES as ALL_ARTICLES, DELETED_ARTICLES_KEY } from "@/data/arti
 import { DEMO_ENGROS as ALL_ENGROS, DELETED_ENGROS_KEY } from "@/data/engros";
 import { SellerProductCard } from "@/components/SellerProductCard";
 import * as ImagePicker from "expo-image-picker";
+import VideoFeedComp from "@/components/VideoFeed";
+import VideoCardFull from "@/components/VideoCardFull";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const VIDEO_CELL = (SCREEN_WIDTH - 4) / 3;
@@ -722,60 +724,21 @@ export default function SellerScreen() {
         })()}
       </ScrollView>
 
-      {/* ── Modal TikTok player lecture seule ── */}
+      {/* ── Modal TikTok player — même apparence que l'onglet Vidéos ── */}
       <Modal visible={playerStartIndex !== null} animationType="fade" statusBarTranslucent>
         <View style={{ flex: 1, backgroundColor: "#000" }}>
-          {/* Barre flottante fermer */}
-          <View style={[styles.playerTopBar, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity style={styles.playerCloseBtn} onPress={() => setPlayerStartIndex(null)} activeOpacity={0.8}>
-              <Ionicons name="close" size={22} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.playerTitle} numberOfLines={1}>
-              {DEMO_VIDEOS[currentPlayerIdx]?.title ?? ""}
-            </Text>
-          </View>
-
-          {/* Liste TikTok */}
           {playerStartIndex !== null && (
-            <FlatList
-              data={DEMO_VIDEOS}
-              keyExtractor={(v) => v.id}
-              pagingEnabled
-              showsVerticalScrollIndicator={false}
-              initialScrollIndex={playerStartIndex}
-              getItemLayout={(_, index) => ({ length: SCREEN_HEIGHT, offset: SCREEN_HEIGHT * index, index })}
-              onMomentumScrollEnd={(e) => {
-                const idx = Math.round(e.nativeEvent.contentOffset.y / SCREEN_HEIGHT);
-                setCurrentPlayerIdx(idx);
-              }}
-              renderItem={({ item }) => (
-                <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: item.color }}>
-                  {/* Icône + play centré */}
-                  <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
-                    <Ionicons name={item.icon as any} size={88} color="rgba(255,255,255,0.18)" />
-                    <View style={{ position: "absolute" }}>
-                      <Ionicons name="play-circle" size={82} color="rgba(255,255,255,0.85)" />
-                    </View>
-                  </View>
-                  {/* Durée */}
-                  <View style={styles.playerDurationPill}>
-                    <Text style={styles.playerDurationText}>{item.duration}</Text>
-                  </View>
-                  {/* Infos bas */}
-                  <View style={[styles.playerInfoBar, { position: "absolute", bottom: 0, left: 0, right: 0, paddingBottom: insets.bottom + 24 }]}>
-                    <Text style={styles.playerInfoTitle} numberOfLines={2}>{item.title}</Text>
-                    <View style={styles.playerInfoStats}>
-                      <Ionicons name="eye-outline" size={14} color="#aaa" />
-                      <Text style={styles.playerInfoStatText}>{item.views.toLocaleString()} vues</Text>
-                      <Ionicons name="heart-outline" size={14} color="#aaa" />
-                      <Text style={styles.playerInfoStatText}>{item.likes}</Text>
-                      <Ionicons name="chatbubble-outline" size={14} color="#aaa" />
-                      <Text style={styles.playerInfoStatText}>{item.comments}</Text>
-                    </View>
-                  </View>
-                </View>
-              )}
-            />
+            <VideoFeedComp onPageChange={(i) => setCurrentPlayerIdx(i)} initialIndex={playerStartIndex ?? 0}>
+              {DEMO_VIDEOS.map((vid, idx) => (
+                <VideoCardFull
+                  key={vid.id}
+                  item={vid}
+                  index={idx}
+                  bottomOffset={insets.bottom + 16}
+                  onClose={() => setPlayerStartIndex(null)}
+                />
+              ))}
+            </VideoFeedComp>
           )}
         </View>
       </Modal>
@@ -1351,43 +1314,6 @@ const styles = StyleSheet.create({
   },
   videoCellViewsText: { fontFamily: "Poppins_700Bold", fontSize: 11, color: "#fff" },
 
-  /* Player lecture seule */
-  playerTopBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingBottom: 10,
-    gap: 10,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  playerCloseBtn: { padding: 4 },
-  playerTitle: { flex: 1, fontFamily: "Poppins_600SemiBold", fontSize: 13, color: "#fff" },
-  playerVideoArea: { flex: 1, alignItems: "center", justifyContent: "center" },
-  playerDurationPill: {
-    position: "absolute",
-    bottom: 20,
-    right: 20,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  playerDurationText: { fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
-  playerInfoBar: {
-    backgroundColor: "rgba(0,0,0,0.85)",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 32,
-    gap: 8,
-  },
-  playerInfoTitle: { fontFamily: "Poppins_700Bold", fontSize: 15, color: "#fff" },
-  playerInfoStats: { flexDirection: "row", alignItems: "center", gap: 8 },
-  playerInfoStatText: { fontFamily: "Poppins_400Regular", fontSize: 13, color: "#aaa" },
   errorText: { color: Colors.textMuted, fontFamily: "Poppins_500Medium", fontSize: 14, marginTop: 12 },
   retryBtn: {
     backgroundColor: Colors.primary,

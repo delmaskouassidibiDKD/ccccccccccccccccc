@@ -1,72 +1,85 @@
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useState } from "react";
 
 interface WebVideoFeedProps {
   children: React.ReactNode[];
   onPageChange: (i: number) => void;
+  initialIndex?: number;
 }
 
-export default function VideoFeed({ children, onPageChange }: WebVideoFeedProps) {
-  const feedRef = useRef<HTMLDivElement>(null);
+export default function VideoFeed({ children, onPageChange, initialIndex = 0 }: WebVideoFeedProps) {
+  const items = React.Children.toArray(children);
+  const [currentIdx, setCurrentIdx] = useState(initialIndex);
+  const isAnimating = useRef(false);
+  const touchStartY = useRef(0);
   const onPageChangeRef = useRef(onPageChange);
   onPageChangeRef.current = onPageChange;
 
-  const reportPage = useCallback(() => {
-    const el = feedRef.current;
-    if (!el) return;
-    const h = el.clientHeight || window.innerHeight;
-    if (h === 0) return;
-    const index = Math.round(el.scrollTop / h);
-    onPageChangeRef.current(index);
+  /* Hauteur de la fenêtre (recalculée si resize) */
+  const [H, setH] = useState(window.innerHeight);
+  useEffect(() => {
+    const onResize = () => setH(window.innerHeight);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  /* Molette souris / trackpad — 1 vidéo exactement par scroll */
   useEffect(() => {
-    const el = feedRef.current;
-    if (!el) return;
-    let timer: ReturnType<typeof setTimeout>;
-    const onScroll = () => {
-      clearTimeout(timer);
-      timer = setTimeout(reportPage, 80);
+    const total = items.length;
+    const handle = (e: WheelEvent) => {
+      e.preventDefault();
+      if (isAnimating.current) return;
+      const dir = e.deltaY > 0 ? 1 : -1;
+      const next = Math.max(0, Math.min(total - 1, currentIdx + dir));
+      if (next === currentIdx) return;
+      isAnimating.current = true;
+      setCurrentIdx(next);
+      onPageChangeRef.current(next);
+      setTimeout(() => { isAnimating.current = false; }, 650);
     };
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-      clearTimeout(timer);
-    };
-  }, [reportPage]);
+    window.addEventListener("wheel", handle, { passive: false });
+    return () => window.removeEventListener("wheel", handle);
+  }, [currentIdx, items.length]);
+
+  /* Touch (mobile web) */
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const delta = touchStartY.current - e.changedTouches[0].clientY;
+    if (Math.abs(delta) < 30) return;
+    const dir = delta > 0 ? 1 : -1;
+    const next = Math.max(0, Math.min(items.length - 1, currentIdx + dir));
+    if (next === currentIdx) return;
+    isAnimating.current = true;
+    setCurrentIdx(next);
+    onPageChangeRef.current(next);
+    setTimeout(() => { isAnimating.current = false; }, 650);
+  }, [currentIdx, items.length]);
 
   return (
-    <>
-      <style>{`
-        .tiktok-feed {
-          scroll-snap-type: y mandatory;
-          -webkit-overflow-scrolling: touch;
-          overflow-y: scroll;
-          overflow-x: hidden;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-          width: 100%;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-        }
-        .tiktok-feed::-webkit-scrollbar { display: none; }
-        .tiktok-page {
-          scroll-snap-align: start;
-          scroll-snap-stop: always;
-          flex: 0 0 100%;
-          width: 100%;
-          height: 100%;
-          position: relative;
-          overflow: hidden;
-        }
-      `}</style>
-      <div ref={feedRef} className="tiktok-feed">
-        {React.Children.map(children, (child, i) => (
-          <div key={i} className="tiktok-page">
-            {child}
+    <div
+      style={{ width: "100%", height: H, overflow: "hidden", position: "relative" } as React.CSSProperties}
+      onTouchStart={handleTouchStart as any}
+      onTouchEnd={handleTouchEnd as any}
+    >
+      <div
+        style={{
+          width: "100%",
+          transform: `translateY(${-currentIdx * H}px)`,
+          transition: "transform 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+          willChange: "transform",
+        } as React.CSSProperties}
+      >
+        {items.map((item, i) => (
+          <div
+            key={i}
+            style={{ width: "100%", height: H, overflow: "hidden", flexShrink: 0, position: "relative" } as React.CSSProperties}
+          >
+            {item}
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
