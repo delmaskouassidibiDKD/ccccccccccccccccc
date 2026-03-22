@@ -27,16 +27,16 @@ type Mode = null | "video" | "photo";
 type PhotoPrice = { name: string; price: string; currency: string };
 
 const CURRENCIES = [
-  { code: "FCFA", symbol: "FCFA", flag: "🇨🇮" },
-  { code: "EUR",  symbol: "€",    flag: "🇪🇺" },
-  { code: "USD",  symbol: "$",    flag: "🇺🇸" },
-  { code: "GBP",  symbol: "£",    flag: "🇬🇧" },
-  { code: "NGN",  symbol: "₦",    flag: "🇳🇬" },
-  { code: "GHS",  symbol: "₵",    flag: "🇬🇭" },
-  { code: "MAD",  symbol: "MAD",  flag: "🇲🇦" },
-  { code: "KES",  symbol: "KSh",  flag: "🇰🇪" },
-  { code: "XAF",  symbol: "XAF",  flag: "🇨🇲" },
-  { code: "MGA",  symbol: "Ar",   flag: "🇲🇬" },
+  { code: "FCFA", symbol: "FCFA" },
+  { code: "EUR",  symbol: "€"    },
+  { code: "USD",  symbol: "$"    },
+  { code: "GBP",  symbol: "£"    },
+  { code: "NGN",  symbol: "₦"    },
+  { code: "GHS",  symbol: "₵"    },
+  { code: "MAD",  symbol: "MAD"  },
+  { code: "KES",  symbol: "KSh"  },
+  { code: "XAF",  symbol: "XAF"  },
+  { code: "MGA",  symbol: "Ar"   },
 ];
 
 export default function AddVideoPage() {
@@ -468,7 +468,6 @@ export default function AddVideoPage() {
                         style={[styles.currencyItem, priceModalCurrency === c.code && styles.currencyItemActive]}
                         onPress={() => { setPriceModalCurrency(c.code); setShowCurrencyDrop(false); }}
                       >
-                        <Text style={styles.currencyFlag}>{c.flag}</Text>
                         <Text style={[styles.currencyItemText, priceModalCurrency === c.code && { color: "#FF6B00" }]}>
                           {c.code} • {c.symbol}
                         </Text>
@@ -805,7 +804,6 @@ const styles = StyleSheet.create({
     borderBottomColor: "#333",
   },
   currencyItemActive: { backgroundColor: "#FF6B0015" },
-  currencyFlag: { fontSize: 18 },
   currencyItemText: { flex: 1, fontFamily: "Poppins_500Medium", fontSize: 13, color: "#E5E7EB" },
 
   priceField: { gap: 6 },
