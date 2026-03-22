@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,10 +21,15 @@ export default function MesProduitsMarche() {
   const { isDark } = useTheme();
   const paddingBottom = Platform.OS === "web" ? 34 : insets.bottom;
 
+  const [searchQuery, setSearchQuery] = useState("");
+
   const dynBG     = isDark ? "#0D1117" : "#F0F4FA";
   const dynHeader = isDark ? "#111827" : "#FFFFFF";
   const dynBorder = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
   const dynSub    = isDark ? "#64748B" : "#6B7280";
+
+  const q    = searchQuery.toLowerCase().trim();
+  const data = q ? DEMO.filter(i => i.title.toLowerCase().includes(q)) : DEMO;
 
   return (
     <View style={[s.root, { backgroundColor: dynBG, paddingTop: insets.top }]}>
@@ -39,12 +44,8 @@ export default function MesProduitsMarche() {
           </View>
           <Text style={[s.headerTitle, { color: isDark ? "#fff" : "#111" }]}>Gérer mes produits</Text>
         </View>
-        <TouchableOpacity onPress={() => { Haptics.selectionAsync(); router.push("/add-product" as any); }}>
-          <Ionicons name="add" size={22} color={ACCENT} />
-        </TouchableOpacity>
       </View>
 
-      {/* Onglet unique — Détail */}
       <View style={[s.tabBar, { backgroundColor: isDark ? "#111" : "#F8F8F8", borderBottomColor: dynBorder }]}>
         <View style={[s.tabSingle, { borderColor: ACCENT + "55", backgroundColor: ACCENT + "12" }]}>
           <Ionicons name="basket-outline" size={15} color={ACCENT} />
@@ -55,15 +56,34 @@ export default function MesProduitsMarche() {
         </View>
       </View>
 
+      <View style={[s.searchWrap, { backgroundColor: isDark ? "#0D1117" : "#F0F4FA", borderBottomColor: dynBorder }]}>
+        <View style={[s.searchBox, { backgroundColor: isDark ? "#1E293B" : "#FFFFFF", borderColor: dynBorder }]}>
+          <Ionicons name="search-outline" size={15} color={dynSub} />
+          <TextInput
+            style={[s.searchInput, { color: isDark ? "#fff" : "#111" }]}
+            placeholder="Rechercher un produit…"
+            placeholderTextColor={dynSub}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.7}>
+              <Ionicons name="close-circle" size={16} color={dynSub} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       <FlatList
-        data={DEMO}
+        data={data}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 14, paddingBottom: paddingBottom + 24 }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <SellerProductCard item={item} isDark={isDark} isEngros={false} accentColor={ACCENT} onEdit={() => {}} onVideo={() => {}} />
         )}
-        ListEmptyComponent={<View style={s.empty}><Ionicons name="basket-outline" size={48} color={dynSub} /><Text style={[s.emptyTitle, { color: dynSub }]}>Aucun produit</Text></View>}
+        ListEmptyComponent={<View style={s.empty}><Ionicons name="basket-outline" size={48} color={dynSub} /><Text style={[s.emptyTitle, { color: dynSub }]}>{q ? "Aucun résultat" : "Aucun produit"}</Text></View>}
       />
     </View>
   );
@@ -81,6 +101,9 @@ const s = StyleSheet.create({
   tabLabel: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
   tabBadge: { borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1, minWidth: 20, alignItems: "center" },
   tabBadgeText: { fontFamily: "Poppins_700Bold", fontSize: 10 },
+  searchWrap: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1 },
+  searchBox: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9 },
+  searchInput: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 13, padding: 0 },
   empty: { alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 12 },
   emptyTitle: { fontFamily: "Poppins_600SemiBold", fontSize: 15 },
 });

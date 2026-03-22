@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,9 +17,9 @@ const DEMO_DETAIL: SellerProduct[] = [
 ];
 
 const DEMO_ENGROS: SellerProduct[] = [
-  { id: "1", shopName: "Import Chine",  shopFlag: "🇨🇳", title: "Carton tissus wax 200 pièces",   price: "2 500 000 FCFA", rating: 4.6, reviewCount: 34, status: "active",   icon: "cube-outline",    color: "#7B3F00", minQty: "200 pcs",   origine: "Chine → Côte d'Ivoire" },
-  { id: "2", shopName: "TechGross",     shopFlag: "🇨🇳", title: "Lot téléphones Android 50 unités",price: "2 200 000 FCFA", rating: 4.4, reviewCount: 12, status: "active",   icon: "layers-outline",  color: "#1D4ED8", minQty: "50 unités", origine: "Chine → Sénégal"       },
-  { id: "3", shopName: "VietFood Gros", shopFlag: "🇻🇳", title: "Palette riz parfumé 40 sacs",    price: "480 000 FCFA",   rating: 4.3, reviewCount: 9,  status: "inactive", icon: "archive-outline", color: "#3B7A43", minQty: "40 sacs",   origine: "Vietnam → Burkina Faso"},
+  { id: "1", shopName: "Import Chine",  shopFlag: "🇨🇳", title: "Carton tissus wax 200 pièces",    price: "2 500 000 FCFA", rating: 4.6, reviewCount: 34, status: "active",   icon: "cube-outline",    color: "#7B3F00", minQty: "200 pcs",   origine: "Chine → Côte d'Ivoire" },
+  { id: "2", shopName: "TechGross",     shopFlag: "🇨🇳", title: "Lot téléphones Android 50 unités", price: "2 200 000 FCFA", rating: 4.4, reviewCount: 12, status: "active",   icon: "layers-outline",  color: "#1D4ED8", minQty: "50 unités", origine: "Chine → Sénégal"       },
+  { id: "3", shopName: "VietFood Gros", shopFlag: "🇻🇳", title: "Palette riz parfumé 40 sacs",     price: "480 000 FCFA",   rating: 4.3, reviewCount: 9,  status: "inactive", icon: "archive-outline", color: "#3B7A43", minQty: "40 sacs",   origine: "Vietnam → Burkina Faso"},
 ];
 
 export default function ProduitsImportePage() {
@@ -28,7 +28,8 @@ export default function ProduitsImportePage() {
   const { isDark } = useTheme();
   const paddingBottom = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const [activeTab, setActiveTab] = useState<Tab>("detail");
+  const [activeTab, setActiveTab]     = useState<Tab>("detail");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const dynBG     = isDark ? "#0D1117" : "#F0F4FA";
   const dynHeader = isDark ? "#111827" : "#FFFFFF";
@@ -40,8 +41,10 @@ export default function ProduitsImportePage() {
     { key: "engros" as Tab, label: "En gros", count: DEMO_ENGROS.length, icon: "cube-outline"       },
   ];
 
-  const data     = activeTab === "detail" ? DEMO_DETAIL : DEMO_ENGROS;
+  const rawData  = activeTab === "detail" ? DEMO_DETAIL : DEMO_ENGROS;
   const isEngros = activeTab === "engros";
+  const q        = searchQuery.toLowerCase().trim();
+  const data     = q ? rawData.filter(i => i.title.toLowerCase().includes(q)) : rawData;
 
   return (
     <View style={[s.root, { backgroundColor: dynBG, paddingTop: insets.top }]}>
@@ -56,16 +59,13 @@ export default function ProduitsImportePage() {
           </View>
           <Text style={[s.headerTitle, { color: isDark ? "#fff" : "#111" }]}>Gérer mes produits</Text>
         </View>
-        <TouchableOpacity style={[s.addBtn, { backgroundColor: ACCENT }]} onPress={() => { Haptics.selectionAsync(); router.push("/add-product" as any); }} activeOpacity={0.85}>
-          <Ionicons name="add" size={20} color="#fff" />
-        </TouchableOpacity>
       </View>
 
       <View style={[s.tabBar, { backgroundColor: isDark ? "#111" : "#F8F8F8", borderBottomColor: dynBorder }]}>
         {TABS.map((tab) => {
           const active = activeTab === tab.key;
           return (
-            <TouchableOpacity key={tab.key} style={[s.tab, { backgroundColor: isDark ? "#1A1A1A" : "#EFEFEF" }, active && [s.tabActive, { borderColor: ACCENT + "66", backgroundColor: ACCENT + "14" }]]} onPress={() => { setActiveTab(tab.key); Haptics.selectionAsync(); }} activeOpacity={0.8}>
+            <TouchableOpacity key={tab.key} style={[s.tab, { backgroundColor: isDark ? "#1A1A1A" : "#EFEFEF" }, active && [s.tabActive, { borderColor: ACCENT + "66", backgroundColor: ACCENT + "14" }]]} onPress={() => { setActiveTab(tab.key); setSearchQuery(""); Haptics.selectionAsync(); }} activeOpacity={0.8}>
               <Ionicons name={tab.icon as any} size={15} color={active ? ACCENT : dynSub} />
               <Text style={[s.tabLabel, { color: active ? ACCENT : dynSub }]}>{tab.label}</Text>
               <View style={[s.tabBadge, { backgroundColor: active ? ACCENT + "28" : (isDark ? "#2D2D2D" : "#E5E7EB") }]}>
@@ -74,6 +74,25 @@ export default function ProduitsImportePage() {
             </TouchableOpacity>
           );
         })}
+      </View>
+
+      <View style={[s.searchWrap, { backgroundColor: isDark ? "#0D1117" : "#F0F4FA", borderBottomColor: dynBorder }]}>
+        <View style={[s.searchBox, { backgroundColor: isDark ? "#1E293B" : "#FFFFFF", borderColor: dynBorder }]}>
+          <Ionicons name="search-outline" size={15} color={dynSub} />
+          <TextInput
+            style={[s.searchInput, { color: isDark ? "#fff" : "#111" }]}
+            placeholder={isEngros ? "Rechercher en gros…" : "Rechercher un produit importé…"}
+            placeholderTextColor={dynSub}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.7}>
+              <Ionicons name="close-circle" size={16} color={dynSub} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <FlatList
@@ -85,7 +104,7 @@ export default function ProduitsImportePage() {
         renderItem={({ item }) => (
           <SellerProductCard item={item} isDark={isDark} isEngros={isEngros} accentColor={ACCENT} onEdit={() => {}} onVideo={() => {}} />
         )}
-        ListEmptyComponent={<View style={s.empty}><Ionicons name="globe-outline" size={48} color={dynSub} /><Text style={[s.emptyTitle, { color: dynSub }]}>Aucun produit importé</Text></View>}
+        ListEmptyComponent={<View style={s.empty}><Ionicons name="globe-outline" size={48} color={dynSub} /><Text style={[s.emptyTitle, { color: dynSub }]}>{q ? "Aucun résultat" : "Aucun produit importé"}</Text></View>}
       />
     </View>
   );
@@ -98,13 +117,15 @@ const s = StyleSheet.create({
   headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
   headerIcon: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontFamily: "Poppins_700Bold", fontSize: 17 },
-  addBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   tabBar: { flexDirection: "row", paddingHorizontal: 14, paddingVertical: 10, gap: 10, borderBottomWidth: 1 },
   tab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: 12 },
   tabActive: { borderWidth: 1.5 },
   tabLabel: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
   tabBadge: { borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1, minWidth: 20, alignItems: "center" },
   tabBadgeText: { fontFamily: "Poppins_700Bold", fontSize: 10 },
+  searchWrap: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1 },
+  searchBox: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 9 },
+  searchInput: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 13, padding: 0 },
   empty: { alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 12 },
   emptyTitle: { fontFamily: "Poppins_600SemiBold", fontSize: 15 },
 });
