@@ -308,12 +308,7 @@ export default function VideoPublishSettings() {
           </View>
 
           {/* Filtres par menu — onglets compacts */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ height: 44 }}
-            contentContainerStyle={s.sectionTabs}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.sectionTabs}>
             <TouchableOpacity
               style={[s.sectionTab, activeMenuFilter === "all" && s.sectionTabActive]}
               onPress={() => { setActiveMenuFilter("all"); Haptics.selectionAsync(); }}
@@ -332,69 +327,99 @@ export default function VideoPublishSettings() {
             ))}
           </ScrollView>
 
-          {/* Barre de recherche — placeholder adapté à la section */}
-          <View style={s.modalSearch}>
-            <Ionicons name="search-outline" size={18} color="#4B5563" />
-            <TextInput
-              style={s.modalSearchInput}
-              placeholder={
-                activeMenuFilter === "all"
-                  ? "Rechercher un article…"
-                  : activeMenuFilter === "service"
-                  ? "Rechercher dans Service…"
-                  : `Rechercher dans ${TAB_FILTERS.find((t) => t.key === activeMenuFilter)?.label ?? ""}…`
-              }
-              placeholderTextColor="#4B5563"
-              value={articleSearch}
-              onChangeText={setArticleSearch}
-            />
-            {articleSearch.length > 0 && (
-              <TouchableOpacity onPress={() => setArticleSearch("")}>
-                <Ionicons name="close-circle" size={16} color="#4B5563" />
-              </TouchableOpacity>
-            )}
-          </View>
+          {/* Barre de recherche — masquée pour l'onglet Service */}
+          {activeMenuFilter !== "service" && (
+            <View style={s.modalSearch}>
+              <Ionicons name="search-outline" size={18} color="#4B5563" />
+              <TextInput
+                style={s.modalSearchInput}
+                placeholder={
+                  activeMenuFilter === "all"
+                    ? "Rechercher un article…"
+                    : `Rechercher dans ${TAB_FILTERS.find((t) => t.key === activeMenuFilter)?.label ?? ""}…`
+                }
+                placeholderTextColor="#4B5563"
+                value={articleSearch}
+                onChangeText={setArticleSearch}
+              />
+              {articleSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setArticleSearch("")}>
+                  <Ionicons name="close-circle" size={16} color="#4B5563" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
-          {/* Liste articles */}
-          <FlatList
-            data={filteredArticles}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 20 }}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={{ paddingVertical: 40, alignItems: "center" }}>
-                <Ionicons name="bag-outline" size={36} color="#2D2D2D" />
-                <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 13, color: "#4B5563", marginTop: 10, textAlign: "center" }}>
-                  Aucun article dans cette section
-                </Text>
-              </View>
-            }
-            renderItem={({ item }) => {
-              const meta = sectionMeta(item.section);
-              return (
+          {/* Contenu selon l'onglet */}
+          {activeMenuFilter === "service" ? (
+            /* ── Onglet Service : 2 choix directs uniquement ── */
+            <View style={{ paddingHorizontal: 16, paddingTop: 12, gap: 10 }}>
+              {([
+                { id: "opt-importe",  title: "Importé",          price: "", subtitle: "Articles importés de l'étranger", icon: "airplane-outline", color: "#8B5CF6", section: "importe"    as MenuKey },
+                { id: "opt-plats-sm", title: "Plats sur mesure", price: "", subtitle: "Service traiteur / chef privé",   icon: "sparkles-outline", color: "#06B6D4", section: "svc-gastro" as MenuKey },
+              ] as (Article & { subtitle: string; icon: string; color: string })[]).map((opt) => (
                 <TouchableOpacity
-                  style={[s.articleRow, selectedArticle?.id === item.id && s.articleRowActive]}
-                  onPress={() => { setSelectedArticle(item); setShowArticleModal(false); Haptics.selectionAsync(); }}
+                  key={opt.id}
+                  style={[s.articleRow, selectedArticle?.id === opt.id && s.articleRowActive, { paddingVertical: 16 }]}
+                  onPress={() => { setSelectedArticle(opt); setShowArticleModal(false); Haptics.selectionAsync(); }}
                   activeOpacity={0.8}
                 >
-                  <View style={[s.articleRowIcon, { backgroundColor: (meta?.color ?? "#FF6B00") + "18" }]}>
-                    <Ionicons name={meta?.icon as any ?? "bag-handle-outline"} size={20} color={meta?.color ?? "#FF6B00"} />
+                  <View style={[s.articleRowIcon, { backgroundColor: opt.color + "22", width: 44, height: 44, borderRadius: 12 }]}>
+                    <Ionicons name={opt.icon as any} size={22} color={opt.color} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.articleRowTitle} numberOfLines={1}>{item.title}</Text>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
-                      <View style={[s.sectionPill, { backgroundColor: (meta?.color ?? "#FF6B00") + "18" }]}>
-                        <Text style={[s.sectionPillText, { color: meta?.color ?? "#FF6B00" }]}>{meta?.label}</Text>
-                      </View>
-                      <Text style={s.articleRowMeta}>{item.price}</Text>
-                    </View>
+                    <Text style={[s.articleRowTitle, { fontSize: 15 }]}>{opt.title}</Text>
+                    <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 12, color: "#6B7280", marginTop: 2 }}>{opt.subtitle}</Text>
                   </View>
-                  {selectedArticle?.id === item.id && <Ionicons name="checkmark-circle" size={20} color="#FF6B00" />}
+                  {selectedArticle?.id === opt.id
+                    ? <Ionicons name="checkmark-circle" size={22} color="#FF6B00" />
+                    : <Ionicons name="chevron-forward-outline" size={18} color="#4B5563" />
+                  }
                 </TouchableOpacity>
-              );
-            }}
-            ItemSeparatorComponent={() => <View style={s.articleSep} />}
-          />
+              ))}
+            </View>
+          ) : (
+            /* ── Autres onglets : liste d'articles filtrés ── */
+            <FlatList
+              data={filteredArticles}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 20 }}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View style={{ paddingVertical: 40, alignItems: "center" }}>
+                  <Ionicons name="bag-outline" size={36} color="#2D2D2D" />
+                  <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 13, color: "#4B5563", marginTop: 10, textAlign: "center" }}>
+                    Aucun article dans cette section
+                  </Text>
+                </View>
+              }
+              renderItem={({ item }) => {
+                const meta = sectionMeta(item.section);
+                return (
+                  <TouchableOpacity
+                    style={[s.articleRow, selectedArticle?.id === item.id && s.articleRowActive]}
+                    onPress={() => { setSelectedArticle(item); setShowArticleModal(false); Haptics.selectionAsync(); }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[s.articleRowIcon, { backgroundColor: (meta?.color ?? "#FF6B00") + "18" }]}>
+                      <Ionicons name={meta?.icon as any ?? "bag-handle-outline"} size={20} color={meta?.color ?? "#FF6B00"} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.articleRowTitle} numberOfLines={1}>{item.title}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+                        <View style={[s.sectionPill, { backgroundColor: (meta?.color ?? "#FF6B00") + "18" }]}>
+                          <Text style={[s.sectionPillText, { color: meta?.color ?? "#FF6B00" }]}>{meta?.label}</Text>
+                        </View>
+                        <Text style={s.articleRowMeta}>{item.price}</Text>
+                      </View>
+                    </View>
+                    {selectedArticle?.id === item.id && <Ionicons name="checkmark-circle" size={20} color="#FF6B00" />}
+                  </TouchableOpacity>
+                );
+              }}
+              ItemSeparatorComponent={() => <View style={s.articleSep} />}
+            />
+          )}
         </View>
       </Modal>
 
@@ -510,8 +535,8 @@ const s = StyleSheet.create({
   modalSearchInput: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 14, color: "#fff" },
 
   /* Tabs sections */
-  sectionTabs: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, alignItems: "center" },
-  sectionTab: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: "#2D2D2D", backgroundColor: "#1A1A1A" },
+  sectionTabs: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, gap: 8 },
+  sectionTab: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "#2D2D2D", backgroundColor: "#1A1A1A" },
   sectionTabActive: { borderColor: "#FF6B00", backgroundColor: "#FF6B0010" },
   sectionTabText: { fontFamily: "Poppins_600SemiBold", fontSize: 11, color: "#6B7280" },
 
