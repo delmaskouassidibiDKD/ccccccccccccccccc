@@ -218,8 +218,8 @@ const styles = StyleSheet.create({
   titleTagText: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: fs(10), letterSpacing: 0.8 },
   ctaRow: { flexDirection: "row", gap: 8, marginTop: 5 },
   commandBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 5, backgroundColor: "#fff", paddingVertical: ms(7), borderRadius: 10,
+    alignSelf: "flex-start", flexDirection: "row", alignItems: "center",
+    gap: 6, backgroundColor: "#fff", paddingVertical: ms(7), paddingHorizontal: ms(16), borderRadius: 10,
   },
   commandText: { color: "#000", fontFamily: "Poppins_700Bold", fontSize: fs(11) },
 });
