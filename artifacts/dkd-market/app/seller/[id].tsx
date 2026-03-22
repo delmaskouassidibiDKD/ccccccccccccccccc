@@ -38,6 +38,30 @@ const SELLER_TABS = ["Vidéos", "Articles", "En gros"];
 const SELLER_SHOP_TYPES_KEY = "@dkd:seller_shop_types";
 const PROFILE_PHOTO_KEY     = "@dkd:seller_profile_photo";
 
+type PubType = "video" | "photo" | "article";
+type PubSection = "marche" | "supermarche" | "importe" | "mon_plat" | "personnalisation" | "grossiste" | "vendeur";
+interface PubItem { id: string; type: PubType; section?: PubSection; title: string; status: "pending" | "published"; progress?: number; }
+
+const SECTION_LABELS: Record<PubSection, string> = {
+  marche: "Marché", supermarche: "Super Marché", importe: "Importés",
+  mon_plat: "Gastronomie", personnalisation: "Personnalisation", grossiste: "Grossiste", vendeur: "Vendeur",
+};
+const SECTION_COLORS: Record<PubSection, string> = {
+  marche: "#22C55E", supermarche: "#F97316", importe: "#A855F7",
+  mon_plat: "#EC4899", personnalisation: "#06B6D4", grossiste: "#3B82F6", vendeur: "#FF6B00",
+};
+
+const DEMO_PUBLICATIONS: PubItem[] = [
+  { id: "p1", type: "video",   title: "Présentation boutique 🎬",    status: "pending",   progress: 65 },
+  { id: "p2", type: "photo",   title: "Nouvelle collection robes",   status: "pending",   progress: 30 },
+  { id: "p3", type: "article", section: "marche",     title: "Tomates fraîches 1kg",     status: "pending",   progress: 85 },
+  { id: "p4", type: "video",   title: "Promo du jour 🔥",            status: "published" },
+  { id: "p5", type: "article", section: "vendeur",    title: "Pagne wax Java 6 yards",   status: "published" },
+  { id: "p6", type: "photo",   title: "Lookbook été 2025",           status: "published" },
+  { id: "p7", type: "article", section: "grossiste",  title: "Sac de riz local 25kg",    status: "published" },
+  { id: "p8", type: "article", section: "mon_plat",   title: "Poulet braisé sauce araignée", status: "published" },
+];
+
 const SHOP_TYPE_CFG: Record<string, { icon: string; label: string; color: string }> = {
   marche:           { icon: "basket-outline",        label: "Mon Marché",       color: "#22C55E" },
   grossiste:        { icon: "cube-outline",           label: "Grossiste",        color: "#3B82F6" },
@@ -95,6 +119,8 @@ export default function SellerScreen() {
       useNativeDriver: false,
     }).start();
   };
+  const [showPubModal,  setShowPubModal]  = useState(false);
+  const [pubTab,        setPubTab]        = useState<"pending" | "published">("pending");
   const [logoError,     setLogoError]     = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const { user } = useAuth();
@@ -441,6 +467,19 @@ export default function SellerScreen() {
                 <Text style={[styles.shopTypeLabel, { color: "#8B5CF6", fontSize: 10 }]} numberOfLines={1}>Gérer mes publications</Text>
               </TouchableOpacity>
             </View>
+            {/* Bouton Publications en cours */}
+            <TouchableOpacity
+              style={[styles.pubEnCoursBtn, { borderColor: "#10B98155", backgroundColor: isDark ? "#10B98110" : "#10B98108" }]}
+              activeOpacity={0.75}
+              onPress={() => { Haptics.selectionAsync(); setPubTab("pending"); setShowPubModal(true); }}
+            >
+              <View style={[styles.pubEnCoursDot, { backgroundColor: "#10B981" }]} />
+              <Ionicons name="cloud-upload-outline" size={15} color="#10B981" />
+              <Text style={[styles.shopTypeLabel, { color: "#10B981", fontSize: 10 }]}>Publications en cours</Text>
+              <View style={[styles.pubEnCoursBadge, { backgroundColor: "#10B981" }]}>
+                <Text style={styles.pubEnCoursBadgeText}>{DEMO_PUBLICATIONS.filter(p => p.status === "pending").length}</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -658,6 +697,119 @@ export default function SellerScreen() {
               )}
             />
           )}
+        </View>
+      </Modal>
+
+      {/* ── Modal Publications en cours ── */}
+      <Modal visible={showPubModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowPubModal(false)}>
+        <View style={[styles.pubModalContainer, { backgroundColor: dBG, paddingTop: insets.top > 0 ? 16 : 32 }]}>
+          {/* En-tête */}
+          <View style={[styles.pubModalHeader, { borderBottomColor: dBORDER }]}>
+            <Text style={[styles.pubModalTitle, { color: dTEXT }]}>Mes publications</Text>
+            <TouchableOpacity onPress={() => setShowPubModal(false)} style={{ padding: 4 }}>
+              <Ionicons name="close" size={22} color={dTEXT} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Onglets En cours / Publiées */}
+          <View style={[styles.pubTabRow, { borderBottomColor: dBORDER }]}>
+            <TouchableOpacity
+              style={[styles.pubTab, pubTab === "pending" && [styles.pubTabActive, { borderBottomColor: "#10B981" }]]}
+              onPress={() => { setPubTab("pending"); Haptics.selectionAsync(); }}
+            >
+              <Ionicons name="cloud-upload-outline" size={14} color={pubTab === "pending" ? "#10B981" : dMUTED} />
+              <Text style={[styles.pubTabText, { color: pubTab === "pending" ? "#10B981" : dMUTED }]}>En cours d'envoi</Text>
+              <View style={[styles.pubTabBadge, { backgroundColor: pubTab === "pending" ? "#10B981" : (isDark ? "#2D2D2D" : "#E5E7EB") }]}>
+                <Text style={[styles.pubTabBadgeText, { color: pubTab === "pending" ? "#fff" : dMUTED }]}>{DEMO_PUBLICATIONS.filter(p => p.status === "pending").length}</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.pubTab, pubTab === "published" && [styles.pubTabActive, { borderBottomColor: "#FF6B00" }]]}
+              onPress={() => { setPubTab("published"); Haptics.selectionAsync(); }}
+            >
+              <Ionicons name="checkmark-circle-outline" size={14} color={pubTab === "published" ? "#FF6B00" : dMUTED} />
+              <Text style={[styles.pubTabText, { color: pubTab === "published" ? "#FF6B00" : dMUTED }]}>Publiées</Text>
+              <View style={[styles.pubTabBadge, { backgroundColor: pubTab === "published" ? "#FF6B00" : (isDark ? "#2D2D2D" : "#E5E7EB") }]}>
+                <Text style={[styles.pubTabBadgeText, { color: pubTab === "published" ? "#fff" : dMUTED }]}>{DEMO_PUBLICATIONS.filter(p => p.status === "published").length}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Liste */}
+          <FlatList
+            data={DEMO_PUBLICATIONS.filter(p => p.status === pubTab)}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: insets.bottom + 24 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={{ paddingVertical: 48, alignItems: "center" }}>
+                <Ionicons name={pubTab === "pending" ? "cloud-outline" : "checkmark-done-outline"} size={40} color={isDark ? "#2D2D2D" : "#D1D5DB"} />
+                <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 13, color: dMUTED, marginTop: 10, textAlign: "center" }}>
+                  {pubTab === "pending" ? "Aucune publication en cours" : "Aucune publication publiée"}
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => {
+              const isVideo   = item.type === "video";
+              const isPhoto   = item.type === "photo";
+              const secColor  = item.section ? SECTION_COLORS[item.section] : "#FF6B00";
+              const secLabel  = item.section ? SECTION_LABELS[item.section] : "Vendeur";
+              const typeLabel = isVideo ? "Vidéo" : isPhoto ? "Vidéos photos + son" : "Article";
+              const typeColor = isVideo ? "#6366F1" : isPhoto ? "#EC4899" : secColor;
+              const typeIcon  = isVideo ? "videocam-outline" : isPhoto ? "images-outline" : "bag-handle-outline";
+              return (
+                <View style={[styles.pubItem, { backgroundColor: dCARD, borderColor: dBORDER }]}>
+                  {/* Icône type */}
+                  <View style={[styles.pubItemIcon, { backgroundColor: typeColor + "18" }]}>
+                    <Ionicons name={typeIcon as any} size={20} color={typeColor} />
+                  </View>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={[styles.pubItemTitle, { color: dTEXT }]} numberOfLines={1}>{item.title}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      {/* Badge type */}
+                      <View style={[styles.pubBadge, { backgroundColor: typeColor + "18" }]}>
+                        <Text style={[styles.pubBadgeText, { color: typeColor }]}>{typeLabel}</Text>
+                      </View>
+                      {/* Badge section (articles uniquement) */}
+                      {item.type === "article" && (
+                        <View style={[styles.pubBadge, { backgroundColor: secColor + "18" }]}>
+                          <Text style={[styles.pubBadgeText, { color: secColor }]}>{secLabel}</Text>
+                        </View>
+                      )}
+                    </View>
+                    {/* Barre de progression (en cours) */}
+                    {item.status === "pending" && item.progress !== undefined && (
+                      <View style={{ gap: 3, marginTop: 2 }}>
+                        <View style={[styles.pubProgressTrack, { backgroundColor: isDark ? "#2D2D2D" : "#E5E7EB" }]}>
+                          <View style={[styles.pubProgressFill, { width: `${item.progress}%` as any, backgroundColor: "#10B981" }]} />
+                        </View>
+                        <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 10, color: "#10B981" }}>{item.progress}% envoyé…</Text>
+                      </View>
+                    )}
+                  </View>
+                  {/* Bouton Voir (publiées seulement) */}
+                  {item.status === "published" && (
+                    <TouchableOpacity
+                      style={styles.pubVoirBtn}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setShowPubModal(false);
+                        Haptics.selectionAsync();
+                        if (isVideo || isPhoto) {
+                          router.push("/(tabs)/videos" as any);
+                        } else {
+                          router.push("/publication-article" as any);
+                        }
+                      }}
+                    >
+                      <Text style={styles.pubVoirBtnText}>Voir</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            }}
+            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          />
         </View>
       </Modal>
     </View>
@@ -1053,4 +1205,48 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   retryBtnText: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: 13 },
+
+  /* Bouton Publications en cours */
+  pubEnCoursBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    marginTop: 7, paddingVertical: 7, paddingHorizontal: 12,
+    borderRadius: 7, borderWidth: 1,
+  },
+  pubEnCoursDot: { width: 6, height: 6, borderRadius: 3 },
+  pubEnCoursBadge: { marginLeft: "auto", borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
+  pubEnCoursBadgeText: { fontFamily: "Poppins_700Bold", fontSize: 10, color: "#fff" },
+
+  /* Modal Publications */
+  pubModalContainer: { flex: 1 },
+  pubModalHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1,
+  },
+  pubModalTitle: { fontFamily: "Poppins_700Bold", fontSize: 17 },
+  pubTabRow: {
+    flexDirection: "row", borderBottomWidth: 1,
+  },
+  pubTab: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: "transparent",
+  },
+  pubTabActive: {},
+  pubTabText: { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
+  pubTabBadge: { borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
+  pubTabBadgeText: { fontFamily: "Poppins_700Bold", fontSize: 10 },
+  pubItem: {
+    flexDirection: "row", alignItems: "flex-start", gap: 12,
+    borderRadius: 12, borderWidth: 1, padding: 12,
+  },
+  pubItemIcon: { width: 42, height: 42, borderRadius: 11, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  pubItemTitle: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
+  pubBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  pubBadgeText: { fontFamily: "Poppins_600SemiBold", fontSize: 10 },
+  pubProgressTrack: { height: 4, borderRadius: 2, width: "100%", overflow: "hidden" },
+  pubProgressFill: { height: 4, borderRadius: 2 },
+  pubVoirBtn: {
+    backgroundColor: "#FF6B00", borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 6, alignSelf: "center", flexShrink: 0,
+  },
+  pubVoirBtnText: { fontFamily: "Poppins_700Bold", fontSize: 12, color: "#fff" },
 });
