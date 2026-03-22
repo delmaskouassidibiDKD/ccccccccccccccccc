@@ -307,25 +307,27 @@ export default function VideoPublishSettings() {
             </TouchableOpacity>
           </View>
 
-          {/* Filtres par menu — onglets compacts */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 0 }} contentContainerStyle={s.sectionTabs}>
-            <TouchableOpacity
-              style={[s.sectionTab, activeMenuFilter === "all" && s.sectionTabActive]}
-              onPress={() => { setActiveMenuFilter("all"); Haptics.selectionAsync(); }}
-            >
-              <Text style={[s.sectionTabText, activeMenuFilter === "all" && { color: "#FF6B00" }]}>Tous</Text>
-            </TouchableOpacity>
-            {TAB_FILTERS.map((tab) => (
+          {/* Filtres par menu — onglets compacts (View fixe pour éviter l'étirement vertical sur web) */}
+          <View style={{ height: 40 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.sectionTabs}>
               <TouchableOpacity
-                key={tab.key}
-                style={[s.sectionTab, activeMenuFilter === tab.key && [s.sectionTabActive, { borderColor: tab.color }]]}
-                onPress={() => { setActiveMenuFilter(tab.key); Haptics.selectionAsync(); }}
+                style={[s.sectionTab, activeMenuFilter === "all" && s.sectionTabActive]}
+                onPress={() => { setActiveMenuFilter("all"); Haptics.selectionAsync(); }}
               >
-                <Ionicons name={tab.icon as any} size={12} color={activeMenuFilter === tab.key ? tab.color : "#6B7280"} />
-                <Text style={[s.sectionTabText, activeMenuFilter === tab.key && { color: tab.color }]}>{tab.label}</Text>
+                <Text style={[s.sectionTabText, activeMenuFilter === "all" && { color: "#FF6B00" }]}>Tous</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+              {TAB_FILTERS.map((tab) => (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[s.sectionTab, activeMenuFilter === tab.key && [s.sectionTabActive, { borderColor: tab.color }]]}
+                  onPress={() => { setActiveMenuFilter(tab.key); Haptics.selectionAsync(); }}
+                >
+                  <Ionicons name={tab.icon as any} size={12} color={activeMenuFilter === tab.key ? tab.color : "#6B7280"} />
+                  <Text style={[s.sectionTabText, activeMenuFilter === tab.key && { color: tab.color }]}>{tab.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
 
           {/* Barre de recherche — masquée pour l'onglet Service */}
           {activeMenuFilter !== "service" && (
