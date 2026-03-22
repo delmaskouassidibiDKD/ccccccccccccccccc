@@ -127,14 +127,16 @@ export default function AddVideoPage() {
       Alert.alert("Permission requise", "Accès à la médiathèque nécessaire.");
       return;
     }
+    const remaining = 15 - photos.length;
+    if (remaining <= 0) return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: "images",
       allowsMultipleSelection: true,
-      selectionLimit: 15,
+      selectionLimit: remaining,
       quality: 0.85,
     });
     if (!result.canceled && result.assets.length > 0) {
-      setPhotos(result.assets.map((a) => a.uri));
+      setPhotos(prev => [...prev, ...result.assets.map((a) => a.uri)].slice(0, 15));
       setMode("photo");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
@@ -176,6 +178,15 @@ export default function AddVideoPage() {
 
   const removePhoto = (idx: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== idx));
+    setPhotoPrices((prev) => {
+      const next: Record<number, PhotoPrice> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const i = Number(k);
+        if (i < idx) next[i] = v;
+        else if (i > idx) next[i - 1] = v;
+      });
+      return next;
+    });
   };
 
   return (
