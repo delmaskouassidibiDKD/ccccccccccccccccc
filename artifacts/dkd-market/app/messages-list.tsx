@@ -20,7 +20,7 @@ const SOURCE_CONFIG: Record<SourceKey, {
   gastronomie:     { label: "Gastronomie",     accent: "#EC4899", extraKey: "@dkd:gastro_extra",  activityKey: "@dkd:gastro_activity",  deletedKey: "@dkd:gastro_deleted"  },
   marche:          { label: "Marché",           accent: "#34D399", extraKey: "@dkd:marche_extra",  activityKey: "@dkd:marche_activity",  deletedKey: "@dkd:marche_deleted"  },
   supermarche:     { label: "Supermarché",      accent: "#3B82F6", extraKey: "@dkd:super_extra",   activityKey: "@dkd:super_activity",   deletedKey: "@dkd:super_deleted"   },
-  perfectionnement:{ label: "Perfectionnement", accent: "#8B5CF6", extraKey: "@dkd:perf_extra",    activityKey: "@dkd:perf_activity",    deletedKey: "@dkd:perf_deleted"    },
+  perfectionnement:{ label: "Perfectionnement", accent: "#F59E0B", extraKey: "@dkd:perf_extra",    activityKey: "@dkd:perf_activity",    deletedKey: "@dkd:perf_deleted"    },
 };
 
 /* ─── Types ─────────────────────────────────────────── */

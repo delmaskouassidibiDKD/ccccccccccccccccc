@@ -17,7 +17,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const ACCENT = "#7E22CE";
+const ACCENT = "#FF6200";
 
 /* ─── Static grossiste conversations (mirrored from messages-grossiste) ── */
 const GRO_STATIC_IDS = new Set(["gc1", "gc2", "gc3", "gc4"]);
@@ -32,12 +32,12 @@ const GRO_STATIC_BASE = [
 type Source = "importe" | "grossiste" | "gastronomie" | "marche" | "supermarche" | "perfectionnement";
 
 const SOURCE_META: Record<Source, { label: string; color: string; extraKey: string; activityKey: string; deletedKey?: string; chatScreen: "dm-importe" | "dm-personnalisation" }> = {
-  importe:          { label: "Importé",          color: "#A855F7", extraKey: "@dkd:dm_extra_convs",      activityKey: "@dkd:dm_activity",         chatScreen: "dm-importe"         },
+  importe:          { label: "Importé",          color: "#3B82F6", extraKey: "@dkd:dm_extra_convs",      activityKey: "@dkd:dm_activity",         chatScreen: "dm-importe"         },
   grossiste:        { label: "Grossiste",         color: "#3B82F6", extraKey: "@dkd:gros_dm_extra_convs", activityKey: "@dkd:gros_dm_activity",     deletedKey: "@dkd:gros_deleted_conv_ids", chatScreen: "dm-personnalisation" },
   gastronomie:      { label: "Gastronomie",       color: "#EC4899", extraKey: "@dkd:gastro_extra",        activityKey: "@dkd:gastro_activity",      deletedKey: "@dkd:gastro_deleted", chatScreen: "dm-personnalisation" },
   marche:           { label: "Marché",            color: "#34D399", extraKey: "@dkd:marche_extra",        activityKey: "@dkd:marche_activity",      deletedKey: "@dkd:marche_deleted", chatScreen: "dm-personnalisation" },
   supermarche:      { label: "Supermarché",       color: "#3B82F6", extraKey: "@dkd:super_extra",         activityKey: "@dkd:super_activity",       deletedKey: "@dkd:super_deleted",  chatScreen: "dm-personnalisation" },
-  perfectionnement: { label: "Perfectionnement",  color: "#8B5CF6", extraKey: "@dkd:perf_extra",          activityKey: "@dkd:perf_activity",        deletedKey: "@dkd:perf_deleted",   chatScreen: "dm-personnalisation" },
+  perfectionnement: { label: "Perfectionnement",  color: "#F59E0B", extraKey: "@dkd:perf_extra",          activityKey: "@dkd:perf_activity",        deletedKey: "@dkd:perf_deleted",   chatScreen: "dm-personnalisation" },
 };
 
 const ALL_SOURCES: Source[] = ["importe", "grossiste", "gastronomie", "marche", "supermarche", "perfectionnement"];
@@ -59,12 +59,12 @@ type ConvEntry = {
 
 /* ─── Source label pill ──────────────────────────────── */
 const SOURCE_COLORS: Record<Source, string> = {
-  importe:          "#A855F7",
-  grossiste:        "#3B82F6",
+  importe:          "#3B82F6",
+  grossiste:        "#22C55E",
   gastronomie:      "#EC4899",
   marche:           "#34D399",
-  supermarche:      "#0EA5E9",
-  perfectionnement: "#8B5CF6",
+  supermarche:      "#06B6D4",
+  perfectionnement: "#F59E0B",
 };
 
 /* ─── Conversation row ───────────────────────────────── */
