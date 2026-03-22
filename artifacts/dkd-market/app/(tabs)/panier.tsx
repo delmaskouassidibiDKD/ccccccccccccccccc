@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import FavorisArticlesTab from "@/components/FavorisArticlesTab";
 import FavorisGroupeTab from "@/components/FavorisGroupeTab";
@@ -13,6 +13,8 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Modal,
+  TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -24,8 +26,10 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, CartItem as ApiCartItem, CartData, Order, Chat } from "@/lib/api";
+import { Colors } from "@/constants/colors";
 
 function getFirstImage(images: string): string | null {
   try {
@@ -402,13 +406,26 @@ type SellerConv = {
 
 const SELLER_CONVS_KEY = "@dkd:seller_convs";
 
+type ActiveConv = { sellerId: string; shopName: string; initials: string };
+
 function MessagesTab() {
   const { groupMessages } = useCart();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useLanguage();
   const [messageFilter, setMessageFilter] = useState(t.cart.all);
   const MESSAGE_FILTERS = [t.cart.all, t.cart.unread, t.cart.groupsCreated, t.cart.groupsJoined];
   const [sellerConvs, setSellerConvs] = useState<SellerConv[]>([]);
+  const [activeConv,   setActiveConv]  = useState<ActiveConv | null>(null);
+  const [chatMsgs,     setChatMsgs]    = useState<SellerConv["messages"]>([]);
+  const [chatInput,    setChatInput]   = useState("");
+  const [chatImages,   setChatImages]  = useState<string[]>([]);
+  const chatRef = useRef<FlatList<any>>(null);
+
+  const dBG     = isDark ? "#0D1117" : "#F0F4F8";
+  const dCARD   = isDark ? "#161B22" : "#FFFFFF";
+  const dTEXT   = isDark ? "#E6EDF3" : "#111827";
+  const dMUTED  = isDark ? "rgba(255,255,255,0.4)"  : "rgba(0,0,0,0.45)";
+  const dBORDER = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
 
   const loadSellerConvs = useCallback(async () => {
     try {
@@ -418,6 +435,66 @@ function MessagesTab() {
   }, []);
 
   useEffect(() => { loadSellerConvs(); }, []);
+
+  const openConv = useCallback(async (conv: ActiveConv) => {
+    setActiveConv(conv);
+    try {
+      const raw = await AsyncStorage.getItem(SELLER_CONVS_KEY);
+      const convs: SellerConv[] = raw ? JSON.parse(raw) : [];
+      const found = convs.find(c => c.sellerId === conv.sellerId);
+      setChatMsgs(found?.messages ?? []);
+    } catch { setChatMsgs([]); }
+  }, []);
+
+  const closeConv = useCallback(() => {
+    setActiveConv(null);
+    setChatMsgs([]);
+    setChatInput("");
+    setChatImages([]);
+    loadSellerConvs();
+  }, [loadSellerConvs]);
+
+  const sendMsg = useCallback(async () => {
+    const text = chatInput.trim();
+    if (!text && chatImages.length === 0) return;
+    if (!activeConv) return;
+    setChatInput("");
+    const imgs = [...chatImages];
+    setChatImages([]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const now = new Date();
+    const time = `${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}`;
+    const newMsg = { id: `m_${Date.now()}`, text, sender: "me" as const, time, images: imgs.length > 0 ? imgs : undefined };
+    const updated = [...chatMsgs, newMsg];
+    setChatMsgs(updated);
+    setTimeout(() => chatRef.current?.scrollToEnd({ animated: true }), 80);
+    try {
+      const raw = await AsyncStorage.getItem(SELLER_CONVS_KEY);
+      const convs: SellerConv[] = raw ? JSON.parse(raw) : [];
+      const idx = convs.findIndex(c => c.sellerId === activeConv.sellerId);
+      const conv: SellerConv = idx >= 0 ? convs[idx] : {
+        sellerId: activeConv.sellerId, shopName: activeConv.shopName,
+        initials: activeConv.initials, lastMessage: "", lastTime: "", unread: 0, messages: [],
+      };
+      conv.messages = updated; conv.lastMessage = text || "📷 Photo"; conv.lastTime = time;
+      if (idx >= 0) convs[idx] = conv; else convs.unshift(conv);
+      await AsyncStorage.setItem(SELLER_CONVS_KEY, JSON.stringify(convs));
+    } catch {}
+  }, [chatInput, chatImages, chatMsgs, activeConv]);
+
+  const pickImage = useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      selectionLimit: 4,
+    });
+    if (!result.canceled) {
+      setChatImages(prev => [...prev, ...result.assets.map(a => a.uri)].slice(0, 4));
+    }
+  }, []);
 
   const getCountryFlag = (code: string) => {
     const flags: Record<string, string> = { CI: "🇨🇮", SN: "🇸🇳", BJ: "🇧🇯" };
@@ -528,7 +605,7 @@ function MessagesTab() {
               onPress={() => {
                 Haptics.selectionAsync();
                 if (conv.sellerId) {
-                  router.push({ pathname: "/seller/[id]", params: { id: conv.sellerId, chat: "true" } } as any);
+                  openConv({ sellerId: conv.sellerId, shopName: conv.name, initials: conv.initials });
                 }
               }}
             >
@@ -557,6 +634,110 @@ function MessagesTab() {
           ))
         )
       )}
+      {/* ── Modal chat vendeur (inline, sans navigation) ── */}
+      <Modal visible={!!activeConv} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeConv}>
+        <View style={{ flex: 1, backgroundColor: dBG }}>
+          {/* En-tête */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 12, paddingTop: 52, paddingBottom: 12, backgroundColor: dCARD, borderBottomWidth: 1, borderBottomColor: dBORDER }}>
+            <TouchableOpacity onPress={closeConv} style={{ padding: 4 }}>
+              <Ionicons name="arrow-back" size={22} color={dTEXT} />
+            </TouchableOpacity>
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.primary + "20", alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontFamily: "Poppins_700Bold", fontSize: 14, color: Colors.primary }}>{activeConv?.initials ?? "?"}</Text>
+              </View>
+              <View>
+                <Text style={{ fontFamily: "Poppins_700Bold", fontSize: 15, color: dTEXT }}>{activeConv?.shopName}</Text>
+                <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 11, color: "#10B981" }}>En ligne</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Messages */}
+          <FlatList
+            ref={chatRef}
+            data={chatMsgs}
+            keyExtractor={(m) => m.id}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 12, gap: 6 }}
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={() => chatMsgs.length > 0 && chatRef.current?.scrollToEnd({ animated: false })}
+            ListEmptyComponent={
+              <View style={{ alignItems: "center", paddingTop: 60, gap: 10 }}>
+                <Ionicons name="chatbubbles-outline" size={48} color={isDark ? "#2D2D2D" : "#D1D5DB"} />
+                <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 13, color: dMUTED, textAlign: "center" }}>Envoyez un message à {activeConv?.shopName}</Text>
+              </View>
+            }
+            renderItem={({ item }) => {
+              const isMe = item.sender === "me";
+              return (
+                <View style={{ flexDirection: isMe ? "row-reverse" : "row", alignItems: "flex-end", gap: 8, marginVertical: 2 }}>
+                  {!isMe && (
+                    <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.primary + "20", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Text style={{ fontFamily: "Poppins_700Bold", fontSize: 11, color: Colors.primary }}>{activeConv?.initials ?? "?"}</Text>
+                    </View>
+                  )}
+                  <View style={{ maxWidth: "75%", gap: 2 }}>
+                    {item.images && item.images.length > 0 && (
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 2 }}>
+                        {item.images.map((uri: string, i: number) => (
+                          <Image key={i} source={{ uri }} style={{ width: 110, height: 110, borderRadius: 10 }} contentFit="cover" />
+                        ))}
+                      </View>
+                    )}
+                    {item.text.length > 0 && (
+                      <View style={[{ borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8 }, isMe ? { backgroundColor: Colors.primary, borderBottomRightRadius: 4 } : { backgroundColor: dCARD, borderWidth: 1, borderColor: dBORDER, borderBottomLeftRadius: 4 }]}>
+                        <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 14, lineHeight: 20, color: isMe ? "#fff" : dTEXT }}>{item.text}</Text>
+                      </View>
+                    )}
+                    <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 10, color: dMUTED, textAlign: isMe ? "right" : "left" }}>{item.time}{isMe ? " ✓✓" : ""}</Text>
+                  </View>
+                </View>
+              );
+            }}
+          />
+
+          {/* Aperçu images */}
+          {chatImages.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ backgroundColor: dCARD, borderTopWidth: 1, borderTopColor: dBORDER }} contentContainerStyle={{ padding: 8, gap: 8, flexDirection: "row" }}>
+              {chatImages.map((uri, i) => (
+                <View key={i} style={{ position: "relative" }}>
+                  <Image source={{ uri }} style={{ width: 60, height: 60, borderRadius: 8 }} contentFit="cover" />
+                  <TouchableOpacity
+                    style={{ position: "absolute", top: -4, right: -4, backgroundColor: "#EF4444", borderRadius: 9, width: 18, height: 18, alignItems: "center", justifyContent: "center" }}
+                    onPress={() => setChatImages(prev => prev.filter((_, idx) => idx !== i))}
+                  >
+                    <Ionicons name="close" size={11} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+
+          {/* Barre de saisie */}
+          <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, paddingHorizontal: 12, paddingVertical: 10, paddingBottom: 28, backgroundColor: dCARD, borderTopWidth: 1, borderTopColor: dBORDER }}>
+            <TouchableOpacity onPress={pickImage} style={{ width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" }} activeOpacity={0.75}>
+              <Ionicons name="image-outline" size={22} color={Colors.primary} />
+            </TouchableOpacity>
+            <TextInput
+              style={{ flex: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, fontFamily: "Poppins_400Regular", fontSize: 14, maxHeight: 100, backgroundColor: isDark ? "#1A1A1A" : "#F3F4F6", color: dTEXT }}
+              placeholder="Message…"
+              placeholderTextColor={dMUTED}
+              value={chatInput}
+              onChangeText={setChatInput}
+              multiline
+              maxLength={500}
+            />
+            <TouchableOpacity
+              style={{ width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", flexShrink: 0, backgroundColor: (chatInput.trim() || chatImages.length > 0) ? Colors.primary : (isDark ? "#2D2D2D" : "#E5E7EB") }}
+              onPress={sendMsg}
+              activeOpacity={0.8}
+              disabled={!chatInput.trim() && chatImages.length === 0}
+            >
+              <Ionicons name="send" size={18} color={(chatInput.trim() || chatImages.length > 0) ? "#fff" : dMUTED} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

@@ -31,12 +31,13 @@ import { VideoPublication, DEMO_VIDEOS } from "@/data/videos";
 import { DEMO_ARTICLES as ALL_ARTICLES, DELETED_ARTICLES_KEY } from "@/data/articles";
 import { DEMO_ENGROS as ALL_ENGROS, DELETED_ENGROS_KEY } from "@/data/engros";
 import { SellerProductCard } from "@/components/SellerProductCard";
+import * as ImagePicker from "expo-image-picker";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const VIDEO_CELL = (SCREEN_WIDTH - 4) / 3;
 const SELLER_CONVS_KEY = "@dkd:seller_convs";
 
-type ChatMsg  = { id: string; text: string; sender: "me" | "seller"; time: string };
+type ChatMsg  = { id: string; text: string; sender: "me" | "seller"; time: string; images?: string[] };
 type SellerConv = { sellerId: string; shopName: string; initials: string; lastMessage: string; lastTime: string; unread: number; messages: ChatMsg[] };
 const SELLER_TABS = ["Vidéos", "Articles", "En gros"];
 const SELLER_SHOP_TYPES_KEY = "@dkd:seller_shop_types";
@@ -126,6 +127,7 @@ export default function SellerScreen() {
   const [showChatModal, setShowChatModal] = useState(chat === "true");
   const [chatMessages,  setChatMessages]  = useState<ChatMsg[]>([]);
   const [chatInput,     setChatInput]     = useState("");
+  const [chatImages,    setChatImages]    = useState<string[]>([]);
   const chatListRef = useRef<FlatList<ChatMsg>>(null);
   const [showPubModal,  setShowPubModal]  = useState(false);
   const [pubTab,        setPubTab]        = useState<"pending" | "published">("pending");
@@ -140,14 +142,30 @@ export default function SellerScreen() {
     } catch {}
   };
 
+  const openChatImagePicker = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      selectionLimit: 4,
+    });
+    if (!result.canceled) {
+      setChatImages(prev => [...prev, ...result.assets.map(a => a.uri)].slice(0, 4));
+    }
+  };
+
   const sendChatMessage = async () => {
     const text = chatInput.trim();
-    if (!text) return;
+    if (!text && chatImages.length === 0) return;
     setChatInput("");
+    const imagesToSend = [...chatImages];
+    setChatImages([]);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const now = new Date();
     const time = `${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}`;
-    const newMsg: ChatMsg = { id: `m_${Date.now()}`, text, sender: "me", time };
+    const newMsg: ChatMsg = { id: `m_${Date.now()}`, text, sender: "me", time, images: imagesToSend.length > 0 ? imagesToSend : undefined };
     const updatedMsgs = [...chatMessages, newMsg];
     setChatMessages(updatedMsgs);
     setTimeout(() => chatListRef.current?.scrollToEnd({ animated: true }), 80);
@@ -404,22 +422,22 @@ export default function SellerScreen() {
               <TouchableOpacity
                 style={[
                   styles.subscribeBtn,
-                  subscribed && { backgroundColor: "transparent", borderWidth: 1.5, borderColor: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.18)" },
+                  subscribed && { backgroundColor: "transparent", borderWidth: 1.5, borderColor: Colors.primary },
                 ]}
                 onPress={handleSubscribe}
                 activeOpacity={0.8}
                 disabled={followMutation.isPending || unfollowMutation.isPending}
               >
                 {(followMutation.isPending || unfollowMutation.isPending) ? (
-                  <ActivityIndicator size="small" color={subscribed ? dTEXT : "#fff"} />
+                  <ActivityIndicator size="small" color={subscribed ? Colors.primary : "#fff"} />
                 ) : (
                   <>
                     <Ionicons
                       name={subscribed ? "checkmark" : "person-add-outline"}
                       size={16}
-                      color={subscribed ? dTEXT : "#fff"}
+                      color={subscribed ? Colors.primary : "#fff"}
                     />
-                    <Text style={[styles.subscribeBtnText, subscribed && { color: dTEXT }]}>
+                    <Text style={[styles.subscribeBtnText, subscribed && { color: Colors.primary }]}>
                       {subscribed ? "Abonné·e" : "S'abonner"}
                     </Text>
                   </>
@@ -801,9 +819,18 @@ export default function SellerScreen() {
                     </View>
                   )}
                   <View style={{ maxWidth: "75%", gap: 2 }}>
-                    <View style={[styles.chatBubble, isMe ? styles.chatBubbleMe : [styles.chatBubbleThem, { backgroundColor: dCARD, borderColor: dBORDER }]]}>
-                      <Text style={[styles.chatBubbleText, { color: isMe ? "#fff" : dTEXT }]}>{item.text}</Text>
-                    </View>
+                    {item.images && item.images.length > 0 && (
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 2 }}>
+                        {item.images.map((uri, i) => (
+                          <Image key={i} source={{ uri }} style={{ width: 110, height: 110, borderRadius: 10 }} contentFit="cover" />
+                        ))}
+                      </View>
+                    )}
+                    {item.text.length > 0 && (
+                      <View style={[styles.chatBubble, isMe ? styles.chatBubbleMe : [styles.chatBubbleThem, { backgroundColor: dCARD, borderColor: dBORDER }]]}>
+                        <Text style={[styles.chatBubbleText, { color: isMe ? "#fff" : dTEXT }]}>{item.text}</Text>
+                      </View>
+                    )}
                     <Text style={[styles.chatBubbleTime, isMe && { textAlign: "right" }, { color: dMUTED }]}>{item.time}{isMe && " ✓✓"}</Text>
                   </View>
                 </View>
@@ -811,8 +838,28 @@ export default function SellerScreen() {
             }}
           />
 
+          {/* Aperçu images sélectionnées */}
+          {chatImages.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[{ backgroundColor: dCARD, borderTopWidth: 1, borderTopColor: dBORDER }]} contentContainerStyle={{ padding: 8, gap: 8, flexDirection: "row" }}>
+              {chatImages.map((uri, i) => (
+                <View key={i} style={{ position: "relative" }}>
+                  <Image source={{ uri }} style={{ width: 60, height: 60, borderRadius: 8 }} contentFit="cover" />
+                  <TouchableOpacity
+                    style={{ position: "absolute", top: -4, right: -4, backgroundColor: "#EF4444", borderRadius: 9, width: 18, height: 18, alignItems: "center", justifyContent: "center" }}
+                    onPress={() => setChatImages(prev => prev.filter((_, idx) => idx !== i))}
+                  >
+                    <Ionicons name="close" size={11} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+
           {/* Zone de saisie */}
           <View style={[styles.chatInputBar, { backgroundColor: dCARD, borderTopColor: dBORDER }]}>
+            <TouchableOpacity onPress={openChatImagePicker} style={styles.chatImgBtn} activeOpacity={0.75}>
+              <Ionicons name="image-outline" size={22} color={Colors.primary} />
+            </TouchableOpacity>
             <TextInput
               style={[styles.chatInputField, { backgroundColor: isDark ? "#1A1A1A" : "#F3F4F6", color: dTEXT }]}
               placeholder="Message…"
@@ -825,12 +872,12 @@ export default function SellerScreen() {
               onSubmitEditing={sendChatMessage}
             />
             <TouchableOpacity
-              style={[styles.chatSendBtn, { backgroundColor: chatInput.trim() ? Colors.primary : (isDark ? "#2D2D2D" : "#E5E7EB") }]}
+              style={[styles.chatSendBtn, { backgroundColor: (chatInput.trim() || chatImages.length > 0) ? Colors.primary : (isDark ? "#2D2D2D" : "#E5E7EB") }]}
               onPress={sendChatMessage}
               activeOpacity={0.8}
-              disabled={!chatInput.trim()}
+              disabled={!chatInput.trim() && chatImages.length === 0}
             >
-              <Ionicons name="send" size={18} color={chatInput.trim() ? "#fff" : dMUTED} />
+              <Ionicons name="send" size={18} color={(chatInput.trim() || chatImages.length > 0) ? "#fff" : dMUTED} />
             </TouchableOpacity>
           </View>
         </View>
@@ -1369,6 +1416,10 @@ const styles = StyleSheet.create({
   chatInputField: {
     flex: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10,
     fontFamily: "Poppins_400Regular", fontSize: 14, maxHeight: 100,
+  },
+  chatImgBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
   chatSendBtn: {
     width: 42, height: 42, borderRadius: 21,
