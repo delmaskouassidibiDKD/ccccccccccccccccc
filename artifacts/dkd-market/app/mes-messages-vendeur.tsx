@@ -18,6 +18,7 @@ import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ACCENT = "#FF6200";
+const SELLER_CONVS_KEY = "@dkd:seller_convs";
 
 /* ─── Static grossiste conversations (mirrored from messages-grossiste) ── */
 const GRO_STATIC_IDS = new Set(["gc1", "gc2", "gc3", "gc4"]);
@@ -28,19 +29,20 @@ const GRO_STATIC_BASE = [
   { id:"gc4", name:"Ibrahim Import-Export", initials:"II", color:"#EC4899", preview:"Merci pour la commande, c'est parfait.",        time:"Lun.",  unread:0,  online:false },
 ];
 
-/* ─── Source config — 6 menus indépendants ───────────── */
-type Source = "importe" | "grossiste" | "gastronomie" | "marche" | "supermarche" | "perfectionnement";
+/* ─── Source config — 6 menus + boutique ─────────────── */
+type Source = "importe" | "grossiste" | "gastronomie" | "marche" | "supermarche" | "perfectionnement" | "boutique";
 
-const SOURCE_META: Record<Source, { label: string; color: string; extraKey: string; activityKey: string; deletedKey?: string; chatScreen: "dm-importe" | "dm-personnalisation" }> = {
+type PoolSource = Exclude<Source, "boutique">;
+const SOURCE_META: Record<PoolSource, { label: string; color: string; extraKey: string; activityKey: string; deletedKey?: string; chatScreen: "dm-importe" | "dm-personnalisation" }> = {
   importe:          { label: "Importé",          color: "#3B82F6", extraKey: "@dkd:dm_extra_convs",      activityKey: "@dkd:dm_activity",         chatScreen: "dm-importe"         },
-  grossiste:        { label: "Grossiste",         color: "#3B82F6", extraKey: "@dkd:gros_dm_extra_convs", activityKey: "@dkd:gros_dm_activity",     deletedKey: "@dkd:gros_deleted_conv_ids", chatScreen: "dm-personnalisation" },
+  grossiste:        { label: "Grossiste",         color: "#22C55E", extraKey: "@dkd:gros_dm_extra_convs", activityKey: "@dkd:gros_dm_activity",     deletedKey: "@dkd:gros_deleted_conv_ids", chatScreen: "dm-personnalisation" },
   gastronomie:      { label: "Gastronomie",       color: "#EC4899", extraKey: "@dkd:gastro_extra",        activityKey: "@dkd:gastro_activity",      deletedKey: "@dkd:gastro_deleted", chatScreen: "dm-personnalisation" },
   marche:           { label: "Marché",            color: "#34D399", extraKey: "@dkd:marche_extra",        activityKey: "@dkd:marche_activity",      deletedKey: "@dkd:marche_deleted", chatScreen: "dm-personnalisation" },
-  supermarche:      { label: "Supermarché",       color: "#3B82F6", extraKey: "@dkd:super_extra",         activityKey: "@dkd:super_activity",       deletedKey: "@dkd:super_deleted",  chatScreen: "dm-personnalisation" },
+  supermarche:      { label: "Supermarché",       color: "#06B6D4", extraKey: "@dkd:super_extra",         activityKey: "@dkd:super_activity",       deletedKey: "@dkd:super_deleted",  chatScreen: "dm-personnalisation" },
   perfectionnement: { label: "Perfectionnement",  color: "#F59E0B", extraKey: "@dkd:perf_extra",          activityKey: "@dkd:perf_activity",        deletedKey: "@dkd:perf_deleted",   chatScreen: "dm-personnalisation" },
 };
 
-const ALL_SOURCES: Source[] = ["importe", "grossiste", "gastronomie", "marche", "supermarche", "perfectionnement"];
+const ALL_SOURCES: PoolSource[] = ["importe", "grossiste", "gastronomie", "marche", "supermarche", "perfectionnement"];
 
 /* ─── Types ─────────────────────────────────────────── */
 type ConvEntry = {
@@ -65,6 +67,7 @@ const SOURCE_COLORS: Record<Source, string> = {
   marche:           "#34D399",
   supermarche:      "#06B6D4",
   perfectionnement: "#F59E0B",
+  boutique:         "#FF6200",
 };
 
 /* ─── Conversation row ───────────────────────────────── */
@@ -194,6 +197,29 @@ export default function MesMessagesVendeurPage() {
             }
           }
 
+          /* ── Pool Boutique — messages depuis aperçu public ── */
+          const boutiqueRaw = await AsyncStorage.getItem(SELLER_CONVS_KEY);
+          const boutiqueConvs: Array<{ sellerId: string; shopName: string; initials: string; lastMessage: string; lastTime: string; unread: number; messages: any[] }> =
+            boutiqueRaw ? JSON.parse(boutiqueRaw) : [];
+          for (const c of boutiqueConvs) {
+            if (!c.sellerId) continue;
+            const initials = c.initials || (c.shopName || "?").slice(0, 2).toUpperCase();
+            const color = "#FF6200";
+            all.push({
+              id:           c.sellerId,
+              name:         c.shopName || "Acheteur",
+              initials,
+              color,
+              preview:      c.lastMessage || "",
+              time:         c.lastTime    || "",
+              unread:       c.unread      || 0,
+              online:       false,
+              source:       "boutique",
+              sourceLabel:  "Boutique",
+              sourceSortKey: 0,
+            });
+          }
+
           all.sort((a, b) => (b.sourceSortKey || BASE) - (a.sourceSortKey || BASE));
           setAllConversations(all);
         } catch {}
@@ -206,18 +232,25 @@ export default function MesMessagesVendeurPage() {
   const deleteConv = async () => {
     if (!convToDelete) return;
     try {
-      const meta = SOURCE_META[convToDelete.source];
-      const isGroStatic = convToDelete.source === "grossiste" && GRO_STATIC_IDS.has(convToDelete.id);
-      if (isGroStatic && meta.deletedKey) {
-        const raw = await AsyncStorage.getItem(meta.deletedKey);
-        const existing: string[] = raw ? JSON.parse(raw) : [];
-        if (!existing.includes(convToDelete.id)) {
-          await AsyncStorage.setItem(meta.deletedKey, JSON.stringify([...existing, convToDelete.id]));
-        }
-      } else {
-        const raw = await AsyncStorage.getItem(meta.extraKey);
+      if (convToDelete.source === "boutique") {
+        /* Supprimer depuis @dkd:seller_convs */
+        const raw = await AsyncStorage.getItem(SELLER_CONVS_KEY);
         const convs = raw ? JSON.parse(raw) : [];
-        await AsyncStorage.setItem(meta.extraKey, JSON.stringify(convs.filter((c: any) => c.id !== convToDelete.id)));
+        await AsyncStorage.setItem(SELLER_CONVS_KEY, JSON.stringify(convs.filter((c: any) => c.sellerId !== convToDelete.id)));
+      } else {
+        const meta = SOURCE_META[convToDelete.source as PoolSource];
+        const isGroStatic = convToDelete.source === "grossiste" && GRO_STATIC_IDS.has(convToDelete.id);
+        if (isGroStatic && meta.deletedKey) {
+          const raw = await AsyncStorage.getItem(meta.deletedKey);
+          const existing: string[] = raw ? JSON.parse(raw) : [];
+          if (!existing.includes(convToDelete.id)) {
+            await AsyncStorage.setItem(meta.deletedKey, JSON.stringify([...existing, convToDelete.id]));
+          }
+        } else {
+          const raw = await AsyncStorage.getItem(meta.extraKey);
+          const convs = raw ? JSON.parse(raw) : [];
+          await AsyncStorage.setItem(meta.extraKey, JSON.stringify(convs.filter((c: any) => c.id !== convToDelete.id)));
+        }
       }
       setAllConversations((prev) => prev.filter((c) => !(c.id === convToDelete.id && c.source === convToDelete.source)));
     } catch {}
@@ -236,7 +269,15 @@ export default function MesMessagesVendeurPage() {
   /* ─── Navigate to correct chat screen ─── */
   const openConv = (item: ConvEntry) => {
     Haptics.selectionAsync();
-    const meta = SOURCE_META[item.source];
+    /* Marquer comme lu */
+    setAllConversations(prev => prev.map(c =>
+      c.id === item.id && c.source === item.source ? { ...c, unread: 0 } : c
+    ));
+    if (item.source === "boutique") {
+      router.push(`/dm-boutique?sellerId=${encodeURIComponent(item.id)}&shopName=${encodeURIComponent(item.name)}&initials=${encodeURIComponent(item.initials)}&color=${encodeURIComponent(item.color)}` as any);
+      return;
+    }
+    const meta = SOURCE_META[item.source as PoolSource];
     const base = `id=${item.id}&name=${encodeURIComponent(item.name)}&initials=${encodeURIComponent(item.initials)}&color=${encodeURIComponent(item.color)}`;
     if (meta.chatScreen === "dm-importe") {
       router.push(`/dm-importe?${base}` as any);

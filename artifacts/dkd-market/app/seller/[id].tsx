@@ -184,6 +184,7 @@ export default function SellerScreen() {
       conv.messages = updatedMsgs;
       conv.lastMessage = text;
       conv.lastTime = time;
+      conv.unread = (conv.unread || 0) + 1;
       if (idx >= 0) convs[idx] = conv; else convs.unshift(conv);
       await AsyncStorage.setItem(SELLER_CONVS_KEY, JSON.stringify(convs));
     } catch {}
