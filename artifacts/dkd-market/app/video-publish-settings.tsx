@@ -8,7 +8,6 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
-import { STATIC_CATEGORIES } from "./(tabs)/rayons";
 
 
 /* ── Sections de menus vendeur ── */
@@ -73,9 +72,7 @@ export default function VideoPublishSettings() {
     soundTitle: string; soundArtist: string;
   }>();
 
-  const [title,       setTitle]       = useState("");
   const [description, setDescription] = useState("");
-  const [category,    setCategory]    = useState("");
   const [publishing,  setPublishing]  = useState(false);
 
   /* Article */
@@ -84,10 +81,6 @@ export default function VideoPublishSettings() {
   const [selectedArticle,   setSelectedArticle]   = useState<Article | null>(null);
   const [articleSearch,     setArticleSearch]     = useState("");
   const [activeMenuFilter,  setActiveMenuFilter]  = useState<FilterKey>("all");
-
-  /* Catégorie */
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [categorySearch,    setCategorySearch]    = useState("");
 
   const isVideo    = params.mode === "video";
   const photoCount = (() => { try { return JSON.parse(params.photos || "[]").length; } catch { return 0; } })();
@@ -103,16 +96,10 @@ export default function VideoPublishSettings() {
     return bySection.filter((a) => a.title.toLowerCase().includes(q));
   }, [activeMenuFilter, articleSearch]);
 
-  const filteredCategoryItems = useMemo(() =>
-    STATIC_CATEGORIES.filter((c) => c.name.toLowerCase().includes(categorySearch.toLowerCase())),
-    [categorySearch]
-  );
-
-  const isReady = title.trim().length > 0 && (!articleEnabled || selectedArticle !== null);
+  const isReady = !articleEnabled || selectedArticle !== null;
 
   const handlePublish = async () => {
     const missing: string[] = [];
-    if (!title.trim()) missing.push("• Ajouter un titre");
     if (articleEnabled && !selectedArticle) missing.push("• Associer un article");
     if (missing.length > 0) {
       Alert.alert("Champs requis", "Veuillez remplir :\n\n" + missing.join("\n"));
@@ -225,20 +212,6 @@ export default function VideoPublishSettings() {
             )}
           </View>
 
-          {/* ── TITRE ── */}
-          <View style={s.field}>
-            <Text style={s.label}>Titre <Text style={s.required}>*</Text></Text>
-            <TextInput
-              style={[s.input, title.length > 0 && s.inputFilled]}
-              placeholder="Ex: Nouveaux pagnes wax arrivés..."
-              placeholderTextColor="#4B5563"
-              value={title}
-              onChangeText={setTitle}
-              maxLength={80}
-            />
-            <Text style={s.charCount}>{title.length}/80</Text>
-          </View>
-
           {/* ── DESCRIPTION ── */}
           <View style={s.field}>
             <Text style={s.label}>Description</Text>
@@ -253,27 +226,6 @@ export default function VideoPublishSettings() {
               textAlignVertical="top"
             />
             <Text style={s.charCount}>{description.length}/500</Text>
-          </View>
-
-          {/* ── CATÉGORIE ── */}
-          <View style={s.field}>
-            <Text style={s.label}>Catégorie <Text style={s.optionalTag}>(optionnel)</Text></Text>
-            <View style={[s.categoryRow, category.length > 0 && s.inputFilled]}>
-              <TextInput
-                style={s.categoryInput}
-                placeholder="Ex: Mode, Alimentation..."
-                placeholderTextColor="#4B5563"
-                value={category}
-                onChangeText={setCategory}
-                maxLength={60}
-              />
-              <TouchableOpacity
-                style={s.categoryPickerBtn}
-                onPress={() => { setShowCategoryModal(true); setCategorySearch(""); Haptics.selectionAsync(); }}
-              >
-                <Ionicons name="list" size={18} color="#FF6B00" />
-              </TouchableOpacity>
-            </View>
           </View>
 
         </ScrollView>
@@ -425,53 +377,6 @@ export default function VideoPublishSettings() {
         </View>
       </Modal>
 
-      {/* ══ MODAL CATÉGORIE ══ */}
-      <Modal visible={showCategoryModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCategoryModal(false)}>
-        <View style={[s.modalContainer, { paddingTop: insets.top > 0 ? 16 : 32 }]}>
-          <View style={s.modalHeader}>
-            <Text style={s.modalTitle}>Choisir une catégorie</Text>
-            <TouchableOpacity onPress={() => setShowCategoryModal(false)} style={s.modalClose}>
-              <Ionicons name="close" size={22} color="#fff" />
-            </TouchableOpacity>
-          </View>
-          <View style={s.modalSearch}>
-            <Ionicons name="search-outline" size={18} color="#4B5563" />
-            <TextInput
-              style={s.modalSearchInput}
-              placeholder="Rechercher parmi 162 catégories..."
-              placeholderTextColor="#4B5563"
-              value={categorySearch}
-              onChangeText={setCategorySearch}
-              autoFocus
-            />
-            {categorySearch.length > 0 && (
-              <TouchableOpacity onPress={() => setCategorySearch("")} style={{ paddingRight: 4 }}>
-                <Ionicons name="close-circle" size={16} color="#4B5563" />
-              </TouchableOpacity>
-            )}
-          </View>
-          <FlatList
-            data={filteredCategoryItems}
-            keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 20 }}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[s.articleRow, category === item.name && s.articleRowActive]}
-                onPress={() => { setCategory(item.name); setShowCategoryModal(false); Haptics.selectionAsync(); }}
-                activeOpacity={0.75}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={[s.articleRowTitle, category === item.name && { color: "#FF6B00" }]}>{item.name}</Text>
-                </View>
-                {category === item.name && <Ionicons name="checkmark-circle" size={20} color="#FF6B00" />}
-              </TouchableOpacity>
-            )}
-            ItemSeparatorComponent={() => <View style={s.articleSep} />}
-          />
-        </View>
-      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -492,9 +397,7 @@ const s = StyleSheet.create({
   scroll: { paddingHorizontal: 16, paddingTop: 20, gap: 20 },
   field: { gap: 8 },
   label: { fontFamily: "Poppins_600SemiBold", fontSize: 13, color: "#E5E7EB" },
-  required: { color: "#EF4444", fontFamily: "Poppins_400Regular", fontSize: 11 },
   charCount: { fontFamily: "Poppins_400Regular", fontSize: 10, color: "#4B5563", textAlign: "right" },
-  optionalTag: { fontFamily: "Poppins_400Regular", fontSize: 11, color: "#4B5563" },
 
   /* Toggle article */
   toggleRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1A1A1A", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: "#2D2D2D" },
@@ -516,11 +419,6 @@ const s = StyleSheet.create({
   input: { backgroundColor: "#1A1A1A", borderRadius: 10, borderWidth: 1.5, borderColor: "#2D2D2D", paddingHorizontal: 14, paddingVertical: 12, fontFamily: "Poppins_400Regular", fontSize: 14, color: "#fff" },
   inputMulti: { height: 100, paddingTop: 12 },
   inputFilled: { borderColor: "#FF6B0060" },
-
-  /* Catégorie */
-  categoryRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1A1A1A", borderRadius: 10, borderWidth: 1.5, borderColor: "#2D2D2D", overflow: "hidden" },
-  categoryInput: { flex: 1, paddingHorizontal: 14, paddingVertical: 12, fontFamily: "Poppins_400Regular", fontSize: 14, color: "#fff" },
-  categoryPickerBtn: { paddingHorizontal: 14, paddingVertical: 14, backgroundColor: "#2D2D2D", alignItems: "center", justifyContent: "center", borderLeftWidth: 1, borderLeftColor: "#3D3D3D" },
 
   /* Bottom bar */
   bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingTop: 12, backgroundColor: "#111", borderTopWidth: 1, borderTopColor: "#2D2D2D" },
