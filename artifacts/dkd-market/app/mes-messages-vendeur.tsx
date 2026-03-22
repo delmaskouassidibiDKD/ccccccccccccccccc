@@ -17,11 +17,28 @@ import { useTheme } from "@/contexts/ThemeContext";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const DM_EXTRA_KEY = "@dkd:dm_extra_convs";
-const ACTIVITY_KEY = "@dkd:dm_activity";
-const ACCENT       = "#7E22CE";
+/* ─── Storage pools ─────────────────────────────────── */
+const IMP_EXTRA_KEY    = "@dkd:dm_extra_convs";
+const IMP_ACTIVITY_KEY = "@dkd:dm_activity";
+const GRO_EXTRA_KEY    = "@dkd:gros_dm_extra_convs";
+const GRO_ACTIVITY_KEY = "@dkd:gros_dm_activity";
+const GRO_DELETED_KEY  = "@dkd:gros_deleted_conv_ids";
 
-type Conv = {
+const ACCENT = "#7E22CE";
+
+/* ─── Static grossiste conversations (mirrored from messages-grossiste) ── */
+const GRO_STATIC_IDS = new Set(["gc1", "gc2", "gc3", "gc4"]);
+const GRO_STATIC_BASE = [
+  { id:"gc1", name:"Diallo Marchandises",   initials:"DM", color:"#3B82F6", preview:"Bonjour, avez-vous du riz 50kg en stock ?",    time:"09:14", unread:2,  online:true,  role:"Revendeur"  },
+  { id:"gc2", name:"Koné Distribution SA",  initials:"KD", color:"#34D399", preview:"Votre devis est approuvé, on peut procéder.",   time:"Hier",  unread:0,  online:false, role:"Grossiste"  },
+  { id:"gc3", name:"Fatou Commerce",        initials:"FC", color:"#F59E0B", preview:"Quand livrez-vous les 200 cartons ?",            time:"Mar.",  unread:1,  online:true,  role:"Détaillant" },
+  { id:"gc4", name:"Ibrahim Import-Export", initials:"II", color:"#EC4899", preview:"Merci pour la commande, c'est parfait.",        time:"Lun.",  unread:0,  online:false, role:"Importateur"},
+];
+
+/* ─── Types ─────────────────────────────────────────── */
+type Source = "importe" | "grossiste";
+
+type ConvEntry = {
   id: string;
   name: string;
   initials: string;
@@ -30,10 +47,20 @@ type Conv = {
   time: string;
   unread: number;
   online: boolean;
+  source: Source;
+  sourceLabel: string;
+  sourceSortKey: number;
 };
 
+/* ─── Source label pill ──────────────────────────────── */
+const SOURCE_COLORS: Record<Source, string> = {
+  importe:   "#A855F7",
+  grossiste: "#3B82F6",
+};
+
+/* ─── Conversation row ───────────────────────────────── */
 function ConvItem({ conv, onPress, onLongPress, isDark, dynCARD, dynText, dynSub, dynBorder }: {
-  conv: Conv;
+  conv: ConvEntry;
   onPress: () => void;
   onLongPress: () => void;
   isDark: boolean;
@@ -42,6 +69,7 @@ function ConvItem({ conv, onPress, onLongPress, isDark, dynCARD, dynText, dynSub
   dynSub: string;
   dynBorder: string;
 }) {
+  const srcColor = SOURCE_COLORS[conv.source];
   return (
     <TouchableOpacity
       style={[s.convRow, { backgroundColor: conv.unread > 0 ? (isDark ? "#161B25" : "#F5F0FF") : dynCARD, borderBottomColor: dynBorder }]}
@@ -59,9 +87,14 @@ function ConvItem({ conv, onPress, onLongPress, isDark, dynCARD, dynText, dynSub
 
       <View style={s.convContent}>
         <View style={s.convTop}>
-          <Text style={[s.convName, { color: dynText, fontFamily: conv.unread > 0 ? "Poppins_700Bold" : "Poppins_600SemiBold" }]} numberOfLines={1}>
-            {conv.name}
-          </Text>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[s.convName, { color: dynText, fontFamily: conv.unread > 0 ? "Poppins_700Bold" : "Poppins_600SemiBold" }]} numberOfLines={1}>
+              {conv.name}
+            </Text>
+            <View style={[s.srcPill, { backgroundColor: srcColor + "18" }]}>
+              <Text style={[s.srcText, { color: srcColor }]}>{conv.sourceLabel}</Text>
+            </View>
+          </View>
           <Text style={[s.convTime, { color: conv.unread > 0 ? ACCENT : dynSub }]}>{conv.time}</Text>
         </View>
         <View style={s.convBot}>
@@ -79,6 +112,7 @@ function ConvItem({ conv, onPress, onLongPress, isDark, dynCARD, dynText, dynSub
   );
 }
 
+/* ─── Main page ──────────────────────────────────────── */
 export default function MesMessagesVendeurPage() {
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
@@ -93,54 +127,104 @@ export default function MesMessagesVendeurPage() {
 
   const [tab,              setTab]              = useState<"tous" | "non_lu">("tous");
   const [search,           setSearch]           = useState("");
-  const [allConversations, setAllConversations] = useState<Conv[]>([]);
-  const [convToDelete,     setConvToDelete]     = useState<Conv | null>(null);
+  const [allConversations, setAllConversations] = useState<ConvEntry[]>([]);
+  const [convToDelete,     setConvToDelete]     = useState<ConvEntry | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
         try {
-          const [extraRaw, activityRaw] = await Promise.all([
-            AsyncStorage.getItem(DM_EXTRA_KEY),
-            AsyncStorage.getItem(ACTIVITY_KEY),
+          const [impExtraRaw, impActRaw, groExtraRaw, groActRaw, groDelRaw] = await Promise.all([
+            AsyncStorage.getItem(IMP_EXTRA_KEY),
+            AsyncStorage.getItem(IMP_ACTIVITY_KEY),
+            AsyncStorage.getItem(GRO_EXTRA_KEY),
+            AsyncStorage.getItem(GRO_ACTIVITY_KEY),
+            AsyncStorage.getItem(GRO_DELETED_KEY),
           ]);
 
-          const activity: Record<string, { timestamp: number; preview: string; time: string }> =
-            activityRaw ? JSON.parse(activityRaw) : {};
+          const impActivity: Record<string, { timestamp: number; preview: string; time: string }> =
+            impActRaw ? JSON.parse(impActRaw) : {};
+          const groActivity: Record<string, { timestamp: number; preview: string; time: string }> =
+            groActRaw ? JSON.parse(groActRaw) : {};
+          const deletedGro = new Set<string>(groDelRaw ? JSON.parse(groDelRaw) : []);
 
-          const extras: Conv[] = extraRaw ? JSON.parse(extraRaw) : [];
+          /* Pool A — importé / boutique */
+          const impExtras: ConvEntry[] = impExtraRaw
+            ? (JSON.parse(impExtraRaw) as any[]).map((c) => ({
+                ...c,
+                source: "importe" as Source,
+                sourceLabel: "Importé · Boutique",
+                preview: impActivity[c.id]?.preview ?? c.preview ?? "",
+                time:    impActivity[c.id]?.time    ?? c.time    ?? "",
+                sourceSortKey: impActivity[c.id]?.timestamp ?? 0,
+              }))
+            : [];
 
-          const merged = extras.map((c) =>
-            activity[c.id]
-              ? { ...c, preview: activity[c.id].preview, time: activity[c.id].time }
-              : c
-          );
+          /* Pool B — grossiste / marché / supermarché / gastronomie / perfectionnement */
+          const groStaticIds = new Set(GRO_STATIC_BASE.map((c) => c.id));
+          const groExtrasRaw: any[] = groExtraRaw ? JSON.parse(groExtraRaw) : [];
+          const groExtras: ConvEntry[] = groExtrasRaw
+            .filter((c) => !groStaticIds.has(c.id))
+            .map((c) => ({
+              ...c,
+              source: "grossiste" as Source,
+              sourceLabel: "Grossiste · Marché · +",
+              preview: groActivity[c.id]?.preview ?? c.preview ?? "",
+              time:    groActivity[c.id]?.time    ?? c.time    ?? "",
+              sourceSortKey: groActivity[c.id]?.timestamp ?? 0,
+            }));
 
+          const groStatics: ConvEntry[] = GRO_STATIC_BASE
+            .filter((c) => !deletedGro.has(c.id))
+            .map((c) => ({
+              ...c,
+              source: "grossiste" as Source,
+              sourceLabel: "Grossiste · Marché · +",
+              online: c.online,
+              preview: groActivity[c.id]?.preview ?? c.preview,
+              time:    groActivity[c.id]?.time    ?? c.time,
+              sourceSortKey: groActivity[c.id]?.timestamp ?? 0,
+            }));
+
+          /* Merge & sort by most recent activity */
           const BASE = 1_000_000_000_000;
-          const sorted = merged
-            .map((c, i) => ({ conv: c, sortKey: activity[c.id]?.timestamp ?? (BASE - i) }))
-            .sort((a, b) => b.sortKey - a.sortKey)
-            .map((x) => x.conv);
+          const all = [...impExtras, ...groExtras, ...groStatics];
+          all.sort((a, b) => (b.sourceSortKey || BASE) - (a.sourceSortKey || BASE));
 
-          setAllConversations(sorted);
+          setAllConversations(all);
         } catch {}
       };
       load();
     }, [])
   );
 
+  /* ─── Delete ─── */
   const deleteConv = async () => {
     if (!convToDelete) return;
     try {
-      const raw = await AsyncStorage.getItem(DM_EXTRA_KEY);
-      const convs: Conv[] = raw ? JSON.parse(raw) : [];
-      const updated = convs.filter((c) => c.id !== convToDelete.id);
-      await AsyncStorage.setItem(DM_EXTRA_KEY, JSON.stringify(updated));
+      if (convToDelete.source === "importe") {
+        const raw = await AsyncStorage.getItem(IMP_EXTRA_KEY);
+        const convs = raw ? JSON.parse(raw) : [];
+        await AsyncStorage.setItem(IMP_EXTRA_KEY, JSON.stringify(convs.filter((c: any) => c.id !== convToDelete.id)));
+      } else {
+        if (GRO_STATIC_IDS.has(convToDelete.id)) {
+          const raw = await AsyncStorage.getItem(GRO_DELETED_KEY);
+          const existing: string[] = raw ? JSON.parse(raw) : [];
+          if (!existing.includes(convToDelete.id)) {
+            await AsyncStorage.setItem(GRO_DELETED_KEY, JSON.stringify([...existing, convToDelete.id]));
+          }
+        } else {
+          const raw = await AsyncStorage.getItem(GRO_EXTRA_KEY);
+          const convs = raw ? JSON.parse(raw) : [];
+          await AsyncStorage.setItem(GRO_EXTRA_KEY, JSON.stringify(convs.filter((c: any) => c.id !== convToDelete.id)));
+        }
+      }
       setAllConversations((prev) => prev.filter((c) => c.id !== convToDelete.id));
     } catch {}
     setConvToDelete(null);
   };
 
+  /* ─── Filter ─── */
   const filtered = allConversations.filter((c) => {
     const matchTab    = tab === "tous" || c.unread > 0;
     const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase());
@@ -149,6 +233,18 @@ export default function MesMessagesVendeurPage() {
 
   const totalUnread = allConversations.reduce((acc, c) => acc + c.unread, 0);
 
+  /* ─── Navigate to correct chat screen ─── */
+  const openConv = (item: ConvEntry) => {
+    Haptics.selectionAsync();
+    const base = `id=${item.id}&name=${encodeURIComponent(item.name)}&initials=${item.initials}&color=${encodeURIComponent(item.color)}`;
+    if (item.source === "importe") {
+      router.push(`/dm-importe?${base}` as any);
+    } else {
+      router.push(`/dm-personnalisation?${base}` as any);
+    }
+  };
+
+  /* ─── Render ─── */
   return (
     <View style={[s.root, { backgroundColor: dynBG }]}>
 
@@ -158,7 +254,7 @@ export default function MesMessagesVendeurPage() {
           <Ionicons name="arrow-back" size={22} color={dynText} />
         </TouchableOpacity>
         <View style={s.headerCenter}>
-          <Text style={[s.headerTitle, { color: dynText }]}>Messages</Text>
+          <Text style={[s.headerTitle, { color: dynText }]}>Boîte de réception</Text>
           {totalUnread > 0 && (
             <View style={[s.headerBadge, { backgroundColor: ACCENT }]}>
               <Text style={s.headerBadgeText}>{totalUnread}</Text>
@@ -193,7 +289,7 @@ export default function MesMessagesVendeurPage() {
       <View style={[s.tabs, { backgroundColor: dynHeader, borderBottomColor: dynBorder }]}>
         {(["tous", "non_lu"] as const).map((t) => {
           const active = tab === t;
-          const label  = t === "tous" ? "Tous" : "Non lu";
+          const label  = t === "tous" ? "Tous" : "Non lus";
           const count  = t === "non_lu" ? totalUnread : allConversations.length;
           return (
             <TouchableOpacity
@@ -215,23 +311,20 @@ export default function MesMessagesVendeurPage() {
       {filtered.length === 0 ? (
         <View style={s.empty}>
           <Ionicons name="chatbubbles-outline" size={52} color={dynSub} />
-          <Text style={[s.emptyTitle, { color: dynText }]}>Aucune conversation</Text>
+          <Text style={[s.emptyTitle, { color: dynText }]}>Aucun message</Text>
           <Text style={[s.emptyDesc, { color: dynSub }]}>
-            Allez dans vos commandes et appuyez sur{"\n"}"Discuter" pour contacter un client.
+            Tous vos messages (boutique, importé, grossiste, marché…) apparaîtront ici.
           </Text>
         </View>
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={(c) => c.id}
+          keyExtractor={(c) => `${c.source}_${c.id}`}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <ConvItem
               conv={item}
-              onPress={() => {
-                Haptics.selectionAsync();
-                router.push(`/dm-importe?id=${item.id}&name=${encodeURIComponent(item.name)}&initials=${item.initials}&color=${encodeURIComponent(item.color)}` as any);
-              }}
+              onPress={() => openConv(item)}
               onLongPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setConvToDelete(item);
@@ -288,14 +381,16 @@ const s = StyleSheet.create({
   tabCount:      { borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1 },
   tabCountText:  { fontFamily: "Poppins_700Bold", fontSize: 11 },
 
-  convRow:     { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 13, gap: 12, borderBottomWidth: 1 },
+  convRow:     { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 12, borderBottomWidth: 1 },
   avatar:      { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center" },
   avatarText:  { fontFamily: "Poppins_700Bold", fontSize: 16 },
   onlineDot:   { position: "absolute", bottom: 1, right: 1, width: 11, height: 11, borderRadius: 6, backgroundColor: "#34D399", borderWidth: 2, borderColor: "#fff" },
   convContent: { flex: 1, gap: 2 },
-  convTop:     { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  convTop:     { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   convName:    { flex: 1, fontSize: 14 },
   convTime:    { fontFamily: "Poppins_400Regular", fontSize: 11, marginLeft: 6 },
+  srcPill:     { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, alignSelf: "flex-start" },
+  srcText:     { fontFamily: "Poppins_500Medium", fontSize: 9 },
   convBot:     { flexDirection: "row", alignItems: "center", gap: 6 },
   convPreview: { flex: 1, fontSize: 12, lineHeight: 17 },
   badge:       { borderRadius: 10, minWidth: 20, height: 20, alignItems: "center", justifyContent: "center", paddingHorizontal: 5 },
@@ -305,13 +400,13 @@ const s = StyleSheet.create({
   emptyTitle: { fontFamily: "Poppins_700Bold", fontSize: 16 },
   emptyDesc:  { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center", lineHeight: 20 },
 
-  delOverlay:      { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 32 },
-  delSheet:        { width: "100%", borderRadius: 16, padding: 20, gap: 12, borderWidth: 1 },
-  delName:         { fontFamily: "Poppins_700Bold", fontSize: 15, textAlign: "center" },
-  delMsg:          { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center" },
-  delBtns:         { flexDirection: "row", gap: 10, marginTop: 4 },
-  delCancel:       { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", borderWidth: 1 },
-  delCancelText:   { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
-  delConfirm:      { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", backgroundColor: "#EF4444" },
-  delConfirmText:  { fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
+  delOverlay:     { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 32 },
+  delSheet:       { width: "100%", borderRadius: 16, padding: 20, gap: 12, borderWidth: 1 },
+  delName:        { fontFamily: "Poppins_700Bold", fontSize: 15, textAlign: "center" },
+  delMsg:         { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center" },
+  delBtns:        { flexDirection: "row", gap: 10, marginTop: 4 },
+  delCancel:      { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", borderWidth: 1 },
+  delCancelText:  { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
+  delConfirm:     { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", backgroundColor: "#EF4444" },
+  delConfirmText: { fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
 });
