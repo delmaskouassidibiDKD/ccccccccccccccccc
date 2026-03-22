@@ -216,7 +216,7 @@ export default function MesMessagesVendeurPage() {
               online:       false,
               source:       "boutique",
               sourceLabel:  "Boutique",
-              sourceSortKey: 0,
+              sourceSortKey: c.sentAt || 0,
             });
           }
 

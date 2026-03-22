@@ -9,6 +9,7 @@ import {
   TouchableWithoutFeedback,
   TextInput,
   Animated,
+  PanResponder,
   Platform,
   Dimensions,
   ActivityIndicator,
@@ -16,6 +17,7 @@ import {
   Share,
   RefreshControl,
   Modal,
+  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,8 +41,36 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const VIDEO_CELL = (SCREEN_WIDTH - 4) / 3;
 const SELLER_CONVS_KEY = "@dkd:seller_convs";
 
-type ChatMsg  = { id: string; text: string; sender: "me" | "seller"; time: string; images?: string[] };
-type SellerConv = { sellerId: string; shopName: string; initials: string; lastMessage: string; lastTime: string; unread: number; messages: ChatMsg[] };
+type ChatReplyRef = { id: string; text: string; isMe: boolean };
+type ChatMsg  = { id: string; text: string; sender: "me" | "seller"; time: string; images?: string[]; replyTo?: ChatReplyRef };
+type SellerConv = { sellerId: string; shopName: string; initials: string; lastMessage: string; lastTime: string; unread: number; sentAt?: number; messages: ChatMsg[] };
+
+/* ── Swipe-to-reply row ── */
+function ChatSwipeRow({ onSwipe, children }: { onSwipe: () => void; children: React.ReactNode }) {
+  const tx = useRef(new Animated.Value(0)).current;
+  const triggered = useRef(false);
+  const pan = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+    onPanResponderGrant: () => { triggered.current = false; },
+    onPanResponderMove: (_, g) => {
+      const val = Math.max(g.dx, -70);
+      if (val < 0) tx.setValue(val);
+      if (val < -50 && !triggered.current) {
+        triggered.current = true;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onSwipe();
+      }
+    },
+    onPanResponderRelease: () => {
+      Animated.spring(tx, { toValue: 0, useNativeDriver: true, tension: 100 }).start();
+    },
+  })).current;
+  return (
+    <Animated.View style={{ transform: [{ translateX: tx }] }} {...pan.panHandlers}>
+      {children}
+    </Animated.View>
+  );
+}
 const SELLER_TABS = ["Vidéos", "Articles", "En gros"];
 const SELLER_SHOP_TYPES_KEY = "@dkd:seller_shop_types";
 const PROFILE_PHOTO_KEY     = "@dkd:seller_profile_photo";
@@ -130,7 +160,9 @@ export default function SellerScreen() {
   const [chatMessages,  setChatMessages]  = useState<ChatMsg[]>([]);
   const [chatInput,     setChatInput]     = useState("");
   const [chatImages,    setChatImages]    = useState<string[]>([]);
-  const chatListRef = useRef<FlatList<ChatMsg>>(null);
+  const [chatReplyTo,   setChatReplyTo]   = useState<ChatMsg | null>(null);
+  const chatListRef   = useRef<FlatList<ChatMsg>>(null);
+  const chatInputRef  = useRef<TextInput>(null);
   const [showPubModal,  setShowPubModal]  = useState(false);
   const [pubTab,        setPubTab]        = useState<"pending" | "published">("pending");
   const [publications,  setPublications]  = useState<PubItem[]>(DEMO_PUBLICATIONS);
@@ -169,7 +201,11 @@ export default function SellerScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const now = new Date();
     const time = `${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}`;
-    const newMsg: ChatMsg = { id: `m_${Date.now()}`, text, sender: "me", time, images: imagesToSend.length > 0 ? imagesToSend : undefined };
+    const replyRef: ChatReplyRef | undefined = chatReplyTo
+      ? { id: chatReplyTo.id, text: chatReplyTo.text, isMe: chatReplyTo.sender === "me" }
+      : undefined;
+    setChatReplyTo(null);
+    const newMsg: ChatMsg = { id: `m_${Date.now()}`, text, sender: "me", time, images: imagesToSend.length > 0 ? imagesToSend : undefined, replyTo: replyRef };
     const updatedMsgs = [...chatMessages, newMsg];
     setChatMessages(updatedMsgs);
     setTimeout(() => chatListRef.current?.scrollToEnd({ animated: true }), 80);
@@ -184,9 +220,10 @@ export default function SellerScreen() {
         lastMessage: "", lastTime: "", unread: 0, messages: [],
       };
       conv.messages = updatedMsgs;
-      conv.lastMessage = text;
+      conv.lastMessage = text || "📷 Photo";
       conv.lastTime = time;
       conv.unread = (conv.unread || 0) + 1;
+      conv.sentAt = Date.now();
       if (idx >= 0) convs[idx] = conv; else convs.unshift(conv);
       await AsyncStorage.setItem(SELLER_CONVS_KEY, JSON.stringify(convs));
     } catch {}
@@ -787,28 +824,39 @@ export default function SellerScreen() {
             renderItem={({ item }) => {
               const isMe = item.sender === "me";
               return (
-                <View style={[styles.chatBubbleWrap, isMe && styles.chatBubbleWrapMe]}>
-                  {!isMe && (
-                    <View style={[styles.chatAvatar, { backgroundColor: Colors.primary + "20" }]}>
-                      <Text style={[styles.chatAvatarText, { color: Colors.primary }]}>{(shopName || "?").slice(0,2).toUpperCase()}</Text>
+                <ChatSwipeRow onSwipe={() => { setChatReplyTo(item); setTimeout(() => chatInputRef.current?.focus(), 100); }}>
+                  <View style={[styles.chatBubbleWrap, isMe && styles.chatBubbleWrapMe]}>
+                    {!isMe && (
+                      <View style={[styles.chatAvatar, { backgroundColor: Colors.primary + "20" }]}>
+                        <Text style={[styles.chatAvatarText, { color: Colors.primary }]}>{(shopName || "?").slice(0,2).toUpperCase()}</Text>
+                      </View>
+                    )}
+                    <View style={{ maxWidth: "75%", gap: 2 }}>
+                      {/* Reply snippet */}
+                      {item.replyTo && (
+                        <View style={[styles.chatReplySnippet, isMe ? { backgroundColor: "rgba(255,255,255,0.18)" } : { backgroundColor: isDark ? "#1E293B" : "#F0F4FA" }]}>
+                          <View style={[styles.chatReplyBar, { backgroundColor: isMe ? "#fff" : Colors.primary }]} />
+                          <Text style={[styles.chatReplyText, { color: isMe ? "rgba(255,255,255,0.85)" : dMUTED }]} numberOfLines={1}>
+                            {item.replyTo.text}
+                          </Text>
+                        </View>
+                      )}
+                      {item.images && item.images.length > 0 && (
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 2 }}>
+                          {item.images.map((uri, i) => (
+                            <Image key={i} source={{ uri }} style={{ width: 110, height: 110, borderRadius: 10 }} contentFit="cover" />
+                          ))}
+                        </View>
+                      )}
+                      {item.text.length > 0 && (
+                        <View style={[styles.chatBubble, isMe ? styles.chatBubbleMe : [styles.chatBubbleThem, { backgroundColor: dCARD, borderColor: dBORDER }]]}>
+                          <Text style={[styles.chatBubbleText, { color: isMe ? "#fff" : dTEXT }]}>{item.text}</Text>
+                        </View>
+                      )}
+                      <Text style={[styles.chatBubbleTime, isMe && { textAlign: "right" }, { color: dMUTED }]}>{item.time}{isMe && " ✓✓"}</Text>
                     </View>
-                  )}
-                  <View style={{ maxWidth: "75%", gap: 2 }}>
-                    {item.images && item.images.length > 0 && (
-                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 2 }}>
-                        {item.images.map((uri, i) => (
-                          <Image key={i} source={{ uri }} style={{ width: 110, height: 110, borderRadius: 10 }} contentFit="cover" />
-                        ))}
-                      </View>
-                    )}
-                    {item.text.length > 0 && (
-                      <View style={[styles.chatBubble, isMe ? styles.chatBubbleMe : [styles.chatBubbleThem, { backgroundColor: dCARD, borderColor: dBORDER }]]}>
-                        <Text style={[styles.chatBubbleText, { color: isMe ? "#fff" : dTEXT }]}>{item.text}</Text>
-                      </View>
-                    )}
-                    <Text style={[styles.chatBubbleTime, isMe && { textAlign: "right" }, { color: dMUTED }]}>{item.time}{isMe && " ✓✓"}</Text>
                   </View>
-                </View>
+                </ChatSwipeRow>
               );
             }}
           />
@@ -830,12 +878,28 @@ export default function SellerScreen() {
             </ScrollView>
           )}
 
+          {/* Bannière de réponse */}
+          {chatReplyTo && (
+            <View style={[styles.chatReplyBanner, { backgroundColor: isDark ? "#1E293B" : "#F0F4FA", borderLeftColor: Colors.primary }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.chatReplyBannerLabel, { color: Colors.primary }]}>
+                  Répondre à {chatReplyTo.sender === "me" ? "vous-même" : (shopName ?? "vendeur")}
+                </Text>
+                <Text style={[styles.chatReplyBannerText, { color: dMUTED }]} numberOfLines={1}>{chatReplyTo.text}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setChatReplyTo(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close" size={18} color={dMUTED} />
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Zone de saisie */}
           <View style={[styles.chatInputBar, { backgroundColor: dCARD, borderTopColor: dBORDER }]}>
             <TouchableOpacity onPress={openChatImagePicker} style={styles.chatImgBtn} activeOpacity={0.75}>
               <Ionicons name="image-outline" size={22} color={Colors.primary} />
             </TouchableOpacity>
             <TextInput
+              ref={chatInputRef}
               style={[styles.chatInputField, { backgroundColor: isDark ? "#1A1A1A" : "#F3F4F6", color: dTEXT }]}
               placeholder="Message…"
               placeholderTextColor={dMUTED}
@@ -1396,6 +1460,12 @@ const styles = StyleSheet.create({
   chatBubbleThem: { borderWidth: 1, borderBottomLeftRadius: 4 },
   chatBubbleText: { fontFamily: "Poppins_400Regular", fontSize: 14, lineHeight: 20 },
   chatBubbleTime: { fontFamily: "Poppins_400Regular", fontSize: 10 },
+  chatReplySnippet:  { flexDirection: "row", borderRadius: 8, marginBottom: 4, overflow: "hidden", alignItems: "center", paddingRight: 8 },
+  chatReplyBar:      { width: 3, alignSelf: "stretch", marginRight: 7 },
+  chatReplyText:     { fontFamily: "Poppins_400Regular", fontSize: 11, flex: 1 },
+  chatReplyBanner:   { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 8, borderLeftWidth: 3, gap: 10 },
+  chatReplyBannerLabel: { fontFamily: "Poppins_600SemiBold", fontSize: 11 },
+  chatReplyBannerText:  { fontFamily: "Poppins_400Regular", fontSize: 12 },
   chatInputBar: {
     flexDirection: "row", alignItems: "flex-end", gap: 8,
     paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1,

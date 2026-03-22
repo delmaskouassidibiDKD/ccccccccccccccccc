@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput,
-  KeyboardAvoidingView, Platform, Image, Modal, Pressable,
+  KeyboardAvoidingView, Platform, Image, Modal, Pressable, Animated, PanResponder,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -14,8 +14,35 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const SELLER_CONVS_KEY = "@dkd:seller_convs";
 const ACCENT = "#FF6200";
 
-type ChatMsg = { id: string; text: string; sender: "me" | "seller"; time: string; images?: string[] };
-type SellerConv = { sellerId: string; shopName: string; initials: string; lastMessage: string; lastTime: string; unread: number; messages: ChatMsg[] };
+type ReplyRef = { id: string; text: string; isMe: boolean };
+type ChatMsg = { id: string; text: string; sender: "me" | "seller"; time: string; images?: string[]; replyTo?: ReplyRef };
+type SellerConv = { sellerId: string; shopName: string; initials: string; lastMessage: string; lastTime: string; unread: number; sentAt?: number; messages: ChatMsg[] };
+
+/* ── Swipe-to-reply row ── */
+function SwipeRow({ onSwipe, children }: { onSwipe: () => void; children: React.ReactNode }) {
+  const tx = useRef(new Animated.Value(0)).current;
+  const triggered = useRef(false);
+  const pan = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+    onPanResponderGrant: () => { triggered.current = false; },
+    onPanResponderMove: (_, g) => {
+      const val = Math.max(g.dx, -70);
+      if (val < 0) tx.setValue(val);
+      if (val < -50 && !triggered.current) {
+        triggered.current = true;
+        onSwipe();
+      }
+    },
+    onPanResponderRelease: () => {
+      Animated.spring(tx, { toValue: 0, useNativeDriver: true, tension: 100 }).start();
+    },
+  })).current;
+  return (
+    <Animated.View style={{ transform: [{ translateX: tx }] }} {...pan.panHandlers}>
+      {children}
+    </Animated.View>
+  );
+}
 
 function nowTime() {
   return new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -45,12 +72,14 @@ export default function DmBoutiquePage() {
   const dynHeader = isDark ? "#111827" : "#FFFFFF";
   const dynInput  = isDark ? "#1E293B" : "#F3F4F6";
 
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
-  const [input,    setInput]    = useState("");
-  const [images,   setImages]   = useState<string[]>([]);
+  const [messages, setMessages]   = useState<ChatMsg[]>([]);
+  const [input,    setInput]      = useState("");
+  const [images,   setImages]     = useState<string[]>([]);
+  const [replyTo,  setReplyTo]    = useState<ChatMsg | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [msgToDelete, setMsgToDelete] = useState<ChatMsg | null>(null);
-  const listRef = useRef<FlatList<ChatMsg>>(null);
+  const listRef  = useRef<FlatList<ChatMsg>>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const loadMessages = useCallback(async () => {
     try {
@@ -91,6 +120,10 @@ export default function DmBoutiquePage() {
     setInput("");
     const sentImages = [...images];
     setImages([]);
+    const replyRef: ReplyRef | undefined = replyTo
+      ? { id: replyTo.id, text: replyTo.text, isMe: replyTo.sender === "seller" }
+      : undefined;
+    setReplyTo(null);
     const now = nowTime();
     const newMsg: ChatMsg = {
       id:      `dm_${Date.now()}`,
@@ -98,6 +131,7 @@ export default function DmBoutiquePage() {
       sender:  "seller",
       time:    now,
       images:  sentImages.length > 0 ? sentImages : undefined,
+      replyTo: replyRef,
     };
     const updatedMsgs = [...messages, newMsg];
     setMessages(updatedMsgs);
@@ -111,6 +145,7 @@ export default function DmBoutiquePage() {
         convs[idx].lastMessage = text || "📷 Photo";
         convs[idx].lastTime    = now;
         convs[idx].unread      = 0;
+        convs[idx].sentAt      = Date.now();
       }
       await AsyncStorage.setItem(SELLER_CONVS_KEY, JSON.stringify(convs));
     } catch {}
@@ -147,32 +182,41 @@ export default function DmBoutiquePage() {
   const renderItem = ({ item }: { item: ChatMsg }) => {
     const isMe = item.sender === "seller";
     return (
-      <TouchableOpacity
-        onLongPress={() => confirmDelete(item)}
-        delayLongPress={400}
-        activeOpacity={0.85}
-        style={[st.msgRow, isMe ? st.msgRowMe : st.msgRowThem]}
-      >
-        {!isMe && (
-          <View style={[st.miniAvatar, { backgroundColor: contactColor + "28" }]}>
-            <Text style={[st.miniAvatarText, { color: contactColor }]}>{displayInit}</Text>
-          </View>
-        )}
-        <View style={[st.bubble, isMe ? [st.bubbleMe, { backgroundColor: ACCENT }] : [st.bubbleThem, { backgroundColor: isDark ? "#1E293B" : "#FFFFFF", borderColor: dynBorder }]]}>
+      <SwipeRow onSwipe={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setReplyTo(item); setTimeout(() => inputRef.current?.focus(), 100); }}>
+        <TouchableOpacity
+          onLongPress={() => confirmDelete(item)}
+          delayLongPress={400}
+          activeOpacity={0.85}
+          style={[st.msgRow, isMe ? st.msgRowMe : st.msgRowThem]}
+        >
           {!isMe && (
-            <Text style={[st.bubbleSender, { color: contactColor }]}>{displayName}</Text>
-          )}
-          {item.images && item.images.length > 0 && (
-            <View style={st.imgRow}>
-              {item.images.map((uri, i) => <BubbleImage key={i} uri={uri} />)}
+            <View style={[st.miniAvatar, { backgroundColor: contactColor + "28" }]}>
+              <Text style={[st.miniAvatarText, { color: contactColor }]}>{displayInit}</Text>
             </View>
           )}
-          {item.text.length > 0 && (
-            <Text style={[st.bubbleText, { color: isMe ? "#fff" : dynText }]}>{item.text}</Text>
-          )}
-          <Text style={[st.bubbleTime, { color: isMe ? "rgba(255,255,255,0.65)" : dynSub }]}>{item.time}</Text>
-        </View>
-      </TouchableOpacity>
+          <View style={[st.bubble, isMe ? [st.bubbleMe, { backgroundColor: ACCENT }] : [st.bubbleThem, { backgroundColor: isDark ? "#1E293B" : "#FFFFFF", borderColor: dynBorder }]]}>
+            {!isMe && (
+              <Text style={[st.bubbleSender, { color: contactColor }]}>{displayName}</Text>
+            )}
+            {/* Reply snippet */}
+            {item.replyTo && (
+              <View style={[st.replySnippet, isMe ? { backgroundColor: "rgba(255,255,255,0.18)" } : { backgroundColor: isDark ? "#0D1117" : "#F0F4FA" }]}>
+                <View style={[st.replyBar, { backgroundColor: isMe ? "#fff" : ACCENT }]} />
+                <Text style={[st.replyText, { color: isMe ? "rgba(255,255,255,0.85)" : dynSub }]} numberOfLines={1}>{item.replyTo.text}</Text>
+              </View>
+            )}
+            {item.images && item.images.length > 0 && (
+              <View style={st.imgRow}>
+                {item.images.map((uri, i) => <BubbleImage key={i} uri={uri} />)}
+              </View>
+            )}
+            {item.text.length > 0 && (
+              <Text style={[st.bubbleText, { color: isMe ? "#fff" : dynText }]}>{item.text}</Text>
+            )}
+            <Text style={[st.bubbleTime, { color: isMe ? "rgba(255,255,255,0.65)" : dynSub }]}>{item.time}</Text>
+          </View>
+        </TouchableOpacity>
+      </SwipeRow>
     );
   };
 
@@ -235,12 +279,28 @@ export default function DmBoutiquePage() {
         </View>
       )}
 
+      {/* Bannière de réponse */}
+      {replyTo && (
+        <View style={[st.replyBanner, { backgroundColor: isDark ? "#1E293B" : "#F0F4FA", borderLeftColor: ACCENT }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[st.replyBannerLabel, { color: ACCENT }]}>
+              Répondre à {replyTo.sender === "seller" ? "vous-même" : displayName}
+            </Text>
+            <Text style={[st.replyBannerText, { color: dynSub }]} numberOfLines={1}>{replyTo.text}</Text>
+          </View>
+          <TouchableOpacity onPress={() => setReplyTo(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close" size={18} color={dynSub} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* INPUT */}
       <View style={[st.inputBar, { backgroundColor: dynCARD, borderTopColor: dynBorder, paddingBottom: insets.bottom || 12 }]}>
         <TouchableOpacity onPress={pickImages} activeOpacity={0.7} style={st.attachBtn}>
           <Ionicons name="image-outline" size={22} color={dynSub} />
         </TouchableOpacity>
         <TextInput
+          ref={inputRef}
           style={[st.input, { backgroundColor: dynInput, color: dynText, borderColor: dynBorder }]}
           placeholder="Répondre à l'acheteur…"
           placeholderTextColor={dynSub}
@@ -314,6 +374,12 @@ const st = StyleSheet.create({
   imgPreview:     { width: 56, height: 56, borderRadius: 8 },
   imgRemove:      { position: "absolute", top: -6, right: -6 },
 
+  replySnippet:    { flexDirection: "row", borderRadius: 8, marginBottom: 4, overflow: "hidden", alignItems: "center", paddingRight: 8 },
+  replyBar:        { width: 3, alignSelf: "stretch", marginRight: 7 },
+  replyText:       { fontFamily: "Poppins_400Regular", fontSize: 11, flex: 1, paddingVertical: 4 },
+  replyBanner:     { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 8, borderLeftWidth: 3, gap: 10 },
+  replyBannerLabel:{ fontFamily: "Poppins_600SemiBold", fontSize: 11 },
+  replyBannerText: { fontFamily: "Poppins_400Regular", fontSize: 12 },
   inputBar:  { flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 12, paddingTop: 10, gap: 8, borderTopWidth: 1 },
   attachBtn: { padding: 6, marginBottom: 4 },
   input:     { flex: 1, borderRadius: 22, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, fontFamily: "Poppins_400Regular", fontSize: 14, maxHeight: 120 },
