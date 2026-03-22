@@ -6,6 +6,8 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
+  Modal,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -31,9 +33,10 @@ type Conv = {
 
 const CONVERSATIONS: Conv[] = [];
 
-function ConvItem({ conv, onPress, isDark, dynCARD, dynText, dynSub, dynBorder }: {
+function ConvItem({ conv, onPress, onLongPress, isDark, dynCARD, dynText, dynSub, dynBorder }: {
   conv: Conv;
   onPress: () => void;
+  onLongPress: () => void;
   isDark: boolean;
   dynCARD: string;
   dynText: string;
@@ -44,6 +47,8 @@ function ConvItem({ conv, onPress, isDark, dynCARD, dynText, dynSub, dynBorder }
     <TouchableOpacity
       style={[s.convRow, { backgroundColor: conv.unread > 0 ? (isDark ? "#161B25" : "#F8F4FF") : dynCARD, borderBottomColor: dynBorder }]}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={400}
       activeOpacity={0.75}
     >
       <View style={{ position: "relative" }}>
@@ -88,9 +93,10 @@ export default function MessagesImportePage() {
   const dynHeader = isDark ? "#111827" : "#FFFFFF";
   const ACCENT    = "#A855F7";
 
-  const [tab,        setTab]        = useState<"tous" | "non_lu">("tous");
-  const [search,     setSearch]     = useState("");
+  const [tab,              setTab]              = useState<"tous" | "non_lu">("tous");
+  const [search,           setSearch]           = useState("");
   const [allConversations, setAllConversations] = useState<Conv[]>(CONVERSATIONS);
+  const [convToDelete,     setConvToDelete]     = useState<Conv | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -139,6 +145,18 @@ export default function MessagesImportePage() {
       load();
     }, [])
   );
+
+  const deleteConv = async () => {
+    if (!convToDelete) return;
+    try {
+      const raw = await AsyncStorage.getItem(DM_EXTRA_KEY);
+      const convs: Conv[] = raw ? JSON.parse(raw) : [];
+      const updated = convs.filter((c) => c.id !== convToDelete.id);
+      await AsyncStorage.setItem(DM_EXTRA_KEY, JSON.stringify(updated));
+      setAllConversations((prev) => prev.filter((c) => c.id !== convToDelete.id));
+    } catch {}
+    setConvToDelete(null);
+  };
 
   const filtered = allConversations.filter((c) => {
     const matchTab = tab === "tous" || c.unread > 0;
@@ -231,6 +249,10 @@ export default function MessagesImportePage() {
                 Haptics.selectionAsync();
                 router.push(`/dm-importe?id=${item.id}&name=${encodeURIComponent(item.name)}&initials=${item.initials}&color=${encodeURIComponent(item.color)}` as any);
               }}
+              onLongPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setConvToDelete(item);
+              }}
               isDark={isDark}
               dynCARD={dynCARD}
               dynText={dynText}
@@ -240,6 +262,24 @@ export default function MessagesImportePage() {
           )}
         />
       )}
+
+      {/* DELETE MODAL */}
+      <Modal visible={!!convToDelete} transparent animationType="fade" onRequestClose={() => setConvToDelete(null)}>
+        <Pressable style={s.delOverlay} onPress={() => setConvToDelete(null)}>
+          <Pressable style={[s.delSheet, { backgroundColor: dynCARD, borderColor: dynBorder }]} onPress={() => {}}>
+            <Text style={[s.delName, { color: dynText }]}>{convToDelete?.name}</Text>
+            <Text style={[s.delMsg, { color: dynSub }]}>Supprimer cette conversation ?</Text>
+            <View style={s.delBtns}>
+              <TouchableOpacity style={[s.delCancel, { borderColor: dynBorder }]} onPress={() => setConvToDelete(null)} activeOpacity={0.75}>
+                <Text style={[s.delCancelText, { color: dynText }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.delConfirm} onPress={deleteConv} activeOpacity={0.75}>
+                <Text style={s.delConfirmText}>Supprimer</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -281,4 +321,14 @@ const s = StyleSheet.create({
   empty:      { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
   emptyTitle: { fontFamily: "Poppins_700Bold", fontSize: 16 },
   emptyDesc:  { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center", lineHeight: 20 },
+
+  delOverlay:     { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 32 },
+  delSheet:       { width: "100%", borderRadius: 16, padding: 20, gap: 12, borderWidth: 1 },
+  delName:        { fontFamily: "Poppins_700Bold", fontSize: 15, textAlign: "center" },
+  delMsg:         { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center" },
+  delBtns:        { flexDirection: "row", gap: 10, marginTop: 4 },
+  delCancel:      { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", borderWidth: 1 },
+  delCancelText:  { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
+  delConfirm:     { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", backgroundColor: "#EF4444" },
+  delConfirmText: { fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
 });

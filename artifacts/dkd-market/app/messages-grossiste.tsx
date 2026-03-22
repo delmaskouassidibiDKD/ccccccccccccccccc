@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput,
+  Modal, Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -9,9 +10,11 @@ import { useTheme } from "@/contexts/ThemeContext";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const DM_EXTRA_KEY = "@dkd:gros_dm_extra_convs";
-const ACTIVITY_KEY = "@dkd:gros_dm_activity";
+const DM_EXTRA_KEY   = "@dkd:gros_dm_extra_convs";
+const ACTIVITY_KEY   = "@dkd:gros_dm_activity";
+const DELETED_IDS_KEY = "@dkd:gros_deleted_conv_ids";
 const ACCENT = "#3B82F6";
+const STATIC_IDS = new Set(["gc1", "gc2", "gc3", "gc4"]);
 
 type Conv = {
   id: string;
@@ -47,23 +50,29 @@ export default function MessagesGrossistePage() {
   const [tab,              setTab]              = useState<"tous" | "non_lu">("tous");
   const [search,           setSearch]           = useState("");
   const [allConversations, setAllConversations] = useState<Conv[]>(CONVERSATIONS);
+  const [convToDelete,     setConvToDelete]     = useState<Conv | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
         try {
-          const [extraRaw, activityRaw] = await Promise.all([
+          const [extraRaw, activityRaw, deletedRaw] = await Promise.all([
             AsyncStorage.getItem(DM_EXTRA_KEY),
             AsyncStorage.getItem(ACTIVITY_KEY),
+            AsyncStorage.getItem(DELETED_IDS_KEY),
           ]);
           const activity: Record<string, { timestamp: number; preview: string; time: string }> =
             activityRaw ? JSON.parse(activityRaw) : {};
+          const deletedIds: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
+          const deletedSet = new Set(deletedIds);
           const existingIds = new Set(CONVERSATIONS.map((c) => c.id));
           const extras: Conv[] = extraRaw
             ? (JSON.parse(extraRaw) as Conv[]).filter((c) => !existingIds.has(c.id))
             : [];
           const merged: Conv[] = [
-            ...CONVERSATIONS.map((c) => activity[c.id] ? { ...c, preview: activity[c.id].preview, time: activity[c.id].time } : c),
+            ...CONVERSATIONS
+              .filter((c) => !deletedSet.has(c.id))
+              .map((c) => activity[c.id] ? { ...c, preview: activity[c.id].preview, time: activity[c.id].time } : c),
             ...extras.map((c) => activity[c.id] ? { ...c, preview: activity[c.id].preview, time: activity[c.id].time } : c),
           ];
           const BASE = 1_000_000_000_000;
@@ -77,6 +86,25 @@ export default function MessagesGrossistePage() {
       load();
     }, [])
   );
+
+  const deleteConv = async () => {
+    if (!convToDelete) return;
+    try {
+      if (STATIC_IDS.has(convToDelete.id)) {
+        const raw = await AsyncStorage.getItem(DELETED_IDS_KEY);
+        const existing: string[] = raw ? JSON.parse(raw) : [];
+        if (!existing.includes(convToDelete.id)) {
+          await AsyncStorage.setItem(DELETED_IDS_KEY, JSON.stringify([...existing, convToDelete.id]));
+        }
+      } else {
+        const raw = await AsyncStorage.getItem(DM_EXTRA_KEY);
+        const convs: Conv[] = raw ? JSON.parse(raw) : [];
+        await AsyncStorage.setItem(DM_EXTRA_KEY, JSON.stringify(convs.filter((c) => c.id !== convToDelete.id)));
+      }
+      setAllConversations((prev) => prev.filter((c) => c.id !== convToDelete.id));
+    } catch {}
+    setConvToDelete(null);
+  };
 
   const filtered = allConversations.filter((c) => {
     const matchTab    = tab === "tous" || c.unread > 0;
@@ -172,6 +200,11 @@ export default function MessagesGrossistePage() {
                 Haptics.selectionAsync();
                 router.push(`/dm-importe?id=${item.id}&name=${encodeURIComponent(item.name)}&initials=${item.initials}&color=${encodeURIComponent(item.color)}` as any);
               }}
+              onLongPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setConvToDelete(item);
+              }}
+              delayLongPress={400}
               activeOpacity={0.75}
             >
               <View style={{ position: "relative" }}>
@@ -207,6 +240,24 @@ export default function MessagesGrossistePage() {
           )}
         />
       )}
+
+      {/* DELETE MODAL */}
+      <Modal visible={!!convToDelete} transparent animationType="fade" onRequestClose={() => setConvToDelete(null)}>
+        <Pressable style={s.delOverlay} onPress={() => setConvToDelete(null)}>
+          <Pressable style={[s.delSheet, { backgroundColor: dynCARD, borderColor: dynBorder }]} onPress={() => {}}>
+            <Text style={[s.delName, { color: dynText }]}>{convToDelete?.name}</Text>
+            <Text style={[s.delMsg, { color: dynSub }]}>Supprimer cette conversation ?</Text>
+            <View style={s.delBtns}>
+              <TouchableOpacity style={[s.delCancel, { borderColor: dynBorder }]} onPress={() => setConvToDelete(null)} activeOpacity={0.75}>
+                <Text style={[s.delCancelText, { color: dynText }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.delConfirm} onPress={deleteConv} activeOpacity={0.75}>
+                <Text style={s.delConfirmText}>Supprimer</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -250,4 +301,14 @@ const s = StyleSheet.create({
   empty:      { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
   emptyTitle: { fontFamily: "Poppins_700Bold", fontSize: 16 },
   emptyDesc:  { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center" },
+
+  delOverlay:     { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 32 },
+  delSheet:       { width: "100%", borderRadius: 16, padding: 20, gap: 12, borderWidth: 1 },
+  delName:        { fontFamily: "Poppins_700Bold", fontSize: 15, textAlign: "center" },
+  delMsg:         { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center" },
+  delBtns:        { flexDirection: "row", gap: 10, marginTop: 4 },
+  delCancel:      { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", borderWidth: 1 },
+  delCancelText:  { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
+  delConfirm:     { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: "center", backgroundColor: "#EF4444" },
+  delConfirmText: { fontFamily: "Poppins_700Bold", fontSize: 13, color: "#fff" },
 });
