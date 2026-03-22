@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, Modal, Pressable, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,13 +10,13 @@ import * as Haptics from "expo-haptics";
 const ACCENT = "#34D399";
 type Tab = "detail" | "engros";
 
-const DEMO_DETAIL: SellerProduct[] = [
-  { id: "1", shopName: "Import Chine",  shopFlag: "🇨🇳", title: "Tissu wax 6 yards Holland",      price: "15 000 FCFA", rating: 4.7, reviewCount: 203, status: "active",   icon: "shirt-outline",          color: "#7B3F00", origine: "Chine → Côte d'Ivoire"    },
-  { id: "2", shopName: "ElectroShop",   shopFlag: "🇨🇳", title: "Téléphone Android 4G 128Go",     price: "55 000 FCFA", rating: 4.5, reviewCount: 88,  status: "active",   icon: "phone-portrait-outline",  color: "#1D4ED8", origine: "Chine → Mali"              },
-  { id: "3", shopName: "VietFood",      shopFlag: "🇻🇳", title: "Riz long grain parfumé 50kg",    price: "13 000 FCFA", rating: 4.6, reviewCount: 142, status: "inactive", icon: "leaf-outline",            color: "#3B7A43", origine: "Vietnam → Burkina Faso"    },
+const INIT_DETAIL: SellerProduct[] = [
+  { id: "1", shopName: "Import Chine", shopFlag: "🇨🇳", title: "Tissu wax 6 yards Holland",   price: "15 000 FCFA", rating: 4.7, reviewCount: 203, status: "active",   icon: "shirt-outline",         color: "#7B3F00", origine: "Chine → Côte d'Ivoire"  },
+  { id: "2", shopName: "ElectroShop",  shopFlag: "🇨🇳", title: "Téléphone Android 4G 128Go",  price: "55 000 FCFA", rating: 4.5, reviewCount: 88,  status: "active",   icon: "phone-portrait-outline", color: "#1D4ED8", origine: "Chine → Mali"            },
+  { id: "3", shopName: "VietFood",     shopFlag: "🇻🇳", title: "Riz long grain parfumé 50kg", price: "13 000 FCFA", rating: 4.6, reviewCount: 142, status: "inactive", icon: "leaf-outline",           color: "#3B7A43", origine: "Vietnam → Burkina Faso"  },
 ];
 
-const DEMO_ENGROS: SellerProduct[] = [
+const INIT_ENGROS: SellerProduct[] = [
   { id: "1", shopName: "Import Chine",  shopFlag: "🇨🇳", title: "Carton tissus wax 200 pièces",    price: "2 500 000 FCFA", rating: 4.6, reviewCount: 34, status: "active",   icon: "cube-outline",    color: "#7B3F00", minQty: "200 pcs",   origine: "Chine → Côte d'Ivoire" },
   { id: "2", shopName: "TechGross",     shopFlag: "🇨🇳", title: "Lot téléphones Android 50 unités", price: "2 200 000 FCFA", rating: 4.4, reviewCount: 12, status: "active",   icon: "layers-outline",  color: "#1D4ED8", minQty: "50 unités", origine: "Chine → Sénégal"       },
   { id: "3", shopName: "VietFood Gros", shopFlag: "🇻🇳", title: "Palette riz parfumé 40 sacs",     price: "480 000 FCFA",   rating: 4.3, reviewCount: 9,  status: "inactive", icon: "archive-outline", color: "#3B7A43", minQty: "40 sacs",   origine: "Vietnam → Burkina Faso"},
@@ -28,23 +28,36 @@ export default function ProduitsImportePage() {
   const { isDark } = useTheme();
   const paddingBottom = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const [activeTab, setActiveTab]     = useState<Tab>("detail");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab]       = useState<Tab>("detail");
+  const [searchQuery, setSearchQuery]   = useState("");
+  const [detail, setDetail]             = useState(INIT_DETAIL);
+  const [engros, setEngros]             = useState(INIT_ENGROS);
+  const [deleteTarget, setDeleteTarget] = useState<SellerProduct | null>(null);
 
   const dynBG     = isDark ? "#0D1117" : "#F0F4FA";
   const dynHeader = isDark ? "#111827" : "#FFFFFF";
   const dynBorder = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
   const dynSub    = isDark ? "#64748B" : "#6B7280";
+  const dynCard   = isDark ? "#1C2230" : "#FFFFFF";
+  const dynText   = isDark ? "#FFFFFF" : "#111827";
 
   const TABS = [
-    { key: "detail" as Tab, label: "Détail",  count: DEMO_DETAIL.length, icon: "bag-handle-outline" },
-    { key: "engros" as Tab, label: "En gros", count: DEMO_ENGROS.length, icon: "cube-outline"       },
+    { key: "detail" as Tab, label: "Détail",  count: detail.length, icon: "bag-handle-outline" },
+    { key: "engros" as Tab, label: "En gros", count: engros.length, icon: "cube-outline"       },
   ];
 
-  const rawData  = activeTab === "detail" ? DEMO_DETAIL : DEMO_ENGROS;
+  const rawData  = activeTab === "detail" ? detail : engros;
   const isEngros = activeTab === "engros";
   const q        = searchQuery.toLowerCase().trim();
   const data     = q ? rawData.filter(i => i.title.toLowerCase().includes(q)) : rawData;
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    if (activeTab === "detail") setDetail(prev => prev.filter(i => i.id !== deleteTarget.id));
+    else setEngros(prev => prev.filter(i => i.id !== deleteTarget.id));
+    setDeleteTarget(null);
+  };
 
   return (
     <View style={[s.root, { backgroundColor: dynBG, paddingTop: insets.top }]}>
@@ -76,22 +89,11 @@ export default function ProduitsImportePage() {
         })}
       </View>
 
-      <View style={[s.searchWrap, { backgroundColor: isDark ? "#0D1117" : "#F0F4FA", borderBottomColor: dynBorder }]}>
+      <View style={[s.searchWrap, { backgroundColor: dynBG, borderBottomColor: dynBorder }]}>
         <View style={[s.searchBox, { backgroundColor: isDark ? "#1E293B" : "#FFFFFF", borderColor: dynBorder }]}>
           <Ionicons name="search-outline" size={15} color={dynSub} />
-          <TextInput
-            style={[s.searchInput, { color: isDark ? "#fff" : "#111" }]}
-            placeholder={isEngros ? "Rechercher en gros…" : "Rechercher un produit importé…"}
-            placeholderTextColor={dynSub}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.7}>
-              <Ionicons name="close-circle" size={16} color={dynSub} />
-            </TouchableOpacity>
-          )}
+          <TextInput style={[s.searchInput, { color: dynText }]} placeholder={isEngros ? "Rechercher en gros…" : "Rechercher un produit importé…"} placeholderTextColor={dynSub} value={searchQuery} onChangeText={setSearchQuery} returnKeyType="search" />
+          {searchQuery.length > 0 && <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.7}><Ionicons name="close-circle" size={16} color={dynSub} /></TouchableOpacity>}
         </View>
       </View>
 
@@ -102,10 +104,28 @@ export default function ProduitsImportePage() {
         contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 14, paddingBottom: paddingBottom + 24 }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <SellerProductCard item={item} isDark={isDark} isEngros={isEngros} accentColor={ACCENT} onEdit={() => {}} onVideo={() => {}} />
+          <SellerProductCard item={item} isDark={isDark} isEngros={isEngros} accentColor={ACCENT} onEdit={() => {}} onVideo={() => {}} onDelete={() => { Haptics.selectionAsync(); setDeleteTarget(item); }} />
         )}
         ListEmptyComponent={<View style={s.empty}><Ionicons name="globe-outline" size={48} color={dynSub} /><Text style={[s.emptyTitle, { color: dynSub }]}>{q ? "Aucun résultat" : "Aucun produit importé"}</Text></View>}
       />
+
+      <Modal visible={deleteTarget !== null} transparent animationType="fade" statusBarTranslucent>
+        <Pressable style={s.overlay} onPress={() => setDeleteTarget(null)}>
+          <Pressable style={[s.modalCard, { backgroundColor: dynCard }]} onPress={() => {}}>
+            <View style={s.trashCircle}><Ionicons name="trash-outline" size={28} color="#EF4444" /></View>
+            <Text style={[s.modalTitle, { color: dynText }]}>Supprimer l'article ?</Text>
+            <Text style={[s.modalDesc, { color: dynSub }]}>« {deleteTarget?.title} » sera définitivement supprimé de vos publications.</Text>
+            <View style={s.modalBtns}>
+              <TouchableOpacity style={[s.cancelBtn, { backgroundColor: isDark ? "#2D3748" : "#F1F5F9" }]} onPress={() => setDeleteTarget(null)} activeOpacity={0.8}>
+                <Text style={[s.cancelText, { color: dynText }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.deleteBtn} onPress={confirmDelete} activeOpacity={0.8}>
+                <Text style={s.deleteText}>Supprimer</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -128,4 +148,14 @@ const s = StyleSheet.create({
   searchInput: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 13, padding: 0 },
   empty: { alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 12 },
   emptyTitle: { fontFamily: "Poppins_600SemiBold", fontSize: 15 },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center", padding: 24 },
+  modalCard: { width: "100%", borderRadius: 20, padding: 24, alignItems: "center", gap: 12 },
+  trashCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: "rgba(239,68,68,0.15)", alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  modalTitle: { fontFamily: "Poppins_700Bold", fontSize: 18, textAlign: "center" },
+  modalDesc: { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center", lineHeight: 20 },
+  modalBtns: { flexDirection: "row", gap: 12, marginTop: 8, width: "100%" },
+  cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center" },
+  cancelText: { fontFamily: "Poppins_600SemiBold", fontSize: 15 },
+  deleteBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center", backgroundColor: "#EF4444" },
+  deleteText: { fontFamily: "Poppins_700Bold", fontSize: 15, color: "#fff" },
 });
