@@ -531,12 +531,12 @@ const s = StyleSheet.create({
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: "#2D2D2D" },
   modalTitle: { fontFamily: "Poppins_700Bold", fontSize: 17, color: "#fff" },
   modalClose: { padding: 4 },
-  modalSearch: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1A1A1A", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: "#2D2D2D" },
+  modalSearch: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 8, marginBottom: 12, backgroundColor: "#1A1A1A", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: "#2D2D2D" },
   modalSearchInput: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 14, color: "#fff" },
 
   /* Tabs sections */
-  sectionTabs: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8, gap: 8 },
-  sectionTab: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "#2D2D2D", backgroundColor: "#1A1A1A" },
+  sectionTabs: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, gap: 8 },
+  sectionTab: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: "#2D2D2D", backgroundColor: "#1A1A1A" },
   sectionTabActive: { borderColor: "#FF6B00", backgroundColor: "#FF6B0010" },
   sectionTabText: { fontFamily: "Poppins_600SemiBold", fontSize: 11, color: "#6B7280" },
 
