@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity, Pressable,
-  Animated, Dimensions, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity, Pressable, Animated, Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,28 +8,266 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/contexts/ThemeContext";
 import * as Haptics from "expo-haptics";
 
-const ACCENT     = "#A855F7";
-const DRAWER_W   = 260;
-const { width: SCREEN_W } = Dimensions.get("window");
+const ACCENT   = "#A855F7";
+const DRAWER_W = 260;
 
 type Section = "chef-ia";
 
-const MENU_ITEMS: { id: Section; label: string; emoji: string; desc: string }[] = [
-  { id: "chef-ia", label: "Chef IA DKD", emoji: "🤖", desc: "Intelligence culinaire artificielle" },
-];
+/* ═══════════════════════════════════════════════
+   COMPOSANT ROBOT CHEF IA — dessiné avec des Views
+   ═══════════════════════════════════════════════ */
+function CuteChefRobot({ size = 100 }: { size?: number }) {
+  const k = size / 100;
 
+  return (
+    <View style={{ width: 110 * k, alignItems: "center" }}>
+
+      {/* ── TOQUE DE CHEF ── */}
+      <View style={{ alignItems: "center", zIndex: 2 }}>
+        {/* Puff supérieur */}
+        <View style={{
+          width: 46 * k, height: 38 * k,
+          borderRadius: 23 * k,
+          backgroundColor: "#FFFFFF",
+          shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 6, elevation: 3,
+          marginBottom: -10 * k,
+        }} />
+        {/* Strie horizontales de la toque */}
+        <View style={{ position: "absolute", top: 8 * k, left: "50%", marginLeft: -16 * k }}>
+          <View style={{ width: 32 * k, height: 1.5 * k, backgroundColor: "rgba(200,200,200,0.5)", marginBottom: 5 * k }} />
+          <View style={{ width: 32 * k, height: 1.5 * k, backgroundColor: "rgba(200,200,200,0.5)", marginBottom: 5 * k }} />
+          <View style={{ width: 32 * k, height: 1.5 * k, backgroundColor: "rgba(200,200,200,0.5)" }} />
+        </View>
+        {/* Bande de la toque */}
+        <View style={{
+          width: 58 * k, height: 16 * k,
+          backgroundColor: "#F5F5F5",
+          borderRadius: 5 * k,
+          borderWidth: 1, borderColor: "#E0E0E0",
+          shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 3, elevation: 2,
+        }} />
+      </View>
+
+      {/* ── TÊTE ── */}
+      <View style={{
+        width: 62 * k, height: 56 * k,
+        borderRadius: 18 * k,
+        backgroundColor: "#60C5E4",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        zIndex: 1,
+        shadowColor: "#3AA0C0",
+        shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
+        marginTop: -2 * k,
+      }}>
+        {/* Reflet de la tête */}
+        <View style={{
+          position: "absolute", top: 8 * k, left: 10 * k,
+          width: 20 * k, height: 10 * k,
+          borderRadius: 10 * k,
+          backgroundColor: "rgba(255,255,255,0.18)",
+        }} />
+
+        {/* Oreille gauche */}
+        <View style={{
+          position: "absolute", left: -8 * k, top: 16 * k,
+          width: 12 * k, height: 18 * k,
+          borderRadius: 6 * k,
+          backgroundColor: "#4EB5D8",
+          shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 3, elevation: 2,
+        }}>
+          <View style={{
+            width: 5 * k, height: 8 * k, borderRadius: 3 * k,
+            backgroundColor: "#7CD0E8", alignSelf: "center", marginTop: 5 * k,
+          }} />
+        </View>
+
+        {/* Oreille droite */}
+        <View style={{
+          position: "absolute", right: -8 * k, top: 16 * k,
+          width: 12 * k, height: 18 * k,
+          borderRadius: 6 * k,
+          backgroundColor: "#4EB5D8",
+          shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 3, elevation: 2,
+        }}>
+          <View style={{
+            width: 5 * k, height: 8 * k, borderRadius: 3 * k,
+            backgroundColor: "#7CD0E8", alignSelf: "center", marginTop: 5 * k,
+          }} />
+        </View>
+
+        {/* Yeux */}
+        <View style={{ flexDirection: "row", gap: 11 * k, marginTop: 6 * k }}>
+          {[0, 1].map((i) => (
+            <View key={i} style={{
+              width: 18 * k, height: 18 * k, borderRadius: 9 * k,
+              backgroundColor: "#FFFFFF",
+              alignItems: "center", justifyContent: "center",
+              shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 4, elevation: 3,
+            }}>
+              {/* Iris */}
+              <View style={{
+                width: 11 * k, height: 11 * k, borderRadius: 6 * k,
+                backgroundColor: ACCENT,
+                alignItems: "center", justifyContent: "center",
+              }}>
+                {/* Pupille */}
+                <View style={{
+                  width: 5 * k, height: 5 * k, borderRadius: 3 * k,
+                  backgroundColor: "#1A0030",
+                }} />
+                {/* Reflet brillant */}
+                <View style={{
+                  position: "absolute", top: 1.5 * k, left: 1.5 * k,
+                  width: 3 * k, height: 3 * k, borderRadius: 2 * k,
+                  backgroundColor: "rgba(255,255,255,0.85)",
+                }} />
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Joues roses */}
+        <View style={{
+          position: "absolute",
+          left: 7 * k, bottom: 11 * k,
+          width: 12 * k, height: 7 * k,
+          borderRadius: 6 * k,
+          backgroundColor: "rgba(255,160,170,0.45)",
+        }} />
+        <View style={{
+          position: "absolute",
+          right: 7 * k, bottom: 11 * k,
+          width: 12 * k, height: 7 * k,
+          borderRadius: 6 * k,
+          backgroundColor: "rgba(255,160,170,0.45)",
+        }} />
+
+        {/* Sourire en arc */}
+        <View style={{
+          width: 24 * k, height: 11 * k,
+          borderBottomLeftRadius: 12 * k,
+          borderBottomRightRadius: 12 * k,
+          borderWidth: 2.5 * k,
+          borderTopWidth: 0,
+          borderColor: "#1A6080",
+          marginTop: 5 * k,
+        }} />
+      </View>
+
+      {/* ── CORPS ── */}
+      <View style={{
+        width: 54 * k, height: 30 * k,
+        backgroundColor: "#4EB5D8",
+        borderRadius: 9 * k,
+        marginTop: 3 * k,
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        shadowColor: "#2A90B0", shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
+      }}>
+        {/* Bras gauche */}
+        <View style={{
+          position: "absolute", left: -10 * k, top: 4 * k,
+          width: 11 * k, height: 20 * k,
+          borderRadius: 6 * k,
+          backgroundColor: "#3EA8C8",
+        }}>
+          {/* Main gauche */}
+          <View style={{
+            width: 11 * k, height: 9 * k, borderRadius: 5 * k,
+            backgroundColor: "#60C5E4", position: "absolute", bottom: -3 * k,
+          }} />
+        </View>
+
+        {/* Bras droit */}
+        <View style={{
+          position: "absolute", right: -10 * k, top: 4 * k,
+          width: 11 * k, height: 20 * k,
+          borderRadius: 6 * k,
+          backgroundColor: "#3EA8C8",
+        }}>
+          {/* Main droite */}
+          <View style={{
+            width: 11 * k, height: 9 * k, borderRadius: 5 * k,
+            backgroundColor: "#60C5E4", position: "absolute", bottom: -3 * k,
+          }} />
+        </View>
+
+        {/* Tablier blanc sur la poitrine */}
+        <View style={{
+          width: 28 * k, height: 22 * k,
+          backgroundColor: "rgba(255,255,255,0.28)",
+          borderRadius: 6 * k,
+          alignItems: "center",
+          justifyContent: "space-evenly",
+          paddingVertical: 3 * k,
+        }}>
+          {/* Petits boutons */}
+          <View style={{ width: 4 * k, height: 4 * k, borderRadius: 2 * k, backgroundColor: "rgba(255,255,255,0.65)" }} />
+          <View style={{ width: 4 * k, height: 4 * k, borderRadius: 2 * k, backgroundColor: "rgba(255,255,255,0.65)" }} />
+        </View>
+      </View>
+
+    </View>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   VERSION MINIATURE pour le drawer (44px)
+   ═══════════════════════════════════════════════ */
+function MiniChefRobot({ active }: { active: boolean }) {
+  const bg = active ? "#A855F722" : "transparent";
+  const headColor = active ? "#60C5E4" : "#7DB8CC";
+  const irisColor = active ? ACCENT : "#6B9FAD";
+
+  return (
+    <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "flex-end", paddingBottom: 4 }}>
+      {/* Mini toque */}
+      <View style={{ alignItems: "center", position: "absolute", top: 0, left: 0, right: 0, alignItems: "center" }}>
+        <View style={{ width: 18, height: 12, borderRadius: 9, backgroundColor: "#FFFFFF", shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 2, marginBottom: -4 }} />
+        <View style={{ width: 22, height: 6, backgroundColor: "#F0F0F0", borderRadius: 3, borderWidth: 0.5, borderColor: "#DDD" }} />
+      </View>
+      {/* Mini tête */}
+      <View style={{
+        width: 26, height: 22, borderRadius: 7,
+        backgroundColor: headColor,
+        alignItems: "center", justifyContent: "center",
+        marginBottom: 2,
+        position: "absolute", top: 16, left: 9,
+      }}>
+        {/* Yeux */}
+        <View style={{ flexDirection: "row", gap: 5, marginBottom: 2 }}>
+          {[0, 1].map((i) => (
+            <View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#FFF", alignItems: "center", justifyContent: "center" }}>
+              <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: irisColor }} />
+            </View>
+          ))}
+        </View>
+        {/* Sourire mini */}
+        <View style={{ width: 9, height: 4, borderBottomLeftRadius: 5, borderBottomRightRadius: 5, borderWidth: 1.5, borderTopWidth: 0, borderColor: "#1A6080" }} />
+      </View>
+      {/* Mini corps */}
+      <View style={{ width: 22, height: 11, backgroundColor: "#4EB5D8", borderRadius: 4, position: "absolute", bottom: 3, left: 11 }} />
+    </View>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   PAGE PRINCIPALE
+   ═══════════════════════════════════════════════ */
 export default function ServicesPlatsPersonnalisesPage() {
-  const router   = useRouter();
-  const insets   = useSafeAreaInsets();
+  const router  = useRouter();
+  const insets  = useSafeAreaInsets();
   const { isDark } = useTheme();
 
-  const [drawerOpen,     setDrawerOpen]     = useState(false);
-  const [activeSection,  setActiveSection]  = useState<Section>("chef-ia");
-  const drawerAnim = useRef(new Animated.Value(-DRAWER_W)).current;
+  const [drawerOpen,    setDrawerOpen]    = useState(false);
+  const [activeSection, setActiveSection] = useState<Section>("chef-ia");
+  const drawerAnim  = useRef(new Animated.Value(-DRAWER_W)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
 
   const dynBG     = isDark ? "#0D1117" : "#F0F4FA";
-  const dynCARD   = isDark ? "#161B25" : "#FFFFFF";
   const dynText   = isDark ? "#F0F6FF" : "#1A1A1A";
   const dynSub    = isDark ? "#64748B" : "#6B7280";
   const dynBorder = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
@@ -64,12 +301,9 @@ export default function ServicesPlatsPersonnalisesPage() {
 
       {/* ── HEADER ── */}
       <View style={[s.header, { backgroundColor: dynHeader, borderBottomColor: dynBorder }]}>
-
-        {/* Hamburger — coin gauche */}
         <TouchableOpacity
           style={[s.iconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)" }]}
-          onPress={openDrawer}
-          activeOpacity={0.7}
+          onPress={openDrawer} activeOpacity={0.7}
         >
           <View style={s.hamburger}>
             <View style={[s.hLine, { backgroundColor: dynText }]} />
@@ -78,35 +312,33 @@ export default function ServicesPlatsPersonnalisesPage() {
           </View>
         </TouchableOpacity>
 
-        {/* Titre */}
         <View style={s.headerCenter}>
           <View style={[s.headerIconBg, { backgroundColor: ACCENT + "22" }]}>
             <Ionicons name="color-wand-outline" size={15} color={ACCENT} />
           </View>
-          <Text style={[s.headerTitle, { color: dynText }]} numberOfLines={1}>Services Plats Personnalisés</Text>
+          <Text style={[s.headerTitle, { color: dynText }]} numberOfLines={1}>
+            Services Plats Personnalisés
+          </Text>
         </View>
 
-        {/* Retour — coin droit */}
         <TouchableOpacity
           style={[s.iconBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)" }]}
-          onPress={() => router.back()}
-          activeOpacity={0.7}
+          onPress={() => router.back()} activeOpacity={0.7}
         >
           <Ionicons name="close-outline" size={20} color={dynText} />
         </TouchableOpacity>
       </View>
 
-      {/* ── CONTENU PRINCIPAL ── */}
+      {/* ── CONTENU ── */}
       <View style={{ flex: 1 }}>
-        {activeSection === "chef-ia" && <ChefIAView isDark={isDark} dynBG={dynBG} dynCARD={dynCARD} dynText={dynText} dynSub={dynSub} dynBorder={dynBorder} />}
+        {activeSection === "chef-ia" && (
+          <ChefIAView isDark={isDark} dynBG={dynBG} dynText={dynText} dynSub={dynSub} />
+        )}
       </View>
 
-      {/* ── DRAWER OVERLAY ── */}
+      {/* ── OVERLAY ── */}
       {drawerOpen && (
-        <Animated.View
-          style={[s.overlay, { opacity: overlayAnim }]}
-          pointerEvents="auto"
-        >
+        <Animated.View style={[s.overlay, { opacity: overlayAnim }]} pointerEvents="auto">
           <Pressable style={{ flex: 1 }} onPress={closeDrawer} />
         </Animated.View>
       )}
@@ -121,78 +353,79 @@ export default function ServicesPlatsPersonnalisesPage() {
         }]}
         pointerEvents={drawerOpen ? "auto" : "none"}
       >
-        {/* En-tête du drawer */}
+        {/* En-tête drawer */}
         <View style={[s.drawerHeader, { borderBottomColor: dynBorder }]}>
           <View style={[s.drawerLogoCircle, { backgroundColor: ACCENT + "22" }]}>
             <Ionicons name="color-wand-outline" size={18} color={ACCENT} />
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={[s.drawerTitle, { color: dynText }]}>Services</Text>
             <Text style={[s.drawerSub, { color: dynSub }]}>Plats personnalisés</Text>
           </View>
-          <TouchableOpacity style={{ marginLeft: "auto" }} onPress={closeDrawer} activeOpacity={0.7}>
+          <TouchableOpacity onPress={closeDrawer} activeOpacity={0.7}>
             <Ionicons name="chevron-back" size={20} color={dynSub} />
           </TouchableOpacity>
         </View>
 
-        {/* Séparateur label */}
         <Text style={[s.drawerSectionLabel, { color: dynSub }]}>OUTILS</Text>
 
-        {/* Liste des menus */}
-        {MENU_ITEMS.map((item) => {
-          const isActive = activeSection === item.id;
+        {/* Bouton Chef IA DKD */}
+        {(() => {
+          const isActive = activeSection === "chef-ia";
           return (
             <TouchableOpacity
-              key={item.id}
               style={[
                 s.drawerItem,
-                isActive && { backgroundColor: ACCENT + "18", borderLeftColor: ACCENT },
-                !isActive && { borderLeftColor: "transparent" },
                 { borderBottomColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.05)" },
+                isActive
+                  ? { backgroundColor: ACCENT + "14", borderLeftColor: ACCENT }
+                  : { borderLeftColor: "transparent" },
               ]}
-              onPress={() => selectSection(item.id)}
+              onPress={() => selectSection("chef-ia")}
               activeOpacity={0.75}
             >
-              {/* Icône robot + toque chef */}
-              <View style={[s.drawerItemIcon, { backgroundColor: isActive ? ACCENT + "22" : (isDark ? "#1E293B" : "#F1F5F9") }]}>
-                <Text style={s.drawerItemEmoji}>{item.emoji}</Text>
-                <View style={[s.chefHat, { backgroundColor: isActive ? ACCENT : (isDark ? "#334155" : "#CBD5E1") }]}>
-                  <Text style={s.chefHatText}>👨‍🍳</Text>
-                </View>
+              {/* Icône robot miniature */}
+              <View style={[s.drawerItemIcon, {
+                backgroundColor: isActive
+                  ? ACCENT + "18"
+                  : isDark ? "#1E293B" : "#F1F5F9",
+              }]}>
+                <MiniChefRobot active={isActive} />
               </View>
 
               <View style={{ flex: 1 }}>
-                <Text style={[s.drawerItemLabel, { color: isActive ? ACCENT : dynText }]}>{item.label}</Text>
-                <Text style={[s.drawerItemDesc, { color: dynSub }]}>{item.desc}</Text>
+                <Text style={[s.drawerItemLabel, { color: isActive ? ACCENT : dynText }]}>
+                  Chef IA DKD
+                </Text>
+                <Text style={[s.drawerItemDesc, { color: dynSub }]}>
+                  Intelligence culinaire
+                </Text>
               </View>
 
               {isActive && <Ionicons name="chevron-forward" size={14} color={ACCENT} />}
             </TouchableOpacity>
           );
-        })}
+        })()}
       </Animated.View>
 
     </View>
   );
 }
 
-/* ── Contenu Chef IA DKD (vide pour l'instant) ── */
-function ChefIAView({ isDark, dynBG, dynCARD, dynText, dynSub, dynBorder }: {
-  isDark: boolean; dynBG: string; dynCARD: string;
-  dynText: string; dynSub: string; dynBorder: string;
+/* ═══════════════════════════════════════════════
+   PAGE CHEF IA DKD (vide — contenu à venir)
+   ═══════════════════════════════════════════════ */
+function ChefIAView({ isDark, dynBG, dynText, dynSub }: {
+  isDark: boolean; dynBG: string; dynText: string; dynSub: string;
 }) {
   return (
     <View style={[cv.container, { backgroundColor: dynBG }]}>
-      {/* Zone vide — contenu à venir */}
       <View style={cv.emptyState}>
-        <View style={[cv.emptyIconWrap, { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" }]}>
-          <Text style={cv.emptyEmoji}>🤖</Text>
-          <View style={[cv.emptyHat, { backgroundColor: isDark ? "#334155" : "#E2E8F0" }]}>
-            <Text style={cv.emptyHatText}>👨‍🍳</Text>
-          </View>
+        <View style={[cv.robotWrap, { backgroundColor: isDark ? "#161B25" : "#EEF4FA" }]}>
+          <CuteChefRobot size={100} />
         </View>
-        <Text style={[cv.emptyTitle, { color: dynText }]}>Chef IA DKD</Text>
-        <Text style={[cv.emptySub, { color: dynSub }]}>
+        <Text style={[cv.title, { color: dynText }]}>Chef IA DKD</Text>
+        <Text style={[cv.sub, { color: dynSub }]}>
           Votre assistant culinaire intelligent arrive bientôt.
         </Text>
       </View>
@@ -200,77 +433,41 @@ function ChefIAView({ isDark, dynBG, dynCARD, dynText, dynSub, dynBorder }: {
   );
 }
 
+/* ═══════════════════════════════════════════════
+   STYLES
+   ═══════════════════════════════════════════════ */
 const s = StyleSheet.create({
-  root:   { flex: 1 },
-
-  header: {
-    flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 12, paddingVertical: 12,
-    borderBottomWidth: 1, gap: 10,
-  },
-  iconBtn: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  hamburger: { gap: 4, alignItems: "flex-start" },
-  hLine:    { height: 2, width: 18, borderRadius: 2 },
+  root:         { flex: 1 },
+  header:       { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 12, borderBottomWidth: 1, gap: 10 },
+  iconBtn:      { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  hamburger:    { gap: 4, alignItems: "flex-start" },
+  hLine:        { height: 2, width: 18, borderRadius: 2 },
   headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
   headerIconBg: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   headerTitle:  { fontFamily: "Poppins_700Bold", fontSize: 14, flex: 1 },
 
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    zIndex: 10,
-  },
+  overlay:      { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)", zIndex: 10 },
 
   drawer: {
     position: "absolute", top: 0, left: 0, bottom: 0,
-    width: DRAWER_W,
-    borderRightWidth: 1,
-    zIndex: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    shadowOffset: { width: 4, height: 0 },
-    elevation: 16,
+    width: DRAWER_W, borderRightWidth: 1, zIndex: 20,
+    shadowColor: "#000", shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 6, height: 0 }, elevation: 18,
   },
-  drawerHeader: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    paddingHorizontal: 16, paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
+  drawerHeader:     { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1 },
   drawerLogoCircle: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  drawerTitle: { fontFamily: "Poppins_700Bold", fontSize: 14 },
-  drawerSub:   { fontFamily: "Poppins_400Regular", fontSize: 11 },
-
-  drawerSectionLabel: {
-    fontFamily: "Poppins_600SemiBold", fontSize: 10,
-    letterSpacing: 1.2, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6,
-  },
-
-  drawerItem: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    paddingHorizontal: 14, paddingVertical: 13,
-    borderLeftWidth: 3,
-    borderBottomWidth: 1,
-  },
-  drawerItemIcon: {
-    width: 44, height: 44, borderRadius: 12,
-    alignItems: "center", justifyContent: "center",
-    position: "relative",
-  },
-  drawerItemEmoji:  { fontSize: 20 },
-  chefHat:          { position: "absolute", bottom: -4, right: -4, width: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  chefHatText:      { fontSize: 10 },
+  drawerTitle:      { fontFamily: "Poppins_700Bold", fontSize: 14 },
+  drawerSub:        { fontFamily: "Poppins_400Regular", fontSize: 11 },
+  drawerSectionLabel: { fontFamily: "Poppins_600SemiBold", fontSize: 10, letterSpacing: 1.2, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6 },
+  drawerItem:       { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderLeftWidth: 3, borderBottomWidth: 1 },
+  drawerItemIcon:   { width: 44, height: 44, borderRadius: 12, overflow: "hidden" },
   drawerItemLabel:  { fontFamily: "Poppins_700Bold", fontSize: 13 },
   drawerItemDesc:   { fontFamily: "Poppins_400Regular", fontSize: 11 },
 });
 
 const cv = StyleSheet.create({
-  container:      { flex: 1, alignItems: "center", justifyContent: "center" },
-  emptyState:     { alignItems: "center", gap: 14, paddingHorizontal: 40 },
-  emptyIconWrap:  { width: 90, height: 90, borderRadius: 24, alignItems: "center", justifyContent: "center", position: "relative" },
-  emptyEmoji:     { fontSize: 38 },
-  emptyHat:       { position: "absolute", bottom: -6, right: -6, width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-  emptyHatText:   { fontSize: 16 },
-  emptyTitle:     { fontFamily: "Poppins_700Bold", fontSize: 18 },
-  emptySub:       { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center", lineHeight: 20, opacity: 0.75 },
+  container:  { flex: 1, alignItems: "center", justifyContent: "center" },
+  emptyState: { alignItems: "center", gap: 18, paddingHorizontal: 36 },
+  robotWrap:  { width: 160, height: 160, borderRadius: 36, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
+  title:      { fontFamily: "Poppins_700Bold", fontSize: 20 },
+  sub:        { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center", lineHeight: 20, opacity: 0.72 },
 });
