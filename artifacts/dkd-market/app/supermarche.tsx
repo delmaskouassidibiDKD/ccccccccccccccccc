@@ -177,7 +177,7 @@ export default function SuperMarchePage() {
             <View style={s.statusLeft}>
               <View style={[s.statusDot, { backgroundColor: isOpen ? "#22C55E" : "#EF4444" }]} />
               <Text style={[s.statusLabel, { color: dynText }]}>
-                {isOpen ? "Super Marché ouvert" : "Super Marché fermé"}
+                {isOpen ? "Super Marché actif" : "Super Marché inactif"}
               </Text>
             </View>
             <View style={s.statusRight}>

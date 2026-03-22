@@ -134,7 +134,7 @@ export default function MarchePage() {
             <View style={s.statusLeft}>
               <View style={[s.statusDot, { backgroundColor: isOpen ? "#22C55E" : "#EF4444" }]} />
               <Text style={[s.statusLabel, { color: dynText }]}>
-                {isOpen ? "Mon Marché ouvert" : "Mon Marché fermé"}
+                {isOpen ? "Mon Marché actif" : "Mon Marché inactif"}
               </Text>
             </View>
             <View style={s.statusRight}>

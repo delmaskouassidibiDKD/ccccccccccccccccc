@@ -139,7 +139,7 @@ export default function MonPlatPage() {
             <View style={s.statusLeft}>
               <View style={[s.statusDot, { backgroundColor: isOpen ? "#22C55E" : "#EF4444" }]} />
               <Text style={[s.statusLabel, { color: dynText }]}>
-                {isOpen ? "Gastronomie ouvert" : "Gastronomie fermé"}
+                {isOpen ? "Gastronomie active" : "Gastronomie inactive"}
               </Text>
             </View>
             <View style={s.statusRight}>

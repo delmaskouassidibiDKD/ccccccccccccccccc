@@ -222,7 +222,7 @@ export default function PersonnalisationPage() {
             <View style={s.statusLeft}>
               <View style={[s.statusDot, { backgroundColor: isOpen ? "#22C55E" : "#EF4444" }]} />
               <Text style={[s.statusLabel, { color: dynText }]}>
-                {isOpen ? "Boutique ouverte" : "Boutique fermée"}
+                {isOpen ? "Boutique active" : "Boutique inactive"}
               </Text>
             </View>
             <View style={s.statusRight}>
