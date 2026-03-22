@@ -17,27 +17,32 @@ import { useTheme } from "@/contexts/ThemeContext";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-/* ─── Storage pools ─────────────────────────────────── */
-const IMP_EXTRA_KEY    = "@dkd:dm_extra_convs";
-const IMP_ACTIVITY_KEY = "@dkd:dm_activity";
-const GRO_EXTRA_KEY    = "@dkd:gros_dm_extra_convs";
-const GRO_ACTIVITY_KEY = "@dkd:gros_dm_activity";
-const GRO_DELETED_KEY  = "@dkd:gros_deleted_conv_ids";
-
 const ACCENT = "#7E22CE";
 
 /* ─── Static grossiste conversations (mirrored from messages-grossiste) ── */
 const GRO_STATIC_IDS = new Set(["gc1", "gc2", "gc3", "gc4"]);
 const GRO_STATIC_BASE = [
-  { id:"gc1", name:"Diallo Marchandises",   initials:"DM", color:"#3B82F6", preview:"Bonjour, avez-vous du riz 50kg en stock ?",    time:"09:14", unread:2,  online:true,  role:"Revendeur"  },
-  { id:"gc2", name:"Koné Distribution SA",  initials:"KD", color:"#34D399", preview:"Votre devis est approuvé, on peut procéder.",   time:"Hier",  unread:0,  online:false, role:"Grossiste"  },
-  { id:"gc3", name:"Fatou Commerce",        initials:"FC", color:"#F59E0B", preview:"Quand livrez-vous les 200 cartons ?",            time:"Mar.",  unread:1,  online:true,  role:"Détaillant" },
-  { id:"gc4", name:"Ibrahim Import-Export", initials:"II", color:"#EC4899", preview:"Merci pour la commande, c'est parfait.",        time:"Lun.",  unread:0,  online:false, role:"Importateur"},
+  { id:"gc1", name:"Diallo Marchandises",   initials:"DM", color:"#3B82F6", preview:"Bonjour, avez-vous du riz 50kg en stock ?",    time:"09:14", unread:2,  online:true  },
+  { id:"gc2", name:"Koné Distribution SA",  initials:"KD", color:"#34D399", preview:"Votre devis est approuvé, on peut procéder.",   time:"Hier",  unread:0,  online:false },
+  { id:"gc3", name:"Fatou Commerce",        initials:"FC", color:"#F59E0B", preview:"Quand livrez-vous les 200 cartons ?",            time:"Mar.",  unread:1,  online:true  },
+  { id:"gc4", name:"Ibrahim Import-Export", initials:"II", color:"#EC4899", preview:"Merci pour la commande, c'est parfait.",        time:"Lun.",  unread:0,  online:false },
 ];
 
-/* ─── Types ─────────────────────────────────────────── */
-type Source = "importe" | "grossiste";
+/* ─── Source config — 6 menus indépendants ───────────── */
+type Source = "importe" | "grossiste" | "gastronomie" | "marche" | "supermarche" | "perfectionnement";
 
+const SOURCE_META: Record<Source, { label: string; color: string; extraKey: string; activityKey: string; deletedKey?: string; chatScreen: "dm-importe" | "dm-personnalisation" }> = {
+  importe:          { label: "Importé",          color: "#A855F7", extraKey: "@dkd:dm_extra_convs",      activityKey: "@dkd:dm_activity",         chatScreen: "dm-importe"         },
+  grossiste:        { label: "Grossiste",         color: "#3B82F6", extraKey: "@dkd:gros_dm_extra_convs", activityKey: "@dkd:gros_dm_activity",     deletedKey: "@dkd:gros_deleted_conv_ids", chatScreen: "dm-personnalisation" },
+  gastronomie:      { label: "Gastronomie",       color: "#EC4899", extraKey: "@dkd:gastro_extra",        activityKey: "@dkd:gastro_activity",      deletedKey: "@dkd:gastro_deleted", chatScreen: "dm-personnalisation" },
+  marche:           { label: "Marché",            color: "#34D399", extraKey: "@dkd:marche_extra",        activityKey: "@dkd:marche_activity",      deletedKey: "@dkd:marche_deleted", chatScreen: "dm-personnalisation" },
+  supermarche:      { label: "Supermarché",       color: "#3B82F6", extraKey: "@dkd:super_extra",         activityKey: "@dkd:super_activity",       deletedKey: "@dkd:super_deleted",  chatScreen: "dm-personnalisation" },
+  perfectionnement: { label: "Perfectionnement",  color: "#8B5CF6", extraKey: "@dkd:perf_extra",          activityKey: "@dkd:perf_activity",        deletedKey: "@dkd:perf_deleted",   chatScreen: "dm-personnalisation" },
+};
+
+const ALL_SOURCES: Source[] = ["importe", "grossiste", "gastronomie", "marche", "supermarche", "perfectionnement"];
+
+/* ─── Types ─────────────────────────────────────────── */
 type ConvEntry = {
   id: string;
   name: string;
@@ -54,8 +59,12 @@ type ConvEntry = {
 
 /* ─── Source label pill ──────────────────────────────── */
 const SOURCE_COLORS: Record<Source, string> = {
-  importe:   "#A855F7",
-  grossiste: "#3B82F6",
+  importe:          "#A855F7",
+  grossiste:        "#3B82F6",
+  gastronomie:      "#EC4899",
+  marche:           "#34D399",
+  supermarche:      "#0EA5E9",
+  perfectionnement: "#8B5CF6",
 };
 
 /* ─── Conversation row ───────────────────────────────── */
@@ -134,63 +143,58 @@ export default function MesMessagesVendeurPage() {
     useCallback(() => {
       const load = async () => {
         try {
-          const [impExtraRaw, impActRaw, groExtraRaw, groActRaw, groDelRaw] = await Promise.all([
-            AsyncStorage.getItem(IMP_EXTRA_KEY),
-            AsyncStorage.getItem(IMP_ACTIVITY_KEY),
-            AsyncStorage.getItem(GRO_EXTRA_KEY),
-            AsyncStorage.getItem(GRO_ACTIVITY_KEY),
-            AsyncStorage.getItem(GRO_DELETED_KEY),
-          ]);
+          /* Charger toutes les 6 pools en parallèle */
+          const keys = ALL_SOURCES.map((s) => [SOURCE_META[s].extraKey, SOURCE_META[s].activityKey, SOURCE_META[s].deletedKey ?? null]).flat().filter(Boolean) as string[];
+          const values = await Promise.all(keys.map((k) => AsyncStorage.getItem(k)));
+          const store: Record<string, string | null> = {};
+          keys.forEach((k, i) => { store[k] = values[i]; });
 
-          const impActivity: Record<string, { timestamp: number; preview: string; time: string }> =
-            impActRaw ? JSON.parse(impActRaw) : {};
-          const groActivity: Record<string, { timestamp: number; preview: string; time: string }> =
-            groActRaw ? JSON.parse(groActRaw) : {};
-          const deletedGro = new Set<string>(groDelRaw ? JSON.parse(groDelRaw) : []);
-
-          /* Pool A — importé / boutique */
-          const impExtras: ConvEntry[] = impExtraRaw
-            ? (JSON.parse(impExtraRaw) as any[]).map((c) => ({
-                ...c,
-                source: "importe" as Source,
-                sourceLabel: "Importé · Boutique",
-                preview: impActivity[c.id]?.preview ?? c.preview ?? "",
-                time:    impActivity[c.id]?.time    ?? c.time    ?? "",
-                sourceSortKey: impActivity[c.id]?.timestamp ?? 0,
-              }))
-            : [];
-
-          /* Pool B — grossiste / marché / supermarché / gastronomie / perfectionnement */
-          const groStaticIds = new Set(GRO_STATIC_BASE.map((c) => c.id));
-          const groExtrasRaw: any[] = groExtraRaw ? JSON.parse(groExtraRaw) : [];
-          const groExtras: ConvEntry[] = groExtrasRaw
-            .filter((c) => !groStaticIds.has(c.id))
-            .map((c) => ({
-              ...c,
-              source: "grossiste" as Source,
-              sourceLabel: "Grossiste · Marché · +",
-              preview: groActivity[c.id]?.preview ?? c.preview ?? "",
-              time:    groActivity[c.id]?.time    ?? c.time    ?? "",
-              sourceSortKey: groActivity[c.id]?.timestamp ?? 0,
-            }));
-
-          const groStatics: ConvEntry[] = GRO_STATIC_BASE
-            .filter((c) => !deletedGro.has(c.id))
-            .map((c) => ({
-              ...c,
-              source: "grossiste" as Source,
-              sourceLabel: "Grossiste · Marché · +",
-              online: c.online,
-              preview: groActivity[c.id]?.preview ?? c.preview,
-              time:    groActivity[c.id]?.time    ?? c.time,
-              sourceSortKey: groActivity[c.id]?.timestamp ?? 0,
-            }));
-
-          /* Merge & sort by most recent activity */
           const BASE = 1_000_000_000_000;
-          const all = [...impExtras, ...groExtras, ...groStatics];
-          all.sort((a, b) => (b.sourceSortKey || BASE) - (a.sourceSortKey || BASE));
+          const all: ConvEntry[] = [];
 
+          for (const src of ALL_SOURCES) {
+            const meta     = SOURCE_META[src];
+            const extraRaw = store[meta.extraKey];
+            const actRaw   = store[meta.activityKey];
+            const delRaw   = meta.deletedKey ? store[meta.deletedKey] : null;
+
+            const activity: Record<string, { timestamp: number; preview: string; time: string }> =
+              actRaw ? JSON.parse(actRaw) : {};
+            const deleted = new Set<string>(delRaw ? JSON.parse(delRaw) : []);
+
+            /* Dynamic extras from AsyncStorage */
+            const extras: any[] = extraRaw ? JSON.parse(extraRaw) : [];
+            const extrasFiltered = src === "grossiste" ? extras.filter((c) => !GRO_STATIC_IDS.has(c.id)) : extras;
+
+            for (const c of extrasFiltered) {
+              if (deleted.has(c.id)) continue;
+              all.push({
+                ...c,
+                source: src,
+                sourceLabel: meta.label,
+                preview: activity[c.id]?.preview ?? c.preview ?? "",
+                time:    activity[c.id]?.time    ?? c.time    ?? "",
+                sourceSortKey: activity[c.id]?.timestamp ?? 0,
+              });
+            }
+
+            /* Static conversations (Grossiste seulement) */
+            if (src === "grossiste") {
+              for (const c of GRO_STATIC_BASE) {
+                if (deleted.has(c.id)) continue;
+                all.push({
+                  ...c,
+                  source: "grossiste",
+                  sourceLabel: "Grossiste",
+                  preview: activity[c.id]?.preview ?? c.preview,
+                  time:    activity[c.id]?.time    ?? c.time,
+                  sourceSortKey: activity[c.id]?.timestamp ?? 0,
+                });
+              }
+            }
+          }
+
+          all.sort((a, b) => (b.sourceSortKey || BASE) - (a.sourceSortKey || BASE));
           setAllConversations(all);
         } catch {}
       };
@@ -202,24 +206,20 @@ export default function MesMessagesVendeurPage() {
   const deleteConv = async () => {
     if (!convToDelete) return;
     try {
-      if (convToDelete.source === "importe") {
-        const raw = await AsyncStorage.getItem(IMP_EXTRA_KEY);
-        const convs = raw ? JSON.parse(raw) : [];
-        await AsyncStorage.setItem(IMP_EXTRA_KEY, JSON.stringify(convs.filter((c: any) => c.id !== convToDelete.id)));
-      } else {
-        if (GRO_STATIC_IDS.has(convToDelete.id)) {
-          const raw = await AsyncStorage.getItem(GRO_DELETED_KEY);
-          const existing: string[] = raw ? JSON.parse(raw) : [];
-          if (!existing.includes(convToDelete.id)) {
-            await AsyncStorage.setItem(GRO_DELETED_KEY, JSON.stringify([...existing, convToDelete.id]));
-          }
-        } else {
-          const raw = await AsyncStorage.getItem(GRO_EXTRA_KEY);
-          const convs = raw ? JSON.parse(raw) : [];
-          await AsyncStorage.setItem(GRO_EXTRA_KEY, JSON.stringify(convs.filter((c: any) => c.id !== convToDelete.id)));
+      const meta = SOURCE_META[convToDelete.source];
+      const isGroStatic = convToDelete.source === "grossiste" && GRO_STATIC_IDS.has(convToDelete.id);
+      if (isGroStatic && meta.deletedKey) {
+        const raw = await AsyncStorage.getItem(meta.deletedKey);
+        const existing: string[] = raw ? JSON.parse(raw) : [];
+        if (!existing.includes(convToDelete.id)) {
+          await AsyncStorage.setItem(meta.deletedKey, JSON.stringify([...existing, convToDelete.id]));
         }
+      } else {
+        const raw = await AsyncStorage.getItem(meta.extraKey);
+        const convs = raw ? JSON.parse(raw) : [];
+        await AsyncStorage.setItem(meta.extraKey, JSON.stringify(convs.filter((c: any) => c.id !== convToDelete.id)));
       }
-      setAllConversations((prev) => prev.filter((c) => c.id !== convToDelete.id));
+      setAllConversations((prev) => prev.filter((c) => !(c.id === convToDelete.id && c.source === convToDelete.source)));
     } catch {}
     setConvToDelete(null);
   };
@@ -236,11 +236,13 @@ export default function MesMessagesVendeurPage() {
   /* ─── Navigate to correct chat screen ─── */
   const openConv = (item: ConvEntry) => {
     Haptics.selectionAsync();
-    const base = `id=${item.id}&name=${encodeURIComponent(item.name)}&initials=${item.initials}&color=${encodeURIComponent(item.color)}`;
-    if (item.source === "importe") {
+    const meta = SOURCE_META[item.source];
+    const base = `id=${item.id}&name=${encodeURIComponent(item.name)}&initials=${encodeURIComponent(item.initials)}&color=${encodeURIComponent(item.color)}`;
+    if (meta.chatScreen === "dm-importe") {
       router.push(`/dm-importe?${base}` as any);
     } else {
-      router.push(`/dm-personnalisation?${base}` as any);
+      const keys = `&xKey=${encodeURIComponent(meta.extraKey)}&aKey=${encodeURIComponent(meta.activityKey)}`;
+      router.push(`/dm-personnalisation?${base}${keys}` as any);
     }
   };
 

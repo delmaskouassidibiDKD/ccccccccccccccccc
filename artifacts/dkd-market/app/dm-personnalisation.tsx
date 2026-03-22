@@ -13,9 +13,9 @@ import * as ImagePicker from "expo-image-picker";
 import { Video, ResizeMode } from "expo-av";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const DM_EXTRA_KEY = "@dkd:gros_dm_extra_convs";
-const ACTIVITY_KEY = "@dkd:gros_dm_activity";
-const ACCENT       = "#06B6D4";
+const DEFAULT_EXTRA_KEY    = "@dkd:gros_dm_extra_convs";
+const DEFAULT_ACTIVITY_KEY = "@dkd:gros_dm_activity";
+const ACCENT               = "#06B6D4";
 const { width: SCREEN_W } = Dimensions.get("window");
 
 function nowTime() {
@@ -58,7 +58,9 @@ export default function DmPersonnalisationPage() {
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
   const { isDark } = useTheme();
-  const { id, name, initials, color } = useLocalSearchParams<{ id: string; name: string; initials: string; color: string }>();
+  const { id, name, initials, color, xKey, aKey } = useLocalSearchParams<{ id: string; name: string; initials: string; color: string; xKey?: string; aKey?: string }>();
+  const DM_EXTRA_KEY = xKey || DEFAULT_EXTRA_KEY;
+  const ACTIVITY_KEY = aKey || DEFAULT_ACTIVITY_KEY;
 
   const dynBG     = isDark ? "#0D1117" : "#F0F4FA";
   const dynCARD   = isDark ? "#161B25" : "#FFFFFF";

@@ -64,7 +64,7 @@ const ACTIONS: ActionItem[] = [
     label: "Messages",
     sub: "Vos conversations clients",
     color: "#3B82F6",
-    route: "/messages-grossiste",
+    route: "/messages-list?source=perfectionnement",
   },
   {
     key: "commandes",

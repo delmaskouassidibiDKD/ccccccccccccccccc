@@ -4,41 +4,79 @@ import {
   Modal, Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/contexts/ThemeContext";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const DM_EXTRA_KEY   = "@dkd:gros_dm_extra_convs";
-const ACTIVITY_KEY   = "@dkd:gros_dm_activity";
-const DELETED_IDS_KEY = "@dkd:gros_deleted_conv_ids";
-const ACCENT = "#3B82F6";
-const STATIC_IDS = new Set(["gc1", "gc2", "gc3", "gc4"]);
+/* ─── Source config ──────────────────────────────────── */
+type SourceKey = "gastronomie" | "marche" | "supermarche" | "perfectionnement";
 
-type Conv = {
-  id: string;
-  name: string;
-  initials: string;
-  color: string;
-  preview: string;
-  time: string;
-  unread: number;
-  online: boolean;
-  role: string;
+const SOURCE_CONFIG: Record<SourceKey, {
+  label: string; accent: string;
+  extraKey: string; activityKey: string; deletedKey: string;
+}> = {
+  gastronomie:     { label: "Gastronomie",     accent: "#EC4899", extraKey: "@dkd:gastro_extra",  activityKey: "@dkd:gastro_activity",  deletedKey: "@dkd:gastro_deleted"  },
+  marche:          { label: "Marché",           accent: "#34D399", extraKey: "@dkd:marche_extra",  activityKey: "@dkd:marche_activity",  deletedKey: "@dkd:marche_deleted"  },
+  supermarche:     { label: "Supermarché",      accent: "#3B82F6", extraKey: "@dkd:super_extra",   activityKey: "@dkd:super_activity",   deletedKey: "@dkd:super_deleted"   },
+  perfectionnement:{ label: "Perfectionnement", accent: "#8B5CF6", extraKey: "@dkd:perf_extra",    activityKey: "@dkd:perf_activity",    deletedKey: "@dkd:perf_deleted"    },
 };
 
-const CONVERSATIONS: Conv[] = [
-  { id:"gc1", name:"Diallo Marchandises",   initials:"DM", color:"#3B82F6", preview:"Bonjour, avez-vous du riz 50kg en stock ?",    time:"09:14", unread:2,  online:true,  role:"Revendeur" },
-  { id:"gc2", name:"Koné Distribution SA",  initials:"KD", color:"#34D399", preview:"Votre devis est approuvé, on peut procéder.",   time:"Hier",  unread:0,  online:false, role:"Grossiste" },
-  { id:"gc3", name:"Fatou Commerce",        initials:"FC", color:"#F59E0B", preview:"Quand livrez-vous les 200 cartons ?",            time:"Mar.",  unread:1,  online:true,  role:"Détaillant" },
-  { id:"gc4", name:"Ibrahim Import-Export", initials:"II", color:"#EC4899", preview:"Merci pour la commande, c'est parfait.",        time:"Lun.",  unread:0,  online:false, role:"Importateur" },
-];
+/* ─── Types ─────────────────────────────────────────── */
+type Conv = {
+  id: string; name: string; initials: string; color: string;
+  preview: string; time: string; unread: number; online: boolean;
+};
 
-export default function MessagesGrossistePage() {
+/* ─── Row component ──────────────────────────────────── */
+function ConvItem({ conv, accent, onPress, onLongPress, isDark, dynCARD, dynText, dynSub, dynBorder }: {
+  conv: Conv; accent: string;
+  onPress: () => void; onLongPress: () => void;
+  isDark: boolean; dynCARD: string; dynText: string; dynSub: string; dynBorder: string;
+}) {
+  return (
+    <TouchableOpacity
+      style={[s.convRow, { backgroundColor: conv.unread > 0 ? (isDark ? "#161B25" : "#F5F0FF") : dynCARD, borderBottomColor: dynBorder }]}
+      onPress={onPress} onLongPress={onLongPress} delayLongPress={400} activeOpacity={0.75}
+    >
+      <View style={{ position: "relative" }}>
+        <View style={[s.avatar, { backgroundColor: conv.color + "28" }]}>
+          <Text style={[s.avatarText, { color: conv.color }]}>{conv.initials}</Text>
+        </View>
+        {conv.online && <View style={s.onlineDot} />}
+      </View>
+      <View style={s.convContent}>
+        <View style={s.convTop}>
+          <Text style={[s.convName, { color: dynText, fontFamily: conv.unread > 0 ? "Poppins_700Bold" : "Poppins_600SemiBold" }]} numberOfLines={1}>
+            {conv.name}
+          </Text>
+          <Text style={[s.convTime, { color: conv.unread > 0 ? accent : dynSub }]}>{conv.time}</Text>
+        </View>
+        <View style={s.convBot}>
+          <Text style={[s.convPreview, { color: conv.unread > 0 ? dynText : dynSub, fontFamily: conv.unread > 0 ? "Poppins_500Medium" : "Poppins_400Regular" }]} numberOfLines={1}>
+            {conv.preview}
+          </Text>
+          {conv.unread > 0 && (
+            <View style={[s.badge, { backgroundColor: accent }]}>
+              <Text style={s.badgeText}>{conv.unread}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+/* ─── Main page ──────────────────────────────────────── */
+export default function MessagesListPage() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
+  const { source } = useLocalSearchParams<{ source: string }>();
+
+  const cfg = SOURCE_CONFIG[(source as SourceKey) ?? "gastronomie"] ?? SOURCE_CONFIG.gastronomie;
+  const { label, accent, extraKey, activityKey, deletedKey } = cfg;
 
   const dynBG     = isDark ? "#0D1117" : "#F0F4FA";
   const dynCARD   = isDark ? "#161B25" : "#FFFFFF";
@@ -49,32 +87,23 @@ export default function MessagesGrossistePage() {
 
   const [tab,              setTab]              = useState<"tous" | "non_lu">("tous");
   const [search,           setSearch]           = useState("");
-  const [allConversations, setAllConversations] = useState<Conv[]>(CONVERSATIONS);
+  const [allConversations, setAllConversations] = useState<Conv[]>([]);
   const [convToDelete,     setConvToDelete]     = useState<Conv | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
         try {
-          const [extraRaw, activityRaw, deletedRaw] = await Promise.all([
-            AsyncStorage.getItem(DM_EXTRA_KEY),
-            AsyncStorage.getItem(ACTIVITY_KEY),
-            AsyncStorage.getItem(DELETED_IDS_KEY),
+          const [extraRaw, activityRaw] = await Promise.all([
+            AsyncStorage.getItem(extraKey),
+            AsyncStorage.getItem(activityKey),
           ]);
           const activity: Record<string, { timestamp: number; preview: string; time: string }> =
             activityRaw ? JSON.parse(activityRaw) : {};
-          const deletedIds: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
-          const deletedSet = new Set(deletedIds);
-          const existingIds = new Set(CONVERSATIONS.map((c) => c.id));
-          const extras: Conv[] = extraRaw
-            ? (JSON.parse(extraRaw) as Conv[]).filter((c) => !existingIds.has(c.id))
-            : [];
-          const merged: Conv[] = [
-            ...CONVERSATIONS
-              .filter((c) => !deletedSet.has(c.id))
-              .map((c) => activity[c.id] ? { ...c, preview: activity[c.id].preview, time: activity[c.id].time } : c),
-            ...extras.map((c) => activity[c.id] ? { ...c, preview: activity[c.id].preview, time: activity[c.id].time } : c),
-          ];
+          const convs: Conv[] = extraRaw ? JSON.parse(extraRaw) : [];
+          const merged = convs.map((c) =>
+            activity[c.id] ? { ...c, preview: activity[c.id].preview, time: activity[c.id].time } : c
+          );
           const BASE = 1_000_000_000_000;
           const sorted = merged
             .map((c, i) => ({ conv: c, sortKey: activity[c.id]?.timestamp ?? (BASE - i) }))
@@ -84,23 +113,15 @@ export default function MessagesGrossistePage() {
         } catch {}
       };
       load();
-    }, [])
+    }, [extraKey, activityKey])
   );
 
   const deleteConv = async () => {
     if (!convToDelete) return;
     try {
-      if (STATIC_IDS.has(convToDelete.id)) {
-        const raw = await AsyncStorage.getItem(DELETED_IDS_KEY);
-        const existing: string[] = raw ? JSON.parse(raw) : [];
-        if (!existing.includes(convToDelete.id)) {
-          await AsyncStorage.setItem(DELETED_IDS_KEY, JSON.stringify([...existing, convToDelete.id]));
-        }
-      } else {
-        const raw = await AsyncStorage.getItem(DM_EXTRA_KEY);
-        const convs: Conv[] = raw ? JSON.parse(raw) : [];
-        await AsyncStorage.setItem(DM_EXTRA_KEY, JSON.stringify(convs.filter((c) => c.id !== convToDelete.id)));
-      }
+      const raw = await AsyncStorage.getItem(extraKey);
+      const convs: Conv[] = raw ? JSON.parse(raw) : [];
+      await AsyncStorage.setItem(extraKey, JSON.stringify(convs.filter((c) => c.id !== convToDelete.id)));
       setAllConversations((prev) => prev.filter((c) => c.id !== convToDelete.id));
     } catch {}
     setConvToDelete(null);
@@ -114,6 +135,13 @@ export default function MessagesGrossistePage() {
 
   const totalUnread = allConversations.reduce((acc, c) => acc + c.unread, 0);
 
+  const openConv = (item: Conv) => {
+    Haptics.selectionAsync();
+    const base = `id=${item.id}&name=${encodeURIComponent(item.name)}&initials=${encodeURIComponent(item.initials)}&color=${encodeURIComponent(item.color)}`;
+    const keys = `&xKey=${encodeURIComponent(extraKey)}&aKey=${encodeURIComponent(activityKey)}`;
+    router.push(`/dm-personnalisation?${base}${keys}` as any);
+  };
+
   return (
     <View style={[s.root, { backgroundColor: dynBG }]}>
 
@@ -124,15 +152,18 @@ export default function MessagesGrossistePage() {
         </TouchableOpacity>
         <View style={s.headerCenter}>
           <Text style={[s.headerTitle, { color: dynText }]}>Messages</Text>
+          <View style={[s.srcPill, { backgroundColor: accent + "18" }]}>
+            <Text style={[s.srcText, { color: accent }]}>{label}</Text>
+          </View>
           {totalUnread > 0 && (
-            <View style={[s.headerBadge, { backgroundColor: ACCENT }]}>
+            <View style={[s.headerBadge, { backgroundColor: accent }]}>
               <Text style={s.headerBadgeText}>{totalUnread}</Text>
             </View>
           )}
         </View>
-        <TouchableOpacity style={[s.newBtn, { backgroundColor: ACCENT + "18" }]} activeOpacity={0.7}>
-          <Ionicons name="create-outline" size={20} color={ACCENT} />
-        </TouchableOpacity>
+        <View style={[s.accentDot, { backgroundColor: accent + "18" }]}>
+          <Ionicons name="chatbubbles-outline" size={18} color={accent} />
+        </View>
       </View>
 
       {/* SEARCH */}
@@ -158,17 +189,17 @@ export default function MessagesGrossistePage() {
       <View style={[s.tabs, { backgroundColor: dynHeader, borderBottomColor: dynBorder }]}>
         {(["tous", "non_lu"] as const).map((t) => {
           const active = tab === t;
-          const label  = t === "tous" ? "Tous" : "Non lus";
+          const label2  = t === "tous" ? "Tous" : "Non lus";
           const count  = t === "non_lu" ? totalUnread : allConversations.length;
           return (
             <TouchableOpacity
               key={t}
-              style={[s.tab, active && [s.tabActive, { borderBottomColor: ACCENT }]]}
+              style={[s.tab, active && [s.tabActive, { borderBottomColor: accent }]]}
               onPress={() => { Haptics.selectionAsync(); setTab(t); }}
               activeOpacity={0.7}
             >
-              <Text style={[s.tabText, { color: active ? ACCENT : dynSub }]}>{label}</Text>
-              <View style={[s.tabCount, { backgroundColor: active ? ACCENT : (isDark ? "#1E293B" : "#E5E7EB") }]}>
+              <Text style={[s.tabText, { color: active ? accent : dynSub }]}>{label2}</Text>
+              <View style={[s.tabCount, { backgroundColor: active ? accent : (isDark ? "#1E293B" : "#E5E7EB") }]}>
                 <Text style={[s.tabCountText, { color: active ? "#fff" : dynSub }]}>{count}</Text>
               </View>
             </TouchableOpacity>
@@ -182,7 +213,7 @@ export default function MessagesGrossistePage() {
           <Ionicons name="chatbubbles-outline" size={52} color={dynSub} />
           <Text style={[s.emptyTitle, { color: dynText }]}>Aucune conversation</Text>
           <Text style={[s.emptyDesc, { color: dynSub }]}>
-            Vos échanges avec les revendeurs et clients apparaîtront ici.
+            Les conversations {label} apparaîtront ici.
           </Text>
         </View>
       ) : (
@@ -191,52 +222,17 @@ export default function MessagesGrossistePage() {
           keyExtractor={(c) => c.id}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[s.convRow, {
-                backgroundColor: item.unread > 0 ? (isDark ? "#161B25" : "#EFF6FF") : dynCARD,
-                borderBottomColor: dynBorder,
-              }]}
-              onPress={() => {
-                Haptics.selectionAsync();
-                router.push(`/dm-personnalisation?id=${item.id}&name=${encodeURIComponent(item.name)}&initials=${item.initials}&color=${encodeURIComponent(item.color)}` as any);
-              }}
-              onLongPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setConvToDelete(item);
-              }}
-              delayLongPress={400}
-              activeOpacity={0.75}
-            >
-              <View style={{ position: "relative" }}>
-                <View style={[s.avatar, { backgroundColor: item.color + "28" }]}>
-                  <Text style={[s.avatarText, { color: item.color }]}>{item.initials}</Text>
-                </View>
-                {item.online && <View style={s.onlineDot} />}
-              </View>
-              <View style={s.convContent}>
-                <View style={s.convTop}>
-                  <View style={{ flex: 1, gap: 1 }}>
-                    <Text style={[s.convName, { color: dynText, fontFamily: item.unread > 0 ? "Poppins_700Bold" : "Poppins_600SemiBold" }]} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                    <View style={[s.rolePill, { backgroundColor: item.color + "14" }]}>
-                      <Text style={[s.roleText, { color: item.color }]}>{item.role}</Text>
-                    </View>
-                  </View>
-                  <Text style={[s.convTime, { color: item.unread > 0 ? ACCENT : dynSub }]}>{item.time}</Text>
-                </View>
-                <View style={s.convBot}>
-                  <Text style={[s.convPreview, { color: item.unread > 0 ? dynText : dynSub, fontFamily: item.unread > 0 ? "Poppins_500Medium" : "Poppins_400Regular" }]} numberOfLines={1}>
-                    {item.preview}
-                  </Text>
-                  {item.unread > 0 && (
-                    <View style={[s.badge, { backgroundColor: ACCENT }]}>
-                      <Text style={s.badgeText}>{item.unread}</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            </TouchableOpacity>
+            <ConvItem
+              conv={item}
+              accent={accent}
+              onPress={() => openConv(item)}
+              onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setConvToDelete(item); }}
+              isDark={isDark}
+              dynCARD={dynCARD}
+              dynText={dynText}
+              dynSub={dynSub}
+              dynBorder={dynBorder}
+            />
           )}
         />
       )}
@@ -266,11 +262,13 @@ const s = StyleSheet.create({
   root:            { flex: 1 },
   header:          { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingBottom: 12, gap: 10, borderBottomWidth: 1 },
   backBtn:         { padding: 4 },
-  headerCenter:    { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+  headerCenter:    { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   headerTitle:     { fontFamily: "Poppins_700Bold", fontSize: 18 },
   headerBadge:     { borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1 },
   headerBadgeText: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: 11 },
-  newBtn:          { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  srcPill:         { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  srcText:         { fontFamily: "Poppins_600SemiBold", fontSize: 10 },
+  accentDot:       { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
 
   searchWrap:  { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1 },
   searchBar:   { flexDirection: "row", alignItems: "center", borderRadius: 22, borderWidth: 1, paddingHorizontal: 12, height: 38, gap: 8 },
@@ -283,24 +281,22 @@ const s = StyleSheet.create({
   tabCount:      { borderRadius: 10, paddingHorizontal: 7, paddingVertical: 1 },
   tabCountText:  { fontFamily: "Poppins_700Bold", fontSize: 11 },
 
-  convRow:      { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 13, gap: 12, borderBottomWidth: 1 },
-  avatar:       { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center" },
-  avatarText:   { fontFamily: "Poppins_700Bold", fontSize: 16 },
-  onlineDot:    { position: "absolute", bottom: 1, right: 1, width: 11, height: 11, borderRadius: 6, backgroundColor: "#34D399", borderWidth: 2, borderColor: "#fff" },
-  convContent:  { flex: 1, gap: 3 },
-  convTop:      { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  convName:     { flex: 1, fontSize: 14 },
-  convTime:     { fontFamily: "Poppins_400Regular", fontSize: 11, marginLeft: 6 },
-  rolePill:     { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, alignSelf: "flex-start" },
-  roleText:     { fontFamily: "Poppins_500Medium", fontSize: 9 },
-  convBot:      { flexDirection: "row", alignItems: "center", gap: 6 },
-  convPreview:  { flex: 1, fontSize: 12, lineHeight: 17 },
-  badge:        { borderRadius: 10, minWidth: 20, height: 20, alignItems: "center", justifyContent: "center", paddingHorizontal: 5 },
-  badgeText:    { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: 10 },
+  convRow:     { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 13, gap: 12, borderBottomWidth: 1 },
+  avatar:      { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center" },
+  avatarText:  { fontFamily: "Poppins_700Bold", fontSize: 16 },
+  onlineDot:   { position: "absolute", bottom: 1, right: 1, width: 11, height: 11, borderRadius: 6, backgroundColor: "#34D399", borderWidth: 2, borderColor: "#fff" },
+  convContent: { flex: 1, gap: 2 },
+  convTop:     { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  convName:    { flex: 1, fontSize: 14 },
+  convTime:    { fontFamily: "Poppins_400Regular", fontSize: 11, marginLeft: 6 },
+  convBot:     { flexDirection: "row", alignItems: "center", gap: 6 },
+  convPreview: { flex: 1, fontSize: 12, lineHeight: 17 },
+  badge:       { borderRadius: 10, minWidth: 20, height: 20, alignItems: "center", justifyContent: "center", paddingHorizontal: 5 },
+  badgeText:   { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: 10 },
 
   empty:      { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 32 },
   emptyTitle: { fontFamily: "Poppins_700Bold", fontSize: 16 },
-  emptyDesc:  { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center" },
+  emptyDesc:  { fontFamily: "Poppins_400Regular", fontSize: 13, textAlign: "center", lineHeight: 20 },
 
   delOverlay:     { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 32 },
   delSheet:       { width: "100%", borderRadius: 16, padding: 20, gap: 12, borderWidth: 1 },

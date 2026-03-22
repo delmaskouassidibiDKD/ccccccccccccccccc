@@ -11,7 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ORDERS } from "@/lib/orders-data";
 
 const ACCENT        = "#06B6D4";
-const DM_EXTRA_KEY  = "@dkd:gros_dm_extra_convs";
+const DM_EXTRA_KEY  = "@dkd:perf_extra";
 const REGLEE_STATUSES = ["confirmee", "livraison", "livree"];
 
 const TABS = [
@@ -84,7 +84,7 @@ export default function CommandesPersonnalisationPage() {
         }]));
       }
     } catch {}
-    router.push(`/dm-personnalisation?id=${encodeURIComponent(dmId)}&name=${encodeURIComponent(item.name)}&initials=${encodeURIComponent(item.initials)}&color=${encodeURIComponent(item.color)}` as any);
+    router.push(`/dm-personnalisation?id=${encodeURIComponent(dmId)}&name=${encodeURIComponent(item.name)}&initials=${encodeURIComponent(item.initials)}&color=${encodeURIComponent(item.color)}&xKey=${encodeURIComponent("@dkd:perf_extra")}&aKey=${encodeURIComponent("@dkd:perf_activity")}` as any);
   };
 
   const openInvoice = (id: string) => {

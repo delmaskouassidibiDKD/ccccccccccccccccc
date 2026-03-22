@@ -314,7 +314,7 @@ export default function MonPlatPage() {
 
           <TouchableOpacity
             style={[s.actionBtn, { backgroundColor: dynCARD, borderColor: dynBorder }]}
-            onPress={() => { Haptics.selectionAsync(); router.push("/messages-grossiste" as any); }}
+            onPress={() => { Haptics.selectionAsync(); router.push("/messages-list?source=gastronomie" as any); }}
             activeOpacity={0.8}
           >
             <View style={[s.actionIcon, { backgroundColor: "#3B82F622" }]}>
