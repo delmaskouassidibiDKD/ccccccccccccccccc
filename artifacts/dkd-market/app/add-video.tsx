@@ -119,10 +119,14 @@ export default function AddVideoPage() {
   const canPublish = mode === "video"
     ? !!videoUri
     : mode === "photo"
-    ? photos.length > 0
+    ? photos.length > 0 && !!selectedSound
     : false;
 
   const handleNext = async () => {
+    if (mode === "photo" && !selectedSound) {
+      Alert.alert("Son requis", "Veuillez choisir un son avant de continuer.");
+      return;
+    }
     /* Arrêt explicite de la vidéo avant de quitter la page */
     pauseAllMedia();
     await soundTrimRef.current?.stop();
