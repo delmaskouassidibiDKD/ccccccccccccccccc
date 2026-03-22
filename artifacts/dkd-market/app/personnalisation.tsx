@@ -385,10 +385,10 @@ const s = StyleSheet.create({
   sellerBadgeText:  { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
 
   statusRow:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1 },
-  statusLeft:  { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
-  statusRight: { flexDirection: "row", alignItems: "center", gap: 8 },
-  statusDot:   { width: 10, height: 10, borderRadius: 5 },
-  statusLabel: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
+  statusLeft:  { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, minWidth: 0 },
+  statusRight: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 },
+  statusDot:   { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
+  statusLabel: { fontFamily: "Poppins_600SemiBold", fontSize: 13, flexShrink: 1 },
   scheduleBtn: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 8, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 5 },
   scheduleBtnText: { fontFamily: "Poppins_600SemiBold", fontSize: 11 },
 
