@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   Platform,
   ActivityIndicator,
@@ -28,6 +29,29 @@ import * as Haptics from "expo-haptics";
 const IS_WEB = Platform.OS === "web";
 
 const SELLER_SHOP_TYPES_KEY = "@dkd:seller_shop_types";
+
+type PubType = "video" | "photo" | "article";
+type PubSection = "marche" | "supermarche" | "importe" | "mon_plat" | "personnalisation" | "grossiste" | "vendeur";
+interface PubItem { id: string; type: PubType; section?: PubSection; title: string; status: "pending" | "published"; progress?: number; }
+
+const PUB_SECTION_LABELS: Record<PubSection, string> = {
+  marche: "Marché", supermarche: "Super Marché", importe: "Importés",
+  mon_plat: "Gastronomie", personnalisation: "Personnalisation", grossiste: "Grossiste", vendeur: "Vendeur",
+};
+const PUB_SECTION_COLORS: Record<PubSection, string> = {
+  marche: "#22C55E", supermarche: "#F97316", importe: "#A855F7",
+  mon_plat: "#EC4899", personnalisation: "#06B6D4", grossiste: "#3B82F6", vendeur: "#FF6B00",
+};
+const DEMO_PUBLICATIONS: PubItem[] = [
+  { id: "p1", type: "video",   title: "Présentation boutique 🎬",        status: "pending",   progress: 65 },
+  { id: "p2", type: "photo",   title: "Nouvelle collection robes",       status: "pending",   progress: 30 },
+  { id: "p3", type: "article", section: "marche",     title: "Tomates fraîches 1kg",         status: "pending",   progress: 85 },
+  { id: "p4", type: "video",   title: "Promo du jour 🔥",                status: "published" },
+  { id: "p5", type: "article", section: "vendeur",    title: "Pagne wax Java 6 yards",       status: "published" },
+  { id: "p6", type: "photo",   title: "Lookbook été 2025",               status: "published" },
+  { id: "p7", type: "article", section: "grossiste",  title: "Sac de riz local 25kg",        status: "published" },
+  { id: "p8", type: "article", section: "mon_plat",   title: "Poulet braisé sauce arachide", status: "published" },
+];
 
 const SHOP_TYPE_ACTIONS: Record<string, { icon: string; label: string; color: string; route?: string }> = {
   marche:      { icon: "basket-outline",     label: "Mon Marché",    color: "#22C55E",  route: "/marche" },
@@ -287,6 +311,8 @@ export default function BecomeSellerScreen() {
 
 function SellerDashboard({ initials, profilePhoto, onPhotoChanged, shopName, stats, pendingCount, activeTab, setActiveTab, topPad, insets }: any) {
   const [activeShopTypes, setActiveShopTypes] = useState<string[]>([]);
+  const [showPubModal,   setShowPubModal]   = useState(false);
+  const [pubTab,         setPubTab]         = useState<"pending" | "published">("pending");
   const { isDark } = useTheme();
   const dBG      = isDark ? "#0D1117" : "#F0F4F8";
   const dHEAD    = isDark ? "#0D1117" : "#FFFFFF";
@@ -512,12 +538,128 @@ function SellerDashboard({ initials, profilePhoto, onPhotoChanged, shopName, sta
           <Text style={[dashStyles.mgmtBtnText, { color: "#06B6D4" }]}>Gérer mes publications</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={[dashStyles.mgmtBtn, { backgroundColor: isDark ? "#10B98110" : "#10B98108", borderColor: "#10B98150" }]}
+          onPress={() => { Haptics.selectionAsync(); setPubTab("pending"); setShowPubModal(true); }}
+        >
+          <View style={[dashStyles.pubDot, { backgroundColor: "#10B981" }]} />
+          <Ionicons name="cloud-upload-outline" size={20} color="#10B981" />
+          <Text style={[dashStyles.mgmtBtnText, { color: "#10B981", flex: 1 }]}>Publications en cours</Text>
+          <View style={dashStyles.pubBadge}>
+            <Text style={dashStyles.pubBadgeText}>{DEMO_PUBLICATIONS.filter(p => p.status === "pending").length}</Text>
+          </View>
+        </TouchableOpacity>
+
         <TouchableOpacity style={[dashStyles.mgmtBtn, dashStyles.mgmtBtnDark, { backgroundColor: dCARD, borderColor: dBORDER }]} onPress={() => router.push({ pathname: "/seller/[id]" as any, params: { id: "own", preview: "true" } })}>
           <Ionicons name="eye-outline" size={20} color={dICON} />
           <Text style={[dashStyles.mgmtBtnText, { color: dTEXT }]}>Aperçu public de la boutique</Text>
         </TouchableOpacity>
 
       </ScrollView>
+
+      {/* ── Modal Publications ── */}
+      <Modal visible={showPubModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowPubModal(false)}>
+        <View style={[dashStyles.pubModalContainer, { backgroundColor: dBG, paddingTop: insets.top > 0 ? 16 : 32 }]}>
+          <View style={[dashStyles.pubModalHeader, { borderBottomColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)" }]}>
+            <Text style={[dashStyles.pubModalTitle, { color: dTEXT }]}>Mes publications</Text>
+            <TouchableOpacity onPress={() => setShowPubModal(false)} style={{ padding: 4 }}>
+              <Ionicons name="close" size={22} color={dTEXT} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Onglets */}
+          <View style={[dashStyles.pubTabRow, { borderBottomColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)" }]}>
+            <TouchableOpacity
+              style={[dashStyles.pubTab, pubTab === "pending" && { borderBottomColor: "#10B981" }]}
+              onPress={() => { setPubTab("pending"); Haptics.selectionAsync(); }}
+            >
+              <Ionicons name="cloud-upload-outline" size={14} color={pubTab === "pending" ? "#10B981" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)")} />
+              <Text style={[dashStyles.pubTabText, { color: pubTab === "pending" ? "#10B981" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)") }]}>En cours d'envoi</Text>
+              <View style={[dashStyles.pubTabBadge, { backgroundColor: pubTab === "pending" ? "#10B981" : (isDark ? "#2D2D2D" : "#E5E7EB") }]}>
+                <Text style={[dashStyles.pubTabBadgeText, { color: pubTab === "pending" ? "#fff" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)") }]}>{DEMO_PUBLICATIONS.filter(p => p.status === "pending").length}</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[dashStyles.pubTab, pubTab === "published" && { borderBottomColor: "#FF6B00" }]}
+              onPress={() => { setPubTab("published"); Haptics.selectionAsync(); }}
+            >
+              <Ionicons name="checkmark-circle-outline" size={14} color={pubTab === "published" ? "#FF6B00" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)")} />
+              <Text style={[dashStyles.pubTabText, { color: pubTab === "published" ? "#FF6B00" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)") }]}>Publiées</Text>
+              <View style={[dashStyles.pubTabBadge, { backgroundColor: pubTab === "published" ? "#FF6B00" : (isDark ? "#2D2D2D" : "#E5E7EB") }]}>
+                <Text style={[dashStyles.pubTabBadgeText, { color: pubTab === "published" ? "#fff" : (isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)") }]}>{DEMO_PUBLICATIONS.filter(p => p.status === "published").length}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Liste */}
+          <FlatList
+            data={DEMO_PUBLICATIONS.filter(p => p.status === pubTab)}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: insets.bottom + 24 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={{ paddingVertical: 48, alignItems: "center" }}>
+                <Ionicons name={pubTab === "pending" ? "cloud-outline" : "checkmark-done-outline"} size={40} color={isDark ? "#2D2D2D" : "#D1D5DB"} />
+                <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 13, color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)", marginTop: 10, textAlign: "center" }}>
+                  {pubTab === "pending" ? "Aucune publication en cours" : "Aucune publication publiée"}
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => {
+              const isVideo   = item.type === "video";
+              const isPhoto   = item.type === "photo";
+              const secColor  = item.section ? PUB_SECTION_COLORS[item.section] : "#FF6B00";
+              const secLabel  = item.section ? PUB_SECTION_LABELS[item.section] : "Vendeur";
+              const typeLabel = isVideo ? "Vidéo" : isPhoto ? "Vidéos photos + son" : "Article";
+              const typeColor = isVideo ? "#6366F1" : isPhoto ? "#EC4899" : secColor;
+              const typeIcon  = isVideo ? "videocam-outline" : isPhoto ? "images-outline" : "bag-handle-outline";
+              return (
+                <View style={[dashStyles.pubItem, { backgroundColor: dCARD, borderColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)" }]}>
+                  <View style={[dashStyles.pubItemIcon, { backgroundColor: typeColor + "18" }]}>
+                    <Ionicons name={typeIcon as any} size={20} color={typeColor} />
+                  </View>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={[dashStyles.pubItemTitle, { color: dTEXT }]} numberOfLines={1}>{item.title}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <View style={[dashStyles.pubTypeBadge, { backgroundColor: typeColor + "18" }]}>
+                        <Text style={[dashStyles.pubTypeBadgeText, { color: typeColor }]}>{typeLabel}</Text>
+                      </View>
+                      {item.type === "article" && (
+                        <View style={[dashStyles.pubTypeBadge, { backgroundColor: secColor + "18" }]}>
+                          <Text style={[dashStyles.pubTypeBadgeText, { color: secColor }]}>{secLabel}</Text>
+                        </View>
+                      )}
+                    </View>
+                    {item.status === "pending" && item.progress !== undefined && (
+                      <View style={{ gap: 3, marginTop: 2 }}>
+                        <View style={[dashStyles.pubProgressTrack, { backgroundColor: isDark ? "#2D2D2D" : "#E5E7EB" }]}>
+                          <View style={[dashStyles.pubProgressFill, { width: `${item.progress}%` as any }]} />
+                        </View>
+                        <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 10, color: "#10B981" }}>{item.progress}% envoyé…</Text>
+                      </View>
+                    )}
+                  </View>
+                  {item.status === "published" && (
+                    <TouchableOpacity
+                      style={dashStyles.pubVoirBtn}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setShowPubModal(false);
+                        Haptics.selectionAsync();
+                        if (isVideo || isPhoto) router.push("/(tabs)/videos" as any);
+                        else router.push("/publication-article" as any);
+                      }}
+                    >
+                      <Text style={dashStyles.pubVoirBtnText}>Voir</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              );
+            }}
+            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          />
+        </View>
+      </Modal>
 
     </View>
   );
@@ -683,6 +825,40 @@ const dashStyles = StyleSheet.create({
   wideBtnIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   wideBtnTitle: { color: "#fff", fontFamily: "Poppins_700Bold", fontSize: 14 },
   wideBtnSub: { color: "rgba(255,255,255,0.55)", fontFamily: "Poppins_400Regular", fontSize: 11, marginTop: 2 },
+
+  pubDot: { width: 7, height: 7, borderRadius: 4 },
+  pubBadge: { backgroundColor: "#10B981", borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 },
+  pubBadgeText: { fontFamily: "Poppins_700Bold", fontSize: 11, color: "#fff" },
+
+  pubModalContainer: { flex: 1 },
+  pubModalHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1,
+  },
+  pubModalTitle: { fontFamily: "Poppins_700Bold", fontSize: 17 },
+  pubTabRow: { flexDirection: "row", borderBottomWidth: 1 },
+  pubTab: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: "transparent",
+  },
+  pubTabText: { fontFamily: "Poppins_600SemiBold", fontSize: 12 },
+  pubTabBadge: { borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
+  pubTabBadgeText: { fontFamily: "Poppins_700Bold", fontSize: 10 },
+  pubItem: {
+    flexDirection: "row", alignItems: "flex-start", gap: 12,
+    borderRadius: 12, borderWidth: 1, padding: 12,
+  },
+  pubItemIcon: { width: 42, height: 42, borderRadius: 11, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  pubItemTitle: { fontFamily: "Poppins_600SemiBold", fontSize: 13 },
+  pubTypeBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  pubTypeBadgeText: { fontFamily: "Poppins_600SemiBold", fontSize: 10 },
+  pubProgressTrack: { height: 4, borderRadius: 2, width: "100%", overflow: "hidden" },
+  pubProgressFill: { height: 4, borderRadius: 2, backgroundColor: "#10B981" },
+  pubVoirBtn: {
+    backgroundColor: "#FF6B00", borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 6, alignSelf: "center", flexShrink: 0,
+  },
+  pubVoirBtnText: { fontFamily: "Poppins_700Bold", fontSize: 12, color: "#fff" },
 });
 
 const odStyles = StyleSheet.create({
