@@ -308,7 +308,7 @@ export default function VideoPublishSettings() {
           </View>
 
           {/* Filtres par menu — onglets compacts */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.sectionTabs}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 0 }} contentContainerStyle={s.sectionTabs}>
             <TouchableOpacity
               style={[s.sectionTab, activeMenuFilter === "all" && s.sectionTabActive]}
               onPress={() => { setActiveMenuFilter("all"); Haptics.selectionAsync(); }}
