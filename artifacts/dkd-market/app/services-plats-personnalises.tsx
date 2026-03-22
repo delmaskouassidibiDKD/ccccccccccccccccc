@@ -224,22 +224,35 @@ function MiniChefRobot({ active }: { active: boolean }) {
   return (
     <View style={{ width: 44, height: 44, overflow: "hidden", position: "relative", backgroundColor: headColor }}>
 
-      {/* ── TOQUE : zone blanche en haut ── */}
-      <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 15, backgroundColor: "#FAFAFA" }}>
-        {/* Ligne séparatrice toque/tête */}
-        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1.5, backgroundColor: "#E2E8F0" }} />
-        {/* Stries de la toque */}
-        <View style={{ position: "absolute", top: 3, left: 8, right: 8, gap: 3 }}>
-          <View style={{ height: 1, backgroundColor: "rgba(180,180,180,0.4)" }} />
-          <View style={{ height: 1, backgroundColor: "rgba(180,180,180,0.4)" }} />
-        </View>
+      {/* ── TOQUE DE CHEF ── forme emblématique : puff + bande */}
+      {/* Puff arrondi (dome) — plus étroit que la bande */}
+      <View style={{
+        position: "absolute", top: 0,
+        left: 11, width: 22, height: 13,
+        borderTopLeftRadius: 11, borderTopRightRadius: 11,
+        borderBottomLeftRadius: 2, borderBottomRightRadius: 2,
+        backgroundColor: "#FFFFFF",
+      }} />
+      {/* Bande (band) — plus large que le puff, caractéristique de la toque */}
+      <View style={{
+        position: "absolute", top: 11,
+        left: 4, right: 4, height: 10,
+        backgroundColor: "#F0F0EE",
+        borderTopLeftRadius: 1, borderTopRightRadius: 1,
+        borderBottomLeftRadius: 3, borderBottomRightRadius: 3,
+        borderWidth: 1, borderColor: "#DDDBD6",
+      }}>
+        {/* Fine ligne de couture au milieu de la bande */}
+        <View style={{ position: "absolute", top: 4, left: 4, right: 4, height: 1, backgroundColor: "rgba(180,175,165,0.45)" }} />
       </View>
+      {/* Ligne séparatrice entre toque et visage */}
+      <View style={{ position: "absolute", top: 21, left: 0, right: 0, height: 1, backgroundColor: "rgba(0,0,0,0.08)" }} />
 
-      {/* ── VISAGE : zone bleue en dessous ── */}
-      <View style={{ position: "absolute", top: 15, left: 0, right: 0, bottom: 0, alignItems: "center" }}>
+      {/* ── VISAGE ── */}
+      <View style={{ position: "absolute", top: 22, left: 0, right: 0, bottom: 0, alignItems: "center" }}>
 
         {/* Yeux */}
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 5 }}>
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 3 }}>
           {[0, 1].map((i) => (
             <View key={i} style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: irisColor, alignItems: "center", justifyContent: "center" }}>
@@ -250,13 +263,13 @@ function MiniChefRobot({ active }: { active: boolean }) {
         </View>
 
         {/* Joues */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", width: 34, marginTop: 2 }}>
-          <View style={{ width: 7, height: 4, borderRadius: 4, backgroundColor: "rgba(255,145,155,0.4)" }} />
-          <View style={{ width: 7, height: 4, borderRadius: 4, backgroundColor: "rgba(255,145,155,0.4)" }} />
+        <View style={{ flexDirection: "row", justifyContent: "space-between", width: 32, marginTop: 1 }}>
+          <View style={{ width: 7, height: 4, borderRadius: 4, backgroundColor: "rgba(255,145,155,0.42)" }} />
+          <View style={{ width: 7, height: 4, borderRadius: 4, backgroundColor: "rgba(255,145,155,0.42)" }} />
         </View>
 
         {/* Sourire */}
-        <View style={{ width: 14, height: 6, borderBottomLeftRadius: 7, borderBottomRightRadius: 7, borderWidth: 2, borderTopWidth: 0, borderColor: "#1A6080", marginTop: 2 }} />
+        <View style={{ width: 14, height: 6, borderBottomLeftRadius: 7, borderBottomRightRadius: 7, borderWidth: 2, borderTopWidth: 0, borderColor: "#1A6080", marginTop: 1 }} />
       </View>
 
     </View>
