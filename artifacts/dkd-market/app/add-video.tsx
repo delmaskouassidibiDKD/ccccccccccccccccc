@@ -44,8 +44,14 @@ export default function AddVideoPage() {
   const [selectedSound, setSelectedSound] = useState<SoundItem | null>(null);
   const [trimStartMs, setTrimStartMs] = useState(0);
   const [trimEndMs, setTrimEndMs] = useState(60000);
-  const videoRef = useRef<Video>(null);
+  const videoRef    = useRef<Video>(null);
+  const webVideoRef = useRef<any>(null);
   const soundTrimRef = useRef<SoundTrimPlayerRef>(null);
+
+  const pauseAllMedia = () => {
+    try { videoRef.current?.pauseAsync(); } catch (_) {}
+    try { webVideoRef.current?.pause(); }  catch (_) {}
+  };
 
   useEffect(() => {
     const unsub = soundPickerStore.onSelected((sound) => {
@@ -59,9 +65,7 @@ export default function AddVideoPage() {
   /* Pause la vidéo dès que cette page perd le focus (navigation vers une autre page) */
   useFocusEffect(
     useCallback(() => {
-      return () => {
-        videoRef.current?.pauseAsync().catch(() => {});
-      };
+      return () => { pauseAllMedia(); };
     }, [])
   );
 
@@ -124,7 +128,7 @@ export default function AddVideoPage() {
       return;
     }
     /* Arrêt explicite de la vidéo avant de quitter la page */
-    await videoRef.current?.pauseAsync().catch(() => {});
+    pauseAllMedia();
     await soundTrimRef.current?.stop();
     Haptics.selectionAsync();
     router.push({
@@ -237,6 +241,7 @@ export default function AddVideoPage() {
             <View style={styles.videoWrap}>
               {Platform.OS === "web"
                 ? React.createElement("video", {
+                    ref: webVideoRef,
                     src: videoUri,
                     controls: true,
                     style: {
