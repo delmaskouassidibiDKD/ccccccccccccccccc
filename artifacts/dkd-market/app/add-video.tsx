@@ -382,7 +382,7 @@ export default function AddVideoPage() {
           <>
             {/* Toggle article */}
             <View style={styles.vidField}>
-              <View style={styles.vidToggleRow}>
+              <View style={[styles.vidToggleRow, { backgroundColor: dCARD, borderColor: dBORDER }]}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.sectionLabel, { color: dSUB }]}>Associer un article</Text>
                   <Text style={[styles.vidToggleDesc, { color: dMUTED }]}>{articleEnabled ? "Liez ce contenu à vos produits" : "Désactivé"}</Text>
@@ -390,13 +390,13 @@ export default function AddVideoPage() {
                 <Switch
                   value={articleEnabled}
                   onValueChange={(v) => { setArticleEnabled(v); if (!v) setSelectedArticle(null); Haptics.selectionAsync(); }}
-                  trackColor={{ false: "#2D2D2D", true: "#FF6B0055" }}
-                  thumbColor={articleEnabled ? "#FF6B00" : "#4B5563"}
+                  trackColor={{ false: isDark ? "#2D2D2D" : "#D1D5DB", true: "#FF6B0055" }}
+                  thumbColor={articleEnabled ? "#FF6B00" : "#9CA3AF"}
                 />
               </View>
               {articleEnabled && (
                 <TouchableOpacity
-                  style={[styles.vidArticleBtn, selectedArticle && styles.vidArticleBtnFilled]}
+                  style={[styles.vidArticleBtn, { backgroundColor: dCARD }, selectedArticle && styles.vidArticleBtnFilled]}
                   onPress={() => { setShowArticleModal(true); setArticleSearch(""); setActiveMenuFilter("all"); Haptics.selectionAsync(); }}
                   activeOpacity={0.8}
                 >
@@ -406,13 +406,13 @@ export default function AddVideoPage() {
                         <Ionicons name={sectionMeta(selectedArticle.section)?.icon as any ?? "bag-handle"} size={20} color={sectionMeta(selectedArticle.section)?.color ?? "#FF6B00"} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.vidArticleTitle} numberOfLines={1}>{selectedArticle.title}</Text>
+                        <Text style={[styles.vidArticleTitle, { color: dTEXT }]} numberOfLines={1}>{selectedArticle.title}</Text>
                         <Text style={[styles.vidArticleMeta, { color: sectionMeta(selectedArticle.section)?.color ?? "#FF6B00" }]}>
                           {sectionMeta(selectedArticle.section)?.label} • {selectedArticle.price}
                         </Text>
                       </View>
                       <TouchableOpacity onPress={(e) => { e.stopPropagation(); setSelectedArticle(null); Haptics.selectionAsync(); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                        <Ionicons name="close-circle" size={20} color="#4B5563" />
+                        <Ionicons name="close-circle" size={20} color={dMUTED} />
                       </TouchableOpacity>
                     </View>
                   ) : (
@@ -421,10 +421,10 @@ export default function AddVideoPage() {
                         <Ionicons name="bag-add-outline" size={22} color="#FF6B00" />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.vidArticleEmptyTitle}>Choisir un article</Text>
-                        <Text style={styles.vidArticleEmptyDesc}>Vendeur · Gastronomie · Marché…</Text>
+                        <Text style={[styles.vidArticleEmptyTitle, { color: dTEXT }]}>Choisir un article</Text>
+                        <Text style={[styles.vidArticleEmptyDesc, { color: dMUTED }]}>Vendeur · Gastronomie · Marché…</Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={18} color="#4B5563" />
+                      <Ionicons name="chevron-forward" size={18} color={dMUTED} />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -639,11 +639,11 @@ export default function AddVideoPage() {
 
       {/* ── Modal Articles Vidéo ── */}
       <Modal visible={showArticleModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowArticleModal(false)}>
-        <View style={[styles.artModalContainer, { paddingTop: insets.top > 0 ? 16 : 32 }]}>
-          <View style={styles.artModalHeader}>
-            <Text style={styles.artModalTitle}>Associer un article</Text>
+        <View style={[styles.artModalContainer, { backgroundColor: dBG, paddingTop: insets.top > 0 ? 16 : 32 }]}>
+          <View style={[styles.artModalHeader, { borderBottomColor: dBORDER }]}>
+            <Text style={[styles.artModalTitle, { color: dTEXT }]}>Associer un article</Text>
             <TouchableOpacity onPress={() => setShowArticleModal(false)} style={{ padding: 4 }}>
-              <Ionicons name="close" size={22} color="#fff" />
+              <Ionicons name="close" size={22} color={dTEXT} />
             </TouchableOpacity>
           </View>
 
@@ -651,19 +651,19 @@ export default function AddVideoPage() {
           <View style={{ height: 40 }}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.artTabs}>
               <TouchableOpacity
-                style={[styles.artTab, activeMenuFilter === "all" && styles.artTabActive]}
+                style={[styles.artTab, { backgroundColor: dCARD, borderColor: dBORDER }, activeMenuFilter === "all" && styles.artTabActive]}
                 onPress={() => { setActiveMenuFilter("all"); Haptics.selectionAsync(); }}
               >
-                <Text style={[styles.artTabText, activeMenuFilter === "all" && { color: "#FF6B00" }]}>Tous</Text>
+                <Text style={[styles.artTabText, { color: dMUTED }, activeMenuFilter === "all" && { color: "#FF6B00" }]}>Tous</Text>
               </TouchableOpacity>
               {TAB_FILTERS.map((tab) => (
                 <TouchableOpacity
                   key={tab.key}
-                  style={[styles.artTab, activeMenuFilter === tab.key && [styles.artTabActive, { borderColor: tab.color }]]}
+                  style={[styles.artTab, { backgroundColor: dCARD, borderColor: dBORDER }, activeMenuFilter === tab.key && [styles.artTabActive, { borderColor: tab.color }]]}
                   onPress={() => { setActiveMenuFilter(tab.key); Haptics.selectionAsync(); }}
                 >
-                  <Ionicons name={tab.icon as any} size={12} color={activeMenuFilter === tab.key ? tab.color : "#6B7280"} />
-                  <Text style={[styles.artTabText, activeMenuFilter === tab.key && { color: tab.color }]}>{tab.label}</Text>
+                  <Ionicons name={tab.icon as any} size={12} color={activeMenuFilter === tab.key ? tab.color : dMUTED} />
+                  <Text style={[styles.artTabText, { color: dMUTED }, activeMenuFilter === tab.key && { color: tab.color }]}>{tab.label}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -671,18 +671,18 @@ export default function AddVideoPage() {
 
           {/* Recherche (sauf onglet Service) */}
           {activeMenuFilter !== "service" && (
-            <View style={styles.artSearch}>
-              <Ionicons name="search-outline" size={18} color="#4B5563" />
+            <View style={[styles.artSearch, { backgroundColor: dCARD, borderColor: dBORDER }]}>
+              <Ionicons name="search-outline" size={18} color={dMUTED} />
               <TextInput
-                style={styles.artSearchInput}
+                style={[styles.artSearchInput, { color: dTEXT }]}
                 placeholder="Rechercher un article…"
-                placeholderTextColor="#4B5563"
+                placeholderTextColor={dMUTED}
                 value={articleSearch}
                 onChangeText={setArticleSearch}
               />
               {articleSearch.length > 0 && (
                 <TouchableOpacity onPress={() => setArticleSearch("")}>
-                  <Ionicons name="close-circle" size={16} color="#4B5563" />
+                  <Ionicons name="close-circle" size={16} color={dMUTED} />
                 </TouchableOpacity>
               )}
             </View>
@@ -705,12 +705,12 @@ export default function AddVideoPage() {
                     <Ionicons name={(opt.icon ?? "bag-handle-outline") as any} size={22} color={opt.color ?? "#FF6B00"} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.artRowTitle, { fontSize: 15 }]}>{opt.title}</Text>
-                    <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 12, color: "#6B7280", marginTop: 2 }}>{opt.subtitle}</Text>
+                    <Text style={[styles.artRowTitle, { fontSize: 15, color: dTEXT }]}>{opt.title}</Text>
+                    <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 12, color: dMUTED, marginTop: 2 }}>{opt.subtitle}</Text>
                   </View>
                   {selectedArticle?.id === opt.id
                     ? <Ionicons name="checkmark-circle" size={22} color="#FF6B00" />
-                    : <Ionicons name="chevron-forward-outline" size={18} color="#4B5563" />
+                    : <Ionicons name="chevron-forward-outline" size={18} color={dMUTED} />
                   }
                 </TouchableOpacity>
               ))}
@@ -723,8 +723,8 @@ export default function AddVideoPage() {
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={
                 <View style={{ paddingVertical: 40, alignItems: "center" }}>
-                  <Ionicons name="bag-outline" size={36} color="#2D2D2D" />
-                  <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 13, color: "#4B5563", marginTop: 10, textAlign: "center" }}>
+                  <Ionicons name="bag-outline" size={36} color={dBORDER} />
+                  <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 13, color: dMUTED, marginTop: 10, textAlign: "center" }}>
                     Aucun article dans cette section
                   </Text>
                 </View>
@@ -741,19 +741,19 @@ export default function AddVideoPage() {
                       <Ionicons name={meta?.icon as any ?? "bag-handle-outline"} size={20} color={meta?.color ?? "#FF6B00"} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.artRowTitle} numberOfLines={1}>{item.title}</Text>
+                      <Text style={[styles.artRowTitle, { color: dTEXT }]} numberOfLines={1}>{item.title}</Text>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
                         <View style={[styles.artSectionPill, { backgroundColor: (meta?.color ?? "#FF6B00") + "18" }]}>
                           <Text style={[styles.artSectionPillText, { color: meta?.color ?? "#FF6B00" }]}>{meta?.label}</Text>
                         </View>
-                        <Text style={styles.artRowMeta}>{item.price}</Text>
+                        <Text style={[styles.artRowMeta, { color: dMUTED }]}>{item.price}</Text>
                       </View>
                     </View>
                     {selectedArticle?.id === item.id && <Ionicons name="checkmark-circle" size={20} color="#FF6B00" />}
                   </TouchableOpacity>
                 );
               }}
-              ItemSeparatorComponent={() => <View style={styles.artSep} />}
+              ItemSeparatorComponent={() => <View style={[styles.artSep, { backgroundColor: dBORDER }]} />}
             />
           )}
         </View>
