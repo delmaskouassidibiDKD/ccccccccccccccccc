@@ -8,6 +8,9 @@ import {
   Platform,
   Alert,
   Image,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +24,20 @@ import { useTheme } from "../contexts/ThemeContext";
 
 type Mode = null | "video" | "photo";
 
+type PhotoPrice = { name: string; price: string; currency: string };
+
+const CURRENCIES = [
+  { code: "FCFA", symbol: "FCFA", flag: "🇨🇮" },
+  { code: "EUR",  symbol: "€",    flag: "🇪🇺" },
+  { code: "USD",  symbol: "$",    flag: "🇺🇸" },
+  { code: "GBP",  symbol: "£",    flag: "🇬🇧" },
+  { code: "NGN",  symbol: "₦",    flag: "🇳🇬" },
+  { code: "GHS",  symbol: "₵",    flag: "🇬🇭" },
+  { code: "MAD",  symbol: "MAD",  flag: "🇲🇦" },
+  { code: "KES",  symbol: "KSh",  flag: "🇰🇪" },
+  { code: "XAF",  symbol: "XAF",  flag: "🇨🇲" },
+  { code: "MGA",  symbol: "Ar",   flag: "🇲🇬" },
+];
 
 export default function AddVideoPage() {
   const router = useRouter();
@@ -47,6 +64,13 @@ export default function AddVideoPage() {
   const videoRef    = useRef<Video>(null);
   const webVideoRef = useRef<any>(null);
   const soundTrimRef = useRef<SoundTrimPlayerRef>(null);
+
+  const [photoPrices, setPhotoPrices] = useState<Record<number, PhotoPrice>>({});
+  const [pricingIdx, setPricingIdx] = useState<number | null>(null);
+  const [priceModalName, setPriceModalName] = useState("");
+  const [priceModalPrice, setPriceModalPrice] = useState("");
+  const [priceModalCurrency, setPriceModalCurrency] = useState("FCFA");
+  const [showCurrencyDrop, setShowCurrencyDrop] = useState(false);
 
   const pauseAllMedia = () => {
     try { videoRef.current?.pauseAsync(); } catch (_) {}
@@ -226,7 +250,7 @@ export default function AddVideoPage() {
         {/* Reset */}
         {mode !== null && (
           <TouchableOpacity
-            onPress={() => { setMode(null); setVideoUri(null); setPhotos([]); setSelectedSound(null); setTrimStartMs(0); setTrimEndMs(60000); }}
+            onPress={() => { setMode(null); setVideoUri(null); setPhotos([]); setSelectedSound(null); setTrimStartMs(0); setTrimEndMs(60000); setPhotoPrices({}); }}
             style={styles.resetBtn}
           >
             <Ionicons name="refresh-outline" size={14} color="#9CA3AF" />
@@ -341,6 +365,23 @@ export default function AddVideoPage() {
                       <View style={styles.photoIndex}>
                         <Text style={styles.photoIndexText}>{idx + 1}</Text>
                       </View>
+                      <TouchableOpacity
+                        style={[styles.priceTag, photoPrices[idx] ? styles.priceTagFilled : {}]}
+                        onPress={() => {
+                          const existing = photoPrices[idx];
+                          setPriceModalName(existing?.name ?? "");
+                          setPriceModalPrice(existing?.price ?? "");
+                          setPriceModalCurrency(existing?.currency ?? "FCFA");
+                          setShowCurrencyDrop(false);
+                          setPricingIdx(idx);
+                          Haptics.selectionAsync();
+                        }}
+                      >
+                        <Ionicons name="pricetag-outline" size={9} color="#fff" />
+                        <Text style={styles.priceTagText} numberOfLines={1}>
+                          {photoPrices[idx] ? `${photoPrices[idx].price} ${photoPrices[idx].currency}` : "Prix"}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
                   ))}
                   {photos.length < 15 && (
@@ -386,6 +427,110 @@ export default function AddVideoPage() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* ── Modal Prix Photo ── */}
+      <Modal
+        visible={pricingIdx !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setPricingIdx(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.priceOverlay}
+        >
+          <TouchableOpacity style={styles.priceBackdrop} activeOpacity={1} onPress={() => setPricingIdx(null)} />
+          <View style={styles.priceSheet}>
+            {/* En-tête */}
+            <View style={styles.priceSheetHeader}>
+              <Text style={styles.priceSheetTitle}>Détails du produit</Text>
+              <TouchableOpacity onPress={() => setPricingIdx(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={22} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Sélecteur monnaie */}
+            <View style={styles.currencySection}>
+              <Text style={styles.priceLabel}>Monnaie</Text>
+              <TouchableOpacity
+                style={styles.currencyBtn}
+                onPress={() => setShowCurrencyDrop(!showCurrencyDrop)}
+              >
+                <Text style={styles.currencyBtnText}>{priceModalCurrency}</Text>
+                <Ionicons name={showCurrencyDrop ? "chevron-up" : "chevron-down"} size={16} color="#FF6B00" />
+              </TouchableOpacity>
+              {showCurrencyDrop && (
+                <View style={styles.currencyDrop}>
+                  <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 180 }}>
+                    {CURRENCIES.map(c => (
+                      <TouchableOpacity
+                        key={c.code}
+                        style={[styles.currencyItem, priceModalCurrency === c.code && styles.currencyItemActive]}
+                        onPress={() => { setPriceModalCurrency(c.code); setShowCurrencyDrop(false); }}
+                      >
+                        <Text style={styles.currencyFlag}>{c.flag}</Text>
+                        <Text style={[styles.currencyItemText, priceModalCurrency === c.code && { color: "#FF6B00" }]}>
+                          {c.code} • {c.symbol}
+                        </Text>
+                        {priceModalCurrency === c.code && <Ionicons name="checkmark" size={15} color="#FF6B00" />}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+
+            {/* Nom du produit */}
+            <View style={styles.priceField}>
+              <Text style={styles.priceLabel}>Nom du produit</Text>
+              <TextInput
+                style={styles.priceInput}
+                placeholder="Ex : Pagne wax 6 yards…"
+                placeholderTextColor="#4B5563"
+                value={priceModalName}
+                onChangeText={setPriceModalName}
+                onFocus={() => setShowCurrencyDrop(false)}
+              />
+            </View>
+
+            {/* Prix */}
+            <View style={styles.priceField}>
+              <Text style={styles.priceLabel}>Prix</Text>
+              <TextInput
+                style={styles.priceInput}
+                placeholder="Ex : 12 500"
+                placeholderTextColor="#4B5563"
+                value={priceModalPrice}
+                onChangeText={setPriceModalPrice}
+                keyboardType="numeric"
+                onFocus={() => setShowCurrencyDrop(false)}
+              />
+            </View>
+
+            {/* Bouton Appliquer */}
+            {priceModalName.trim().length > 0 && priceModalPrice.trim().length > 0 && (
+              <TouchableOpacity
+                style={styles.applyBtn}
+                onPress={() => {
+                  setPhotoPrices(prev => ({
+                    ...prev,
+                    [pricingIdx!]: {
+                      name: priceModalName.trim(),
+                      price: priceModalPrice.trim(),
+                      currency: priceModalCurrency,
+                    },
+                  }));
+                  setPricingIdx(null);
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                }}
+              >
+                <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                <Text style={styles.applyBtnText}>Appliquer</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
     </View>
   );
@@ -589,5 +734,103 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     paddingHorizontal: 20,
   },
+
+  priceTag: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "#EF4444",
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 3,
+  },
+  priceTagFilled: { backgroundColor: "#22C55E" },
+  priceTagText: { fontFamily: "Poppins_700Bold", fontSize: 9, color: "#fff", maxWidth: 60 },
+
+  priceOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  priceBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  priceSheet: {
+    backgroundColor: "#1A1A1A",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 40,
+    gap: 14,
+  },
+  priceSheetHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  priceSheetTitle: { fontFamily: "Poppins_700Bold", fontSize: 16, color: "#fff" },
+
+  currencySection: { gap: 6 },
+  currencyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#252525",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#3D3D3D",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  currencyBtnText: { fontFamily: "Poppins_600SemiBold", fontSize: 14, color: "#fff" },
+  currencyDrop: {
+    backgroundColor: "#252525",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#3D3D3D",
+    overflow: "hidden",
+  },
+  currencyItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#333",
+  },
+  currencyItemActive: { backgroundColor: "#FF6B0015" },
+  currencyFlag: { fontSize: 18 },
+  currencyItemText: { flex: 1, fontFamily: "Poppins_500Medium", fontSize: 13, color: "#E5E7EB" },
+
+  priceField: { gap: 6 },
+  priceLabel: { fontFamily: "Poppins_600SemiBold", fontSize: 12, color: "#9CA3AF" },
+  priceInput: {
+    backgroundColor: "#252525",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#3D3D3D",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: "Poppins_400Regular",
+    fontSize: 14,
+    color: "#fff",
+  },
+  applyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#22C55E",
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 4,
+  },
+  applyBtnText: { fontFamily: "Poppins_700Bold", fontSize: 15, color: "#fff" },
 
 });
