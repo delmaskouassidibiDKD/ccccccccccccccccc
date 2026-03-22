@@ -215,68 +215,6 @@ function CuteChefRobot({ size = 100 }: { size?: number }) {
 }
 
 /* ═══════════════════════════════════════════════
-   VERSION MINIATURE pour le drawer (44px)
-   ═══════════════════════════════════════════════ */
-function MiniChefRobot({ active }: { active: boolean }) {
-  const headColor = active ? "#60C5E4" : "#90BAC8";
-  const irisColor = active ? ACCENT : "#6B9FAD";
-
-  return (
-    <View style={{ width: 44, height: 44, overflow: "hidden", position: "relative", backgroundColor: headColor }}>
-
-      {/* ── TOQUE DE CHEF ── forme emblématique : puff + bande */}
-      {/* Puff arrondi (dome) — plus étroit que la bande */}
-      <View style={{
-        position: "absolute", top: 0,
-        left: 11, width: 22, height: 13,
-        borderTopLeftRadius: 11, borderTopRightRadius: 11,
-        borderBottomLeftRadius: 2, borderBottomRightRadius: 2,
-        backgroundColor: "#FFFFFF",
-      }} />
-      {/* Bande (band) — plus large que le puff, caractéristique de la toque */}
-      <View style={{
-        position: "absolute", top: 11,
-        left: 4, right: 4, height: 10,
-        backgroundColor: "#F0F0EE",
-        borderTopLeftRadius: 1, borderTopRightRadius: 1,
-        borderBottomLeftRadius: 3, borderBottomRightRadius: 3,
-        borderWidth: 1, borderColor: "#DDDBD6",
-      }}>
-        {/* Fine ligne de couture au milieu de la bande */}
-        <View style={{ position: "absolute", top: 4, left: 4, right: 4, height: 1, backgroundColor: "rgba(180,175,165,0.45)" }} />
-      </View>
-      {/* Ligne séparatrice entre toque et visage */}
-      <View style={{ position: "absolute", top: 21, left: 0, right: 0, height: 1, backgroundColor: "rgba(0,0,0,0.08)" }} />
-
-      {/* ── VISAGE ── */}
-      <View style={{ position: "absolute", top: 22, left: 0, right: 0, bottom: 0, alignItems: "center" }}>
-
-        {/* Yeux */}
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 3 }}>
-          {[0, 1].map((i) => (
-            <View key={i} style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" }}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: irisColor, alignItems: "center", justifyContent: "center" }}>
-                <View style={{ position: "absolute", top: 1, left: 1, width: 2, height: 2, borderRadius: 1, backgroundColor: "rgba(255,255,255,0.9)" }} />
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Joues */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", width: 32, marginTop: 1 }}>
-          <View style={{ width: 7, height: 4, borderRadius: 4, backgroundColor: "rgba(255,145,155,0.42)" }} />
-          <View style={{ width: 7, height: 4, borderRadius: 4, backgroundColor: "rgba(255,145,155,0.42)" }} />
-        </View>
-
-        {/* Sourire */}
-        <View style={{ width: 14, height: 6, borderBottomLeftRadius: 7, borderBottomRightRadius: 7, borderWidth: 2, borderTopWidth: 0, borderColor: "#1A6080", marginTop: 1 }} />
-      </View>
-
-    </View>
-  );
-}
-
-/* ═══════════════════════════════════════════════
    PAGE PRINCIPALE
    ═══════════════════════════════════════════════ */
 export default function ServicesPlatsPersonnalisesPage() {
@@ -406,13 +344,15 @@ export default function ServicesPlatsPersonnalisesPage() {
               onPress={() => selectSection("chef-ia")}
               activeOpacity={0.75}
             >
-              {/* Icône robot miniature */}
+              {/* Même robot que la page principale, juste réduit à size=34 */}
               <View style={[s.drawerItemIcon, {
                 backgroundColor: isActive
                   ? ACCENT + "18"
                   : isDark ? "#1E293B" : "#F1F5F9",
+                alignItems: "center",
+                justifyContent: "center",
               }]}>
-                <MiniChefRobot active={isActive} />
+                <CuteChefRobot size={34} />
               </View>
 
               <View style={{ flex: 1 }}>
