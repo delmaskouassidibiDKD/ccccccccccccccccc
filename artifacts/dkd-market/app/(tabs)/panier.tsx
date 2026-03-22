@@ -600,7 +600,7 @@ function MessagesTab() {
           conversations.map((conv) => (
             <TouchableOpacity
               key={conv.id}
-              style={[styles.convRow, { backgroundColor: dCARD, borderBottomColor: dBORDER }]}
+              style={[styles.convRow, { backgroundColor: colors.backgroundCard, borderBottomColor: colors.border }]}
               activeOpacity={0.75}
               onPress={() => {
                 Haptics.selectionAsync();
@@ -613,16 +613,16 @@ function MessagesTab() {
                 <View style={styles.convAvatar}>
                   <Text style={styles.convInitials}>{conv.initials}</Text>
                 </View>
-                {conv.online && <View style={[styles.convOnline, { borderColor: dCARD }]} />}
+                {conv.online && <View style={[styles.convOnline, { borderColor: colors.backgroundCard }]} />}
               </View>
               <View style={styles.convBody}>
                 <View style={styles.convTop}>
-                  <Text style={[styles.convName, { color: dTEXT }, conv.unread > 0 && styles.convNameBold]}>{conv.name}</Text>
-                  <Text style={[styles.convTime, conv.unread > 0 ? styles.convTimeUnread : { color: dMUTED }]}>{conv.time}</Text>
+                  <Text style={[styles.convName, { color: colors.text }, conv.unread > 0 && styles.convNameBold]}>{conv.name}</Text>
+                  <Text style={[styles.convTime, conv.unread > 0 ? styles.convTimeUnread : { color: colors.textMuted }]}>{conv.time}</Text>
                 </View>
                 <View style={styles.convBottom}>
                   {conv.read && <Text style={styles.convTick}>✓✓ </Text>}
-                  <Text style={[styles.convPreview, { color: conv.unread === 0 ? dMUTED : dTEXT }]} numberOfLines={1}>{conv.preview}</Text>
+                  <Text style={[styles.convPreview, { color: conv.unread === 0 ? colors.textMuted : colors.text }]} numberOfLines={1}>{conv.preview}</Text>
                   {conv.unread > 0 && (
                     <View style={styles.convBadge}>
                       <Text style={styles.convBadgeText}>{conv.unread}</Text>
