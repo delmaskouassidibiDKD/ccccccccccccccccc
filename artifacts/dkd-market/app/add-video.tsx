@@ -438,13 +438,13 @@ export default function AddVideoPage() {
                 Titre <Text style={styles.required}>* obligatoire</Text>
               </Text>
               <TextInput
-                style={[styles.descInput, { backgroundColor: isDark ? "#1A1A1A" : "#F3F4F6", color: dTEXT, borderColor: vidTitle.trim().length === 0 ? (isDark ? "#EF444430" : "#EF444430") : (isDark ? "#2D2D2D" : "rgba(0,0,0,0.1)"), minHeight: 44, paddingTop: 12 }]}
+                style={[styles.titleInput, { backgroundColor: isDark ? "#1A1A1A" : "#F3F4F6", color: dTEXT, borderColor: vidTitle.trim().length === 0 ? "#EF444430" : (isDark ? "#2D2D2D" : "rgba(0,0,0,0.1)") }]}
                 placeholder="Titre de votre vidéo…"
                 placeholderTextColor="#6B7280"
                 value={vidTitle}
                 onChangeText={setVidTitle}
                 maxLength={80}
-                textAlignVertical="top"
+                returnKeyType="done"
               />
               <Text style={[styles.descCount, vidTitle.trim().length === 0 && { color: "#EF4444" }]}>
                 {vidTitle.length}/80{vidTitle.trim().length === 0 ? "  — requis" : ""}
@@ -954,6 +954,15 @@ const styles = StyleSheet.create({
   artSectionPill: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   artSectionPillText: { fontFamily: "Poppins_600SemiBold", fontSize: 10 },
 
+  titleInput: {
+    borderRadius: 10,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontFamily: "Poppins_400Regular",
+    fontSize: 14,
+    height: 44,
+  },
   descSection: { gap: 6 },
   optionalTag: { fontFamily: "Poppins_400Regular", fontSize: 11, color: "#9CA3AF" },
   descInput: {
