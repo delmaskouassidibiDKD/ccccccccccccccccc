@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,9 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
+  Switch,
+  FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,8 +26,53 @@ import SoundTrimPlayer, { SoundTrimPlayerRef } from "@/components/SoundTrimPlaye
 import { useTheme } from "../contexts/ThemeContext";
 
 type Mode = null | "video" | "photo";
-
 type PhotoPrice = { name: string; price: string; currency: string };
+
+type MenuKey = "vendeur" | "gastro" | "marche" | "supermarche" | "grossiste" | "importe" | "perso" | "svc-gastro";
+type FilterKey = MenuKey | "all" | "service";
+type Article = { id: string; title: string; price: string; section: MenuKey; subtitle?: string; icon?: string; color?: string };
+
+const MENU_SECTIONS: { key: MenuKey; label: string; icon: string; color: string }[] = [
+  { key: "vendeur",     label: "Vendeur",                  icon: "storefront-outline",  color: "#FF6B00" },
+  { key: "gastro",      label: "Gastronomie",              icon: "restaurant-outline",  color: "#EC4899" },
+  { key: "marche",      label: "Marché",                   icon: "basket-outline",      color: "#22C55E" },
+  { key: "supermarche", label: "Super Marché",             icon: "cart-outline",        color: "#3B82F6" },
+  { key: "grossiste",   label: "Grossiste",                icon: "cube-outline",        color: "#F59E0B" },
+  { key: "perso",       label: "Personnalisation",         icon: "color-wand-outline",  color: "#A855F7" },
+  { key: "importe",     label: "Importé",                  icon: "airplane-outline",    color: "#8B5CF6" },
+  { key: "svc-gastro",  label: "Service plats sur mesure", icon: "sparkles-outline",    color: "#06B6D4" },
+];
+const TAB_FILTERS: { key: FilterKey; label: string; icon: string; color: string }[] = [
+  { key: "vendeur",     label: "Vendeur",          icon: "storefront-outline",  color: "#FF6B00" },
+  { key: "gastro",      label: "Gastronomie",      icon: "restaurant-outline",  color: "#EC4899" },
+  { key: "marche",      label: "Marché",           icon: "basket-outline",      color: "#22C55E" },
+  { key: "supermarche", label: "Super Marché",     icon: "cart-outline",        color: "#3B82F6" },
+  { key: "grossiste",   label: "Grossiste",        icon: "cube-outline",        color: "#F59E0B" },
+  { key: "perso",       label: "Personnalisation", icon: "color-wand-outline",  color: "#A855F7" },
+  { key: "service",     label: "Service",          icon: "briefcase-outline",   color: "#06B6D4" },
+];
+const DEMO_ARTICLES: Article[] = [
+  { id: "v1",  title: "Pagne wax Java 6 yards",       price: "12 500 FCFA",  section: "vendeur" },
+  { id: "v2",  title: "Sac à main cuir marron",       price: "8 000 FCFA",   section: "vendeur" },
+  { id: "v3",  title: "Casque audio Bluetooth",       price: "15 000 FCFA",  section: "vendeur" },
+  { id: "g1",  title: "Poulet braisé sauce arachide", price: "3 500 FCFA",   section: "gastro" },
+  { id: "g2",  title: "Attiéké poisson grillé",       price: "2 500 FCFA",   section: "gastro" },
+  { id: "g3",  title: "Thiéboudienne royal",          price: "4 000 FCFA",   section: "gastro" },
+  { id: "m1",  title: "Huile de palme rouge 5L",      price: "3 200 FCFA",   section: "marche" },
+  { id: "m2",  title: "Sac de riz local 25kg",        price: "18 000 FCFA",  section: "marche" },
+  { id: "m3",  title: "Tomates fraîches 1kg",         price: "700 FCFA",     section: "marche" },
+  { id: "sm1", title: "Lait concentré sucré x6",      price: "5 400 FCFA",   section: "supermarche" },
+  { id: "sm2", title: "Jus de fruit tropicaux 1L",    price: "1 200 FCFA",   section: "supermarche" },
+  { id: "gr1", title: "Carton de savon Omo 24u",      price: "28 000 FCFA",  section: "grossiste" },
+  { id: "gr2", title: "Carton biscuits Prince 12u",   price: "14 000 FCFA",  section: "grossiste" },
+  { id: "p1",  title: "Broderie personnalisée boubou",price: "12 000 FCFA",  section: "perso" },
+  { id: "p2",  title: "Couture robe sur mesure",      price: "25 000 FCFA",  section: "perso" },
+  { id: "im1", title: "iPhone 15 Pro Max 256Go",      price: "850 000 FCFA", section: "importe" },
+  { id: "im2", title: "Montre connectée Samsung",     price: "95 000 FCFA",  section: "importe" },
+  { id: "sg1", title: "Chef privé pour événement",    price: "75 000 FCFA",  section: "svc-gastro" },
+  { id: "sg2", title: "Traiteur mariage 100 pers.",   price: "250 000 FCFA", section: "svc-gastro" },
+  { id: "sg3", title: "Plats sur mesure – commande",  price: "35 000 FCFA",  section: "svc-gastro" },
+];
 
 const CURRENCIES = [
   { code: "FCFA", symbol: "FCFA" },
@@ -72,6 +120,26 @@ export default function AddVideoPage() {
   const [priceModalCurrency, setPriceModalCurrency] = useState("FCFA");
   const [showCurrencyDrop, setShowCurrencyDrop] = useState(false);
   const [photoDescription, setPhotoDescription] = useState("");
+
+  const [vidDescription,   setVidDescription]   = useState("");
+  const [vidPublishing,    setVidPublishing]     = useState(false);
+  const [articleEnabled,   setArticleEnabled]    = useState(true);
+  const [showArticleModal, setShowArticleModal]  = useState(false);
+  const [selectedArticle,  setSelectedArticle]   = useState<Article | null>(null);
+  const [articleSearch,    setArticleSearch]     = useState("");
+  const [activeMenuFilter, setActiveMenuFilter]  = useState<FilterKey>("all");
+
+  const filteredArticles = useMemo(() => {
+    const bySection =
+      activeMenuFilter === "all"     ? DEMO_ARTICLES :
+      activeMenuFilter === "service" ? DEMO_ARTICLES.filter((a) => a.section === "importe" || a.section === "svc-gastro") :
+      DEMO_ARTICLES.filter((a) => a.section === activeMenuFilter);
+    if (!articleSearch.trim()) return bySection;
+    const q = articleSearch.toLowerCase();
+    return bySection.filter((a) => a.title.toLowerCase().includes(q));
+  }, [activeMenuFilter, articleSearch]);
+
+  const sectionMeta = (key: MenuKey) => MENU_SECTIONS.find((s) => s.key === key);
 
   const pauseAllMedia = () => {
     try { videoRef.current?.pauseAsync(); } catch (_) {}
@@ -143,41 +211,36 @@ export default function AddVideoPage() {
     }
   };
 
-  const canPublish = mode === "video" ? !!videoUri : false;
+  const showVideoBar = mode === "video" && !!videoUri;
+  const videoPublishReady = showVideoBar && (!articleEnabled || !!selectedArticle);
   const showPhotoBar = mode === "photo" && photos.length > 0;
   const photoPublishReady =
     showPhotoBar &&
     !!selectedSound &&
     photos.every((_, idx) => !!photoPrices[idx]);
 
-  const handleNext = async () => {
-    if (mode === "photo") {
-      pauseAllMedia();
-      await soundTrimRef.current?.stop();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        "Publication réussie !",
-        "Votre contenu a été envoyé et sera disponible dans quelques instants.",
-        [{ text: "OK", onPress: () => router.push("/(tabs)" as any) }]
-      );
-      return;
-    }
+  const handlePublishVideo = async () => {
+    pauseAllMedia();
+    setVidPublishing(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await new Promise((r) => setTimeout(r, 1500));
+    setVidPublishing(false);
+    Alert.alert(
+      "Publication réussie !",
+      "Votre vidéo a été envoyée et sera disponible dans quelques instants.",
+      [{ text: "OK", onPress: () => router.push("/(tabs)" as any) }]
+    );
+  };
+
+  const handlePublishPhoto = async () => {
     pauseAllMedia();
     await soundTrimRef.current?.stop();
-    Haptics.selectionAsync();
-    router.push({
-      pathname: "/video-publish-settings" as any,
-      params: {
-        mode: mode ?? "",
-        videoUri: videoUri ?? "",
-        photos: JSON.stringify(photos),
-        soundTitle: selectedSound?.title ?? "",
-        soundArtist: selectedSound?.artist ?? "",
-        soundUri: selectedSound?.uri ?? "",
-        soundTrimStartMs: trimStartMs.toString(),
-        soundTrimEndMs: trimEndMs.toString(),
-      },
-    });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert(
+      "Publication réussie !",
+      "Votre contenu a été envoyé et sera disponible dans quelques instants.",
+      [{ text: "OK", onPress: () => router.push("/(tabs)" as any) }]
+    );
   };
 
   const pickSound = () => {
@@ -210,7 +273,7 @@ export default function AddVideoPage() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingBottom: (canPublish || showPhotoBar) ? paddingBottom + 100 : paddingBottom + 24 }]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: (showVideoBar || showPhotoBar) ? paddingBottom + 100 : paddingBottom + 24 }]}
       >
         {/* Mode selection */}
         <Text style={[styles.sectionLabel, { color: dSUB }]}>Choisissez un type</Text>
@@ -269,7 +332,7 @@ export default function AddVideoPage() {
         {/* Reset */}
         {mode !== null && (
           <TouchableOpacity
-            onPress={() => { setMode(null); setVideoUri(null); setPhotos([]); setSelectedSound(null); setTrimStartMs(0); setTrimEndMs(60000); setPhotoPrices({}); setPhotoDescription(""); }}
+            onPress={() => { setMode(null); setVideoUri(null); setPhotos([]); setSelectedSound(null); setTrimStartMs(0); setTrimEndMs(60000); setPhotoPrices({}); setPhotoDescription(""); setVidDescription(""); setSelectedArticle(null); setArticleEnabled(true); }}
             style={styles.resetBtn}
           >
             <Ionicons name="refresh-outline" size={14} color="#9CA3AF" />
@@ -312,6 +375,81 @@ export default function AddVideoPage() {
               }
             </View>
           </View>
+        )}
+
+        {/* VIDEO: Associer un article + Description */}
+        {mode === "video" && videoUri && (
+          <>
+            {/* Toggle article */}
+            <View style={styles.vidField}>
+              <View style={styles.vidToggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sectionLabel, { color: dSUB }]}>Associer un article</Text>
+                  <Text style={[styles.vidToggleDesc, { color: dMUTED }]}>{articleEnabled ? "Liez ce contenu à vos produits" : "Désactivé"}</Text>
+                </View>
+                <Switch
+                  value={articleEnabled}
+                  onValueChange={(v) => { setArticleEnabled(v); if (!v) setSelectedArticle(null); Haptics.selectionAsync(); }}
+                  trackColor={{ false: "#2D2D2D", true: "#FF6B0055" }}
+                  thumbColor={articleEnabled ? "#FF6B00" : "#4B5563"}
+                />
+              </View>
+              {articleEnabled && (
+                <TouchableOpacity
+                  style={[styles.vidArticleBtn, selectedArticle && styles.vidArticleBtnFilled]}
+                  onPress={() => { setShowArticleModal(true); setArticleSearch(""); setActiveMenuFilter("all"); Haptics.selectionAsync(); }}
+                  activeOpacity={0.8}
+                >
+                  {selectedArticle ? (
+                    <View style={styles.vidArticleSelected}>
+                      <View style={[styles.vidArticleIcon, { backgroundColor: (sectionMeta(selectedArticle.section)?.color ?? "#FF6B00") + "20" }]}>
+                        <Ionicons name={sectionMeta(selectedArticle.section)?.icon as any ?? "bag-handle"} size={20} color={sectionMeta(selectedArticle.section)?.color ?? "#FF6B00"} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.vidArticleTitle} numberOfLines={1}>{selectedArticle.title}</Text>
+                        <Text style={[styles.vidArticleMeta, { color: sectionMeta(selectedArticle.section)?.color ?? "#FF6B00" }]}>
+                          {sectionMeta(selectedArticle.section)?.label} • {selectedArticle.price}
+                        </Text>
+                      </View>
+                      <TouchableOpacity onPress={(e) => { e.stopPropagation(); setSelectedArticle(null); Haptics.selectionAsync(); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Ionicons name="close-circle" size={20} color="#4B5563" />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.vidArticleEmpty}>
+                      <View style={styles.vidArticleEmptyIcon}>
+                        <Ionicons name="bag-add-outline" size={22} color="#FF6B00" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.vidArticleEmptyTitle}>Choisir un article</Text>
+                        <Text style={styles.vidArticleEmptyDesc}>Vendeur · Gastronomie · Marché…</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color="#4B5563" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Description optionnelle */}
+            <View style={styles.vidField}>
+              <Text style={[styles.sectionLabel, { color: dSUB }]}>
+                Description <Text style={styles.optionalTag}>(optionnel)</Text>
+              </Text>
+              <TextInput
+                style={[styles.descInput, { backgroundColor: isDark ? "#1A1A1A" : "#F3F4F6", color: dTEXT, borderColor: isDark ? "#2D2D2D" : "rgba(0,0,0,0.1)" }]}
+                placeholder="Décrivez votre vidéo, votre produit..."
+                placeholderTextColor="#6B7280"
+                value={vidDescription}
+                onChangeText={setVidDescription}
+                multiline
+                numberOfLines={4}
+                maxLength={500}
+                textAlignVertical="top"
+              />
+              <Text style={styles.descCount}>{vidDescription.length}/500</Text>
+            </View>
+          </>
         )}
 
         {/* PHOTO VIDEO: sound picker + photo grid */}
@@ -466,12 +604,21 @@ export default function AddVideoPage() {
         )}
       </ScrollView>
 
-      {/* Barre bas — Vidéo : "Suivant" */}
-      {canPublish && (
+      {/* Barre bas — Vidéo : "Publier" */}
+      {showVideoBar && (
         <View style={[styles.bottomBar, { paddingBottom: paddingBottom + 12, backgroundColor: dBAR, borderTopColor: dBORDER }]}>
-          <TouchableOpacity style={styles.nextBtn} onPress={handleNext} activeOpacity={0.85}>
-            <Ionicons name="arrow-forward-circle-outline" size={20} color="#fff" />
-            <Text style={styles.nextBtnText}>Suivant</Text>
+          <TouchableOpacity
+            style={[styles.nextBtn, !videoPublishReady && styles.nextBtnDisabled]}
+            onPress={videoPublishReady && !vidPublishing ? handlePublishVideo : undefined}
+            activeOpacity={videoPublishReady ? 0.85 : 1}
+          >
+            {vidPublishing
+              ? <ActivityIndicator color="#fff" size="small" />
+              : <>
+                  <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
+                  <Text style={styles.nextBtnText}>Publier</Text>
+                </>
+            }
           </TouchableOpacity>
         </View>
       )}
@@ -481,7 +628,7 @@ export default function AddVideoPage() {
         <View style={[styles.bottomBar, { paddingBottom: paddingBottom + 12, backgroundColor: dBAR, borderTopColor: dBORDER }]}>
           <TouchableOpacity
             style={[styles.nextBtn, !photoPublishReady && styles.nextBtnDisabled]}
-            onPress={photoPublishReady ? handleNext : undefined}
+            onPress={photoPublishReady ? handlePublishPhoto : undefined}
             activeOpacity={photoPublishReady ? 0.85 : 1}
           >
             <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
@@ -490,7 +637,128 @@ export default function AddVideoPage() {
         </View>
       )}
 
-      {/* ── Modal Prix Photo ── */}
+      {/* ── Modal Articles Vidéo ── */}
+      <Modal visible={showArticleModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowArticleModal(false)}>
+        <View style={[styles.artModalContainer, { paddingTop: insets.top > 0 ? 16 : 32 }]}>
+          <View style={styles.artModalHeader}>
+            <Text style={styles.artModalTitle}>Associer un article</Text>
+            <TouchableOpacity onPress={() => setShowArticleModal(false)} style={{ padding: 4 }}>
+              <Ionicons name="close" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Onglets filtre */}
+          <View style={{ height: 40 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.artTabs}>
+              <TouchableOpacity
+                style={[styles.artTab, activeMenuFilter === "all" && styles.artTabActive]}
+                onPress={() => { setActiveMenuFilter("all"); Haptics.selectionAsync(); }}
+              >
+                <Text style={[styles.artTabText, activeMenuFilter === "all" && { color: "#FF6B00" }]}>Tous</Text>
+              </TouchableOpacity>
+              {TAB_FILTERS.map((tab) => (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[styles.artTab, activeMenuFilter === tab.key && [styles.artTabActive, { borderColor: tab.color }]]}
+                  onPress={() => { setActiveMenuFilter(tab.key); Haptics.selectionAsync(); }}
+                >
+                  <Ionicons name={tab.icon as any} size={12} color={activeMenuFilter === tab.key ? tab.color : "#6B7280"} />
+                  <Text style={[styles.artTabText, activeMenuFilter === tab.key && { color: tab.color }]}>{tab.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Recherche (sauf onglet Service) */}
+          {activeMenuFilter !== "service" && (
+            <View style={styles.artSearch}>
+              <Ionicons name="search-outline" size={18} color="#4B5563" />
+              <TextInput
+                style={styles.artSearchInput}
+                placeholder="Rechercher un article…"
+                placeholderTextColor="#4B5563"
+                value={articleSearch}
+                onChangeText={setArticleSearch}
+              />
+              {articleSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setArticleSearch("")}>
+                  <Ionicons name="close-circle" size={16} color="#4B5563" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {/* Liste */}
+          {activeMenuFilter === "service" ? (
+            <View style={{ paddingHorizontal: 16, paddingTop: 12, gap: 10 }}>
+              {([
+                { id: "opt-importe",  title: "Importé",          price: "", subtitle: "Articles importés de l'étranger", icon: "airplane-outline", color: "#8B5CF6", section: "importe"    as MenuKey },
+                { id: "opt-plats-sm", title: "Plats sur mesure", price: "", subtitle: "Service traiteur / chef privé",   icon: "sparkles-outline", color: "#06B6D4", section: "svc-gastro" as MenuKey },
+              ] as Article[]).map((opt) => (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={[styles.artRow, selectedArticle?.id === opt.id && styles.artRowActive, { paddingVertical: 16 }]}
+                  onPress={() => { setSelectedArticle(opt); setShowArticleModal(false); Haptics.selectionAsync(); }}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.artRowIcon, { backgroundColor: (opt.color ?? "#FF6B00") + "22", width: 44, height: 44, borderRadius: 12 }]}>
+                    <Ionicons name={(opt.icon ?? "bag-handle-outline") as any} size={22} color={opt.color ?? "#FF6B00"} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.artRowTitle, { fontSize: 15 }]}>{opt.title}</Text>
+                    <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 12, color: "#6B7280", marginTop: 2 }}>{opt.subtitle}</Text>
+                  </View>
+                  {selectedArticle?.id === opt.id
+                    ? <Ionicons name="checkmark-circle" size={22} color="#FF6B00" />
+                    : <Ionicons name="chevron-forward-outline" size={18} color="#4B5563" />
+                  }
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <FlatList
+              data={filteredArticles}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 20 }}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View style={{ paddingVertical: 40, alignItems: "center" }}>
+                  <Ionicons name="bag-outline" size={36} color="#2D2D2D" />
+                  <Text style={{ fontFamily: "Poppins_400Regular", fontSize: 13, color: "#4B5563", marginTop: 10, textAlign: "center" }}>
+                    Aucun article dans cette section
+                  </Text>
+                </View>
+              }
+              renderItem={({ item }) => {
+                const meta = sectionMeta(item.section);
+                return (
+                  <TouchableOpacity
+                    style={[styles.artRow, selectedArticle?.id === item.id && styles.artRowActive]}
+                    onPress={() => { setSelectedArticle(item); setShowArticleModal(false); Haptics.selectionAsync(); }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.artRowIcon, { backgroundColor: (meta?.color ?? "#FF6B00") + "18" }]}>
+                      <Ionicons name={meta?.icon as any ?? "bag-handle-outline"} size={20} color={meta?.color ?? "#FF6B00"} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.artRowTitle} numberOfLines={1}>{item.title}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+                        <View style={[styles.artSectionPill, { backgroundColor: (meta?.color ?? "#FF6B00") + "18" }]}>
+                          <Text style={[styles.artSectionPillText, { color: meta?.color ?? "#FF6B00" }]}>{meta?.label}</Text>
+                        </View>
+                        <Text style={styles.artRowMeta}>{item.price}</Text>
+                      </View>
+                    </View>
+                    {selectedArticle?.id === item.id && <Ionicons name="checkmark-circle" size={20} color="#FF6B00" />}
+                  </TouchableOpacity>
+                );
+              }}
+              ItemSeparatorComponent={() => <View style={styles.artSep} />}
+            />
+          )}
+        </View>
+      </Modal>
+
       <Modal
         visible={pricingIdx !== null}
         animationType="slide"
@@ -633,6 +901,38 @@ const styles = StyleSheet.create({
   },
   nextBtnText: { fontFamily: "Poppins_700Bold", fontSize: 16, color: "#fff" },
   nextBtnDisabled: { backgroundColor: "#374151", opacity: 0.6 },
+
+  vidField: { gap: 8 },
+  vidToggleRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1A1A1A", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: "#2D2D2D" },
+  vidToggleDesc: { fontFamily: "Poppins_400Regular", fontSize: 11, marginTop: 2 },
+  vidArticleBtn: { backgroundColor: "#1A1A1A", borderRadius: 12, borderWidth: 2, borderColor: "#FF6B0050", borderStyle: "dashed", overflow: "hidden" },
+  vidArticleBtnFilled: { borderStyle: "solid", borderColor: "#FF6B00" },
+  vidArticleEmpty: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
+  vidArticleEmptyIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#FF6B0015", alignItems: "center", justifyContent: "center" },
+  vidArticleEmptyTitle: { fontFamily: "Poppins_600SemiBold", fontSize: 14, color: "#E5E7EB" },
+  vidArticleEmptyDesc: { fontFamily: "Poppins_400Regular", fontSize: 11, color: "#4B5563", marginTop: 2 },
+  vidArticleSelected: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
+  vidArticleIcon: { width: 40, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  vidArticleTitle: { fontFamily: "Poppins_600SemiBold", fontSize: 13, color: "#fff" },
+  vidArticleMeta: { fontFamily: "Poppins_400Regular", fontSize: 11, marginTop: 2 },
+
+  artModalContainer: { flex: 1, backgroundColor: "#0F0F0F" },
+  artModalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: "#2D2D2D" },
+  artModalTitle: { fontFamily: "Poppins_700Bold", fontSize: 17, color: "#fff" },
+  artTabs: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, gap: 8 },
+  artTab: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: "#2D2D2D", backgroundColor: "#1A1A1A" },
+  artTabActive: { borderColor: "#FF6B00", backgroundColor: "#FF6B0010" },
+  artTabText: { fontFamily: "Poppins_600SemiBold", fontSize: 11, color: "#6B7280" },
+  artSearch: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 8, marginBottom: 12, backgroundColor: "#1A1A1A", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: "#2D2D2D" },
+  artSearchInput: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 14, color: "#fff" },
+  artRow: { flexDirection: "row", alignItems: "center", paddingVertical: 13, gap: 12 },
+  artRowActive: { opacity: 0.9 },
+  artRowIcon: { width: 42, height: 42, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  artRowTitle: { fontFamily: "Poppins_600SemiBold", fontSize: 14, color: "#E5E7EB" },
+  artRowMeta: { fontFamily: "Poppins_400Regular", fontSize: 12, color: "#4B5563" },
+  artSep: { height: 1, backgroundColor: "#1E1E1E" },
+  artSectionPill: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  artSectionPillText: { fontFamily: "Poppins_600SemiBold", fontSize: 10 },
 
   descSection: { gap: 6 },
   optionalTag: { fontFamily: "Poppins_400Regular", fontSize: 11, color: "#9CA3AF" },
