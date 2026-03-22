@@ -13,43 +13,55 @@ import { STATIC_CATEGORIES } from "./(tabs)/rayons";
 
 /* ── Sections de menus vendeur ── */
 type MenuKey = "vendeur" | "gastro" | "marche" | "supermarche" | "grossiste" | "importe" | "perso" | "svc-gastro";
-const MENU_SECTIONS: { key: MenuKey; label: string; icon: string; color: string; always?: boolean }[] = [
-  { key: "vendeur",     label: "Vendeur",              icon: "storefront-outline",    color: "#FF6B00", always: true },
-  { key: "gastro",      label: "Gastronomie",           icon: "restaurant-outline",    color: "#EC4899" },
-  { key: "marche",      label: "Marché",                icon: "basket-outline",        color: "#22C55E" },
-  { key: "supermarche", label: "Super Marché",          icon: "cart-outline",          color: "#3B82F6" },
-  { key: "grossiste",   label: "Grossiste",             icon: "cube-outline",          color: "#F59E0B" },
-  { key: "importe",     label: "Importé",               icon: "airplane-outline",      color: "#8B5CF6" },
-  { key: "perso",       label: "Personnalisation",      icon: "color-wand-outline",    color: "#06B6D4" },
-  { key: "svc-gastro",  label: "Service Gastronomie",   icon: "sparkles-outline",      color: "#EF4444" },
+type FilterKey = MenuKey | "all" | "service";
+
+/* Métadonnées des sections (pour afficher les badges sur les articles) */
+const MENU_SECTIONS: { key: MenuKey; label: string; icon: string; color: string }[] = [
+  { key: "vendeur",     label: "Vendeur",                  icon: "storefront-outline",  color: "#FF6B00" },
+  { key: "gastro",      label: "Gastronomie",              icon: "restaurant-outline",  color: "#EC4899" },
+  { key: "marche",      label: "Marché",                   icon: "basket-outline",      color: "#22C55E" },
+  { key: "supermarche", label: "Super Marché",             icon: "cart-outline",        color: "#3B82F6" },
+  { key: "grossiste",   label: "Grossiste",                icon: "cube-outline",        color: "#F59E0B" },
+  { key: "perso",       label: "Personnalisation",         icon: "color-wand-outline",  color: "#A855F7" },
+  { key: "importe",     label: "Importé",                  icon: "airplane-outline",    color: "#8B5CF6" },
+  { key: "svc-gastro",  label: "Service plats sur mesure", icon: "sparkles-outline",    color: "#06B6D4" },
+];
+
+/* Onglets de filtre dans le modal — "Service" regroupe importe + svc-gastro */
+const TAB_FILTERS: { key: FilterKey; label: string; icon: string; color: string }[] = [
+  { key: "vendeur",     label: "Vendeur",          icon: "storefront-outline",  color: "#FF6B00" },
+  { key: "gastro",      label: "Gastronomie",      icon: "restaurant-outline",  color: "#EC4899" },
+  { key: "marche",      label: "Marché",           icon: "basket-outline",      color: "#22C55E" },
+  { key: "supermarche", label: "Super Marché",     icon: "cart-outline",        color: "#3B82F6" },
+  { key: "grossiste",   label: "Grossiste",        icon: "cube-outline",        color: "#F59E0B" },
+  { key: "perso",       label: "Personnalisation", icon: "color-wand-outline",  color: "#A855F7" },
+  { key: "service",     label: "Service",          icon: "briefcase-outline",   color: "#06B6D4" },
 ];
 
 /* ── Articles démo organisés par section ── */
 type Article = { id: string; title: string; price: string; section: MenuKey };
 const DEMO_ARTICLES: Article[] = [
-  { id: "v1", title: "Pagne wax Java 6 yards",        price: "12 500 FCFA", section: "vendeur" },
-  { id: "v2", title: "Sac à main cuir marron",        price: "8 000 FCFA",  section: "vendeur" },
-  { id: "v3", title: "Casque audio Bluetooth",        price: "15 000 FCFA", section: "vendeur" },
-  { id: "g1", title: "Poulet braisé sauce arachide",  price: "3 500 FCFA",  section: "gastro" },
-  { id: "g2", title: "Attiéké poisson grillé",        price: "2 500 FCFA",  section: "gastro" },
-  { id: "g3", title: "Thiéboudienne royal",           price: "4 000 FCFA",  section: "gastro" },
-  { id: "m1", title: "Huile de palme rouge 5L",       price: "3 200 FCFA",  section: "marche" },
-  { id: "m2", title: "Sac de riz local 25kg",         price: "18 000 FCFA", section: "marche" },
-  { id: "m3", title: "Tomates fraîches 1kg",          price: "700 FCFA",    section: "marche" },
-  { id: "sm1", title: "Lait concentré sucré x6",      price: "5 400 FCFA",  section: "supermarche" },
-  { id: "sm2", title: "Jus de fruit tropicaux 1L",    price: "1 200 FCFA",  section: "supermarche" },
-  { id: "gr1", title: "Carton de savon Omo 24u",      price: "28 000 FCFA", section: "grossiste" },
-  { id: "gr2", title: "Carton biscuits Prince 12u",   price: "14 000 FCFA", section: "grossiste" },
-  { id: "im1", title: "iPhone 15 Pro Max 256Go",      price: "850 000 FCFA", section: "importe" },
-  { id: "im2", title: "Montre connectée Samsung",     price: "95 000 FCFA",  section: "importe" },
-  { id: "p1",  title: "Broderie personnalisée boubou", price: "12 000 FCFA", section: "perso" },
-  { id: "p2",  title: "Couture robe sur mesure",      price: "25 000 FCFA", section: "perso" },
-  { id: "sg1", title: "Chef privé pour événement",    price: "75 000 FCFA", section: "svc-gastro" },
-  { id: "sg2", title: "Traiteur mariage 100 pers.",   price: "250 000 FCFA", section: "svc-gastro" },
+  { id: "v1",  title: "Pagne wax Java 6 yards",          price: "12 500 FCFA",  section: "vendeur" },
+  { id: "v2",  title: "Sac à main cuir marron",          price: "8 000 FCFA",   section: "vendeur" },
+  { id: "v3",  title: "Casque audio Bluetooth",          price: "15 000 FCFA",  section: "vendeur" },
+  { id: "g1",  title: "Poulet braisé sauce arachide",    price: "3 500 FCFA",   section: "gastro" },
+  { id: "g2",  title: "Attiéké poisson grillé",          price: "2 500 FCFA",   section: "gastro" },
+  { id: "g3",  title: "Thiéboudienne royal",             price: "4 000 FCFA",   section: "gastro" },
+  { id: "m1",  title: "Huile de palme rouge 5L",         price: "3 200 FCFA",   section: "marche" },
+  { id: "m2",  title: "Sac de riz local 25kg",           price: "18 000 FCFA",  section: "marche" },
+  { id: "m3",  title: "Tomates fraîches 1kg",            price: "700 FCFA",     section: "marche" },
+  { id: "sm1", title: "Lait concentré sucré x6",         price: "5 400 FCFA",   section: "supermarche" },
+  { id: "sm2", title: "Jus de fruit tropicaux 1L",       price: "1 200 FCFA",   section: "supermarche" },
+  { id: "gr1", title: "Carton de savon Omo 24u",         price: "28 000 FCFA",  section: "grossiste" },
+  { id: "gr2", title: "Carton biscuits Prince 12u",      price: "14 000 FCFA",  section: "grossiste" },
+  { id: "p1",  title: "Broderie personnalisée boubou",   price: "12 000 FCFA",  section: "perso" },
+  { id: "p2",  title: "Couture robe sur mesure",         price: "25 000 FCFA",  section: "perso" },
+  { id: "im1", title: "iPhone 15 Pro Max 256Go",         price: "850 000 FCFA", section: "importe" },
+  { id: "im2", title: "Montre connectée Samsung",        price: "95 000 FCFA",  section: "importe" },
+  { id: "sg1", title: "Chef privé pour événement",       price: "75 000 FCFA",  section: "svc-gastro" },
+  { id: "sg2", title: "Traiteur mariage 100 pers.",      price: "250 000 FCFA", section: "svc-gastro" },
+  { id: "sg3", title: "Plats sur mesure – commande",     price: "35 000 FCFA",  section: "svc-gastro" },
 ];
-
-/* Sections "actives" simulées — en production, vient du profil vendeur */
-const ACTIVE_SECTIONS: MenuKey[] = ["vendeur", "gastro", "marche", "supermarche"];
 
 export default function VideoPublishSettings() {
   const router = useRouter();
@@ -71,7 +83,7 @@ export default function VideoPublishSettings() {
   const [showArticleModal,  setShowArticleModal]  = useState(false);
   const [selectedArticle,   setSelectedArticle]   = useState<Article | null>(null);
   const [articleSearch,     setArticleSearch]     = useState("");
-  const [activeMenuFilter,  setActiveMenuFilter]  = useState<MenuKey | "all">("all");
+  const [activeMenuFilter,  setActiveMenuFilter]  = useState<FilterKey>("all");
 
   /* Catégorie */
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -80,14 +92,12 @@ export default function VideoPublishSettings() {
   const isVideo    = params.mode === "video";
   const photoCount = (() => { try { return JSON.parse(params.photos || "[]").length; } catch { return 0; } })();
 
-  /* Sections visibles = toujours + celles actives */
-  const visibleSections = MENU_SECTIONS.filter((s) => s.always || ACTIVE_SECTIONS.includes(s.key));
-
   /* Articles filtrés */
   const filteredArticles = useMemo(() => {
-    const bySection = activeMenuFilter === "all"
-      ? DEMO_ARTICLES.filter((a) => ACTIVE_SECTIONS.includes(a.section))
-      : DEMO_ARTICLES.filter((a) => a.section === activeMenuFilter);
+    const bySection =
+      activeMenuFilter === "all"     ? DEMO_ARTICLES :
+      activeMenuFilter === "service" ? DEMO_ARTICLES.filter((a) => a.section === "importe" || a.section === "svc-gastro") :
+      DEMO_ARTICLES.filter((a) => a.section === activeMenuFilter);
     if (!articleSearch.trim()) return bySection;
     const q = articleSearch.toLowerCase();
     return bySection.filter((a) => a.title.toLowerCase().includes(q));
@@ -298,21 +308,26 @@ export default function VideoPublishSettings() {
           </View>
 
           {/* Filtres par menu — onglets compacts */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.sectionTabs}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ height: 44 }}
+            contentContainerStyle={s.sectionTabs}
+          >
             <TouchableOpacity
               style={[s.sectionTab, activeMenuFilter === "all" && s.sectionTabActive]}
               onPress={() => { setActiveMenuFilter("all"); Haptics.selectionAsync(); }}
             >
               <Text style={[s.sectionTabText, activeMenuFilter === "all" && { color: "#FF6B00" }]}>Tous</Text>
             </TouchableOpacity>
-            {visibleSections.map((sec) => (
+            {TAB_FILTERS.map((tab) => (
               <TouchableOpacity
-                key={sec.key}
-                style={[s.sectionTab, activeMenuFilter === sec.key && [s.sectionTabActive, { borderColor: sec.color }]]}
-                onPress={() => { setActiveMenuFilter(sec.key); Haptics.selectionAsync(); }}
+                key={tab.key}
+                style={[s.sectionTab, activeMenuFilter === tab.key && [s.sectionTabActive, { borderColor: tab.color }]]}
+                onPress={() => { setActiveMenuFilter(tab.key); Haptics.selectionAsync(); }}
               >
-                <Ionicons name={sec.icon as any} size={12} color={activeMenuFilter === sec.key ? sec.color : "#6B7280"} />
-                <Text style={[s.sectionTabText, activeMenuFilter === sec.key && { color: sec.color }]}>{sec.label}</Text>
+                <Ionicons name={tab.icon as any} size={12} color={activeMenuFilter === tab.key ? tab.color : "#6B7280"} />
+                <Text style={[s.sectionTabText, activeMenuFilter === tab.key && { color: tab.color }]}>{tab.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -325,7 +340,9 @@ export default function VideoPublishSettings() {
               placeholder={
                 activeMenuFilter === "all"
                   ? "Rechercher un article…"
-                  : `Rechercher dans ${visibleSections.find((sec) => sec.key === activeMenuFilter)?.label ?? ""}…`
+                  : activeMenuFilter === "service"
+                  ? "Rechercher dans Service…"
+                  : `Rechercher dans ${TAB_FILTERS.find((t) => t.key === activeMenuFilter)?.label ?? ""}…`
               }
               placeholderTextColor="#4B5563"
               value={articleSearch}
@@ -489,7 +506,7 @@ const s = StyleSheet.create({
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: "#2D2D2D" },
   modalTitle: { fontFamily: "Poppins_700Bold", fontSize: 17, color: "#fff" },
   modalClose: { padding: 4 },
-  modalSearch: { flexDirection: "row", alignItems: "center", gap: 10, margin: 16, backgroundColor: "#1A1A1A", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: "#2D2D2D" },
+  modalSearch: { flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginBottom: 12, backgroundColor: "#1A1A1A", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: "#2D2D2D" },
   modalSearchInput: { flex: 1, fontFamily: "Poppins_400Regular", fontSize: 14, color: "#fff" },
 
   /* Tabs sections */
