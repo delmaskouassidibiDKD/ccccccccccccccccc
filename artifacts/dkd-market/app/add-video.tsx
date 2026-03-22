@@ -453,7 +453,7 @@ export default function AddVideoPage() {
         )}
 
         {/* PHOTO VIDEO: sound picker + photo grid */}
-        {mode === "photo" && (
+        {showPhotoBar && (
           <>
             {/* Sound picker (required) */}
             <View style={styles.soundSection}>
