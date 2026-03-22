@@ -71,6 +71,7 @@ export default function AddVideoPage() {
   const [priceModalPrice, setPriceModalPrice] = useState("");
   const [priceModalCurrency, setPriceModalCurrency] = useState("FCFA");
   const [showCurrencyDrop, setShowCurrencyDrop] = useState(false);
+  const [photoDescription, setPhotoDescription] = useState("");
 
   const pauseAllMedia = () => {
     try { videoRef.current?.pauseAsync(); } catch (_) {}
@@ -142,18 +143,25 @@ export default function AddVideoPage() {
     }
   };
 
-  const canPublish = mode === "video"
-    ? !!videoUri
-    : mode === "photo"
-    ? photos.length > 0 && !!selectedSound
-    : false;
+  const canPublish = mode === "video" ? !!videoUri : false;
+  const showPhotoBar = mode === "photo" && photos.length > 0;
+  const photoPublishReady =
+    showPhotoBar &&
+    !!selectedSound &&
+    photos.every((_, idx) => !!photoPrices[idx]);
 
   const handleNext = async () => {
-    if (mode === "photo" && !selectedSound) {
-      Alert.alert("Son requis", "Veuillez choisir un son avant de continuer.");
+    if (mode === "photo") {
+      pauseAllMedia();
+      await soundTrimRef.current?.stop();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        "Publication réussie !",
+        "Votre contenu a été envoyé et sera disponible dans quelques instants.",
+        [{ text: "OK", onPress: () => router.push("/(tabs)" as any) }]
+      );
       return;
     }
-    /* Arrêt explicite de la vidéo avant de quitter la page */
     pauseAllMedia();
     await soundTrimRef.current?.stop();
     Haptics.selectionAsync();
@@ -202,7 +210,7 @@ export default function AddVideoPage() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingBottom: canPublish ? paddingBottom + 90 : paddingBottom + 24 }]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: (canPublish || showPhotoBar) ? paddingBottom + 100 : paddingBottom + 24 }]}
       >
         {/* Mode selection */}
         <Text style={[styles.sectionLabel, { color: dSUB }]}>Choisissez un type</Text>
@@ -261,7 +269,7 @@ export default function AddVideoPage() {
         {/* Reset */}
         {mode !== null && (
           <TouchableOpacity
-            onPress={() => { setMode(null); setVideoUri(null); setPhotos([]); setSelectedSound(null); setTrimStartMs(0); setTrimEndMs(60000); setPhotoPrices({}); }}
+            onPress={() => { setMode(null); setVideoUri(null); setPhotos([]); setSelectedSound(null); setTrimStartMs(0); setTrimEndMs(60000); setPhotoPrices({}); setPhotoDescription(""); }}
             style={styles.resetBtn}
           >
             <Ionicons name="refresh-outline" size={14} color="#9CA3AF" />
@@ -412,6 +420,35 @@ export default function AddVideoPage() {
                 <Text style={styles.hintText}>Choisissez un son pour pouvoir publier</Text>
               </View>
             )}
+
+            {/* Prix manquants */}
+            {selectedSound && photos.length > 0 && !photos.every((_, idx) => !!photoPrices[idx]) && (
+              <View style={styles.hint}>
+                <Ionicons name="pricetag-outline" size={16} color="#F59E0B" />
+                <Text style={styles.hintText}>Ajoutez le prix sur chaque photo pour pouvoir publier</Text>
+              </View>
+            )}
+
+            {/* Description (optionnel) */}
+            {photos.length > 0 && (
+              <View style={styles.descSection}>
+                <Text style={[styles.sectionLabel, { color: dSUB }]}>
+                  Description <Text style={styles.optionalTag}>(optionnel)</Text>
+                </Text>
+                <TextInput
+                  style={[styles.descInput, { backgroundColor: isDark ? "#1A1A1A" : "#F3F4F6", color: dTEXT, borderColor: isDark ? "#2D2D2D" : "rgba(0,0,0,0.1)" }]}
+                  placeholder="Décrivez votre contenu, vos produits..."
+                  placeholderTextColor="#6B7280"
+                  value={photoDescription}
+                  onChangeText={setPhotoDescription}
+                  multiline
+                  numberOfLines={4}
+                  maxLength={500}
+                  textAlignVertical="top"
+                />
+                <Text style={styles.descCount}>{photoDescription.length}/500</Text>
+              </View>
+            )}
           </>
         )}
 
@@ -429,12 +466,26 @@ export default function AddVideoPage() {
         )}
       </ScrollView>
 
-      {/* Bottom "Suivant" bar — visible only when content is ready */}
+      {/* Barre bas — Vidéo : "Suivant" */}
       {canPublish && (
         <View style={[styles.bottomBar, { paddingBottom: paddingBottom + 12, backgroundColor: dBAR, borderTopColor: dBORDER }]}>
           <TouchableOpacity style={styles.nextBtn} onPress={handleNext} activeOpacity={0.85}>
             <Ionicons name="arrow-forward-circle-outline" size={20} color="#fff" />
             <Text style={styles.nextBtnText}>Suivant</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Barre bas — Photo : "Publier" (toujours visible, désactivé si incomplet) */}
+      {showPhotoBar && (
+        <View style={[styles.bottomBar, { paddingBottom: paddingBottom + 12, backgroundColor: dBAR, borderTopColor: dBORDER }]}>
+          <TouchableOpacity
+            style={[styles.nextBtn, !photoPublishReady && styles.nextBtnDisabled]}
+            onPress={photoPublishReady ? handleNext : undefined}
+            activeOpacity={photoPublishReady ? 0.85 : 1}
+          >
+            <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
+            <Text style={styles.nextBtnText}>Publier</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -581,6 +632,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   nextBtnText: { fontFamily: "Poppins_700Bold", fontSize: 16, color: "#fff" },
+  nextBtnDisabled: { backgroundColor: "#374151", opacity: 0.6 },
+
+  descSection: { gap: 6 },
+  optionalTag: { fontFamily: "Poppins_400Regular", fontSize: 11, color: "#9CA3AF" },
+  descInput: {
+    borderRadius: 12,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: "Poppins_400Regular",
+    fontSize: 13,
+    height: 100,
+  },
+  descCount: { fontFamily: "Poppins_400Regular", fontSize: 10, color: "#6B7280", textAlign: "right" },
 
   scroll: { paddingHorizontal: 16, paddingTop: 20, gap: 16 },
 
